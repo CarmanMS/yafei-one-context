@@ -1,10 +1,14 @@
 # Prompts
 
-All prompt and context fragments for AI tooling live under [diagram/](diagram/README.md).
+Reusable prompt and context fragments for AI tooling (tool-neutral text). Add subfolders or files here as needed; adapters decide how they are injected.
 
-These describe reusable intent, not vendor-specific syntax. Adapters translate them into tool-native formats.
+There is no bundled prompt library in this distribution — copy or author prompts for your workspace.
 
-## How to find the right prompt
+## Classification
 
-- **代码生成技术图表**（架构图、流程图、序列图）→ [diagram/](diagram/) README 场景一
-- **文生图**（信息图、概念图、科普长图、品牌图、论文插图）→ [diagram/](diagram/) README 场景二 → [ROUTING.md](diagram/ROUTING.md)
+| Question | Goes in |
+|----------|---------|
+| "What is the rule / policy / schema?" | `../standards/` |
+| "How do I do X step by step?" | `../playbooks/` |
+| "What reusable prompt can I inject?" | `prompts/` (this tree) |
+| "How does system Y work? External articles?" | `../references/` |

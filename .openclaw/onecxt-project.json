@@ -11,10 +11,6 @@
     ],
     "agents": [
       {
-        "id": "ai-infra",
-        "path": ".openclaw/agents/ai-infra.json"
-      },
-      {
         "id": "architect",
         "path": ".openclaw/agents/architect.json"
       },

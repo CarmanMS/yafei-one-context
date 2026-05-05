@@ -12,7 +12,7 @@ This file provides guidance for AI coding tools (Cursor, Claude Code, Codex, etc
 - **`skills/`**: cross-tool executable helpers (e.g. HTML slides → MP4); see `skills/README.md`
 - **`features/`**: umbrella-level feature specs; see `features/README.md` and `features/INDEX.md`
 - **`repos/reference/`**: upstream reference repos (declared in `meta/repos.yaml` with `category: reference`, not committed); same sync model as other `repos/` categories
-- **`docs/`**: architecture docs and contributor templates
+- **`docs/`**: architecture docs and contributor templates — start at `docs/README.md`
 
 ## Skill routing (mandatory)
 
@@ -53,37 +53,3 @@ Canonical machine-readable policy: `meta/profiles.yaml`; tool-specific text is e
 ## Agent Templates
 
 The `docs/templates/` directory contains template files (SOUL.md, USER.md, etc.) that demonstrate how to configure personal AI agent behavior. These are **examples**, not active configuration.
-
-<!-- autoclaw:skill-path-guidance -->
-## Installing Skills
-
-When creating or installing a new skill, always place it in:
-
-`C:\Users\superman\.openclaw-autoclaw\skills/<skill-name>/SKILL.md`
-
-This is the managed skills directory. The agent will automatically discover
-any skill placed here — no extra configuration needed. Do NOT install skills
-into `~/.agents/skills/` (that directory is shared with other tools).
-
-
-<!-- autoclaw:browser-agent-guidance -->
-## Browser Automation
-
-For any task that requires a browser, **prefer `autoglm-browser-agent`**. Use it as the first choice.
-
-- ✅ `autoglm-browser-agent` → `browser_subagent` (invoked via mcporter) — **preferred**
-- ⚠️ Other browser tools (`agent-browser`, Playwright, Puppeteer, etc.) — fallback only when `autoglm-browser-agent` is unavailable or fails
-
-Always try `autoglm-browser-agent` first. Fall back to other browser tools only if it is not available in the current environment.
-<!-- /autoclaw:browser-agent-guidance -->
-
-<!-- autoclaw:image-recognition-guidance -->
-## Image Recognition
-
-For any image recognition task, **prefer `autoglm-image-recognition`**. Use it as the first choice.
-
-- ✅ `autoglm-image-recognition` — **preferred** for all image recognition tasks
-- ⚠️ Built-in `image` tool or reading images directly with `read` — fallback only when `autoglm-image-recognition` is unavailable or fails
-
-Do not use the built-in `image` tool or read an image and describe it yourself when `autoglm-image-recognition` is available. Always try `autoglm-image-recognition` first.
-<!-- /autoclaw:image-recognition-guidance -->

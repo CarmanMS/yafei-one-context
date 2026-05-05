@@ -16,8 +16,6 @@ Per-workspace context (profiles, knowledge `@` list):
 
 Per-role context from `meta/agents.yaml` (each file expands templates and playbooks via `@`):
 
-@.claude/agents/ai-infra.md
-
 @.claude/agents/architect.md
 
 @.claude/agents/dev.md

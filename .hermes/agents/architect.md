@@ -87,33 +87,6 @@ Write shared meaning once. Adapt it many times.
 
 The system should avoid storing the same intent separately in multiple vendor-specific configuration files whenever a canonical source can exist instead.
 
-<!-- source: knowledge/standards/README.md -->
-# Standards
-
-Tool-neutral engineering conventions and policies for `one-context`.
-
-## Files
-
-| File | Scope |
-|------|-------|
-| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
-| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
-
-## What belongs here
-
-- Coding conventions and repository layout policies
-- Documentation standards and testing expectations
-- Safety, write-boundary, and data-handling policies
-- Schema definitions and interface contracts
-
-## What does NOT belong here
-
-- Architecture analysis or source-code walkthroughs → `references/`
-- Diagram samples and visual design guides → `references/`
-- Step-by-step operating procedures → `playbooks/`
-
-Add links to new standards in the table above when creating a file.
-
 <!-- source: knowledge/standards/agent-framework.md -->
 # Agent Framework — 智能体框架规范
 
@@ -830,6 +803,33 @@ This strategy requires:
 - Oracle and test implementation interfaces must be compatible, otherwise mixing is impossible
 - Interaction bugs (requiring multiple files/modules combined to appear) need delta debugging or other additional methods
 
+<!-- source: knowledge/standards/README.md -->
+# Standards
+
+Tool-neutral engineering conventions and policies for `one-context`.
+
+## Files
+
+| File | Scope |
+|------|-------|
+| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
+| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
+
+## What belongs here
+
+- Coding conventions and repository layout policies
+- Documentation standards and testing expectations
+- Safety, write-boundary, and data-handling policies
+- Schema definitions and interface contracts
+
+## What does NOT belong here
+
+- Architecture analysis or source-code walkthroughs → `references/`
+- Diagram samples and visual design guides → `references/`
+- Step-by-step operating procedures → `playbooks/`
+
+Add links to new standards in the table above when creating a file.
+
 <!-- source: meta/repos.yaml -->
 # Sub-repository manifest (single source of truth for humans + tooling).
 #
@@ -862,42 +862,7 @@ version: 1
 #   - url: git@test.local:your-org/research-notes
 #     category: research
 #     description: Research notes and documentation.
-repos:
-  - url: https://github.com/CarmanMS/FunctionCanvas
-    category: develop
-    description: FunctionCanvas
-  - url: https://github.com/CarmanMS/VideoFactory
-    category: develop
-    description: VideoFactory
-  - url: https://github.com/CarmanMS/paperwork
-    category: research
-    description: paperwork
-  - url: https://github.com/CarmanMS/hangprofile
-    category: develop
-    description: Student learning & growth archive (课内/课外/原始材料/归纳); AI-friendly folder layout.
-  - url: https://github.com/VoltAgent/awesome-design-md
-    category: reference
-    id: awesome-design-md
-    alias: awesome-design
-    description: Curated DESIGN.md design-system snippets for agent-driven UI (reference only).
-  - url: https://github.com/shanraisshan/claude-code-best-practice.git
-    category: reference
-    id: claude-code-best-practice
-    alias: ccbp
-    description: Claude Code workflow demos (slash commands, agents, skills, development-workflows); local reference only, not bundled.
-  - url: https://github.com/Cocoon-AI/architecture-diagram-generator
-    category: reference
-    id: arch-diagram-gen
-    alias: archdiag
-    description: Claude AI skill for generating dark-themed system architecture diagrams (HTML/SVG).
-  - url: https://github.com/sansan0/TrendRadar
-    category: integrations
-    id: trend-radar
-    description: 趋势雷达 — 多平台热点聚合 + MCP AI分析 + 企微/微信/飞书推送（33k+ stars）。
-  - url: https://github.com/heygen-com/hyperframes
-    category: reference
-    id: hyperframes
-    description: HeyGen 开源 HTML→视频合成框架（CLI、Puppeteer+FFmpeg、Agent skills）；与本仓 html-video-from-slides 并行参考，不替换。
+repos: []
 
 <!-- source: meta/workspaces.yaml -->
 # Task- or theme-oriented workspace definitions.
@@ -943,4 +908,3 @@ workspaces:
         - features/README.md
         - features/INDEX.md
         - features/_template/
-        - skills/skill-parallel-verify/

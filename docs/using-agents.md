@@ -33,7 +33,7 @@ onecxt adapt <workspace>
 ### 第二步：生成工具配置
 
 ```bash
-onecxt adapt my-project
+onecxt adapt example-workspace
 # 或：onecxt adapt --all
 ```
 
@@ -97,7 +97,7 @@ feature: user-auth，涉及仓库 repo-a、repo-b，请创建 worktree 并更新
 
 ### OpenClaw
 
-OpenClaw 通过 `.openclaw/onecxt-my-project.json` 加载，与上述流程一致。调用方式同 Claude Code，直接在对话中说明角色。
+OpenClaw 通过 `.openclaw/onecxt-<workspace-id>.json`（例如 `onecxt-example-workspace.json`）加载，与上述流程一致。调用方式同 Claude Code，直接在对话中说明角色。
 
 ---
 
@@ -263,6 +263,6 @@ features/core/user-login/
 
 - `knowledge/standards/agent-framework.md` — 完整框架规范（schema、产物所有权、worktree 约定）
 - `meta/agents.yaml` — 智能体注册表（可直接查看各智能体的 instructions）
-- `features/core/agent-framework/spec.md` — 本功能的实现路线图
 - `docs/architecture.md` — 系统架构
+- `docs/manifests.md` — `meta/*.yaml` 字段说明
 - `features/README.md` — Feature 目录约定

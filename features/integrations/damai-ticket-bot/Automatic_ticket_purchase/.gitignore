@@ -1,6 +1,0 @@
-.idea/
-
-Pipfile
-
-# Local Selenium driver (download from vendor; large binary)
-chromedriver*.exe

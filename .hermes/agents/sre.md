@@ -36,27 +36,6 @@ Include verification steps (e.g. test commands) after making changes.
 
 ## Knowledge
 
-<!-- source: knowledge/playbooks/README.md -->
-# Playbooks
-
-Step-by-step operating procedures for common tasks.
-
-## Available
-
-| Playbook | Purpose |
-|----------|---------|
-| `add-umbrella-feature.md` | 新增伞仓级需求到 `features/` — 索引、目录、spec、进度跟踪全流程 |
-| `use-microsoft-markitdown.md` | 使用 Microsoft MarkItDown：环境、安装、CLI、Python、MCP、Docker、排障 |
-
-## Planned (not yet written)
-
-- Onboarding a new repository
-- Preparing a release workspace
-- Reviewing a cross-repo change
-- Generating AI-ready context for a task
-
-When adding a playbook, update the Available table above.
-
 <!-- source: knowledge/playbooks/add-umbrella-feature.md -->
 ﻿# Playbook: 新增伞仓级需求（`features/`）
 
@@ -223,6 +202,27 @@ When adding a playbook, update the Available table above.
 - [ ] 核心失败路径有对应测试
 - [ ] 测试不依赖网络 / 外部服务
 
+<!-- source: knowledge/playbooks/README.md -->
+# Playbooks
+
+Step-by-step operating procedures for common tasks.
+
+## Available
+
+| Playbook | Purpose |
+|----------|---------|
+| `add-umbrella-feature.md` | 新增伞仓级需求到 `features/` — 索引、目录、spec、进度跟踪全流程 |
+| `use-microsoft-markitdown.md` | 使用 Microsoft MarkItDown：环境、安装、CLI、Python、MCP、Docker、排障 |
+
+## Planned (not yet written)
+
+- Onboarding a new repository
+- Preparing a release workspace
+- Reviewing a cross-repo change
+- Generating AI-ready context for a task
+
+When adding a playbook, update the Available table above.
+
 <!-- source: knowledge/playbooks/sre-release-process.md -->
 # Playbook: SRE 发布流程
 
@@ -316,8 +316,6 @@ git revert <merge-commit>
 # Playbook: 使用 Microsoft MarkItDown 将文件转为 Markdown
 
 适用于需要把 PDF、Office、图片、音频等批量转为 **Markdown**（供 LLM、RAG、笔记或版本管理）的场景。项目常被称为「MakeItDown」，**正式名称为 MarkItDown**。
-
-**前置阅读（可选）**：`knowledge/references/microsoft-markitdown.md`（项目定位与索引）。
 
 **权威文档**（选项最全、随版本更新）：[microsoft/markitdown README](https://github.com/microsoft/markitdown/blob/main/README.md)。
 
@@ -555,39 +553,4 @@ version: 1
 #   - url: git@test.local:your-org/research-notes
 #     category: research
 #     description: Research notes and documentation.
-repos:
-  - url: https://github.com/CarmanMS/FunctionCanvas
-    category: develop
-    description: FunctionCanvas
-  - url: https://github.com/CarmanMS/VideoFactory
-    category: develop
-    description: VideoFactory
-  - url: https://github.com/CarmanMS/paperwork
-    category: research
-    description: paperwork
-  - url: https://github.com/CarmanMS/hangprofile
-    category: develop
-    description: Student learning & growth archive (课内/课外/原始材料/归纳); AI-friendly folder layout.
-  - url: https://github.com/VoltAgent/awesome-design-md
-    category: reference
-    id: awesome-design-md
-    alias: awesome-design
-    description: Curated DESIGN.md design-system snippets for agent-driven UI (reference only).
-  - url: https://github.com/shanraisshan/claude-code-best-practice.git
-    category: reference
-    id: claude-code-best-practice
-    alias: ccbp
-    description: Claude Code workflow demos (slash commands, agents, skills, development-workflows); local reference only, not bundled.
-  - url: https://github.com/Cocoon-AI/architecture-diagram-generator
-    category: reference
-    id: arch-diagram-gen
-    alias: archdiag
-    description: Claude AI skill for generating dark-themed system architecture diagrams (HTML/SVG).
-  - url: https://github.com/sansan0/TrendRadar
-    category: integrations
-    id: trend-radar
-    description: 趋势雷达 — 多平台热点聚合 + MCP AI分析 + 企微/微信/飞书推送（33k+ stars）。
-  - url: https://github.com/heygen-com/hyperframes
-    category: reference
-    id: hyperframes
-    description: HeyGen 开源 HTML→视频合成框架（CLI、Puppeteer+FFmpeg、Agent skills）；与本仓 html-video-from-slides 并行参考，不替换。
+repos: []

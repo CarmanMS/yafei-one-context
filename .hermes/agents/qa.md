@@ -34,33 +34,6 @@ Verification steps are optional — focus on the design and rationale.
 
 ## Knowledge
 
-<!-- source: knowledge/standards/README.md -->
-# Standards
-
-Tool-neutral engineering conventions and policies for `one-context`.
-
-## Files
-
-| File | Scope |
-|------|-------|
-| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
-| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
-
-## What belongs here
-
-- Coding conventions and repository layout policies
-- Documentation standards and testing expectations
-- Safety, write-boundary, and data-handling policies
-- Schema definitions and interface contracts
-
-## What does NOT belong here
-
-- Architecture analysis or source-code walkthroughs → `references/`
-- Diagram samples and visual design guides → `references/`
-- Step-by-step operating procedures → `playbooks/`
-
-Add links to new standards in the table above when creating a file.
-
 <!-- source: knowledge/standards/agent-framework.md -->
 # Agent Framework — 智能体框架规范
 
@@ -777,36 +750,43 @@ This strategy requires:
 - Oracle and test implementation interfaces must be compatible, otherwise mixing is impossible
 - Interaction bugs (requiring multiple files/modules combined to appear) need delta debugging or other additional methods
 
+<!-- source: knowledge/standards/README.md -->
+# Standards
+
+Tool-neutral engineering conventions and policies for `one-context`.
+
+## Files
+
+| File | Scope |
+|------|-------|
+| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
+| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
+
+## What belongs here
+
+- Coding conventions and repository layout policies
+- Documentation standards and testing expectations
+- Safety, write-boundary, and data-handling policies
+- Schema definitions and interface contracts
+
+## What does NOT belong here
+
+- Architecture analysis or source-code walkthroughs → `references/`
+- Diagram samples and visual design guides → `references/`
+- Step-by-step operating procedures → `playbooks/`
+
+Add links to new standards in the table above when creating a file.
+
 <!-- source: features/INDEX.md -->
 # Features index
 
 在新建或归档需求时更新本表。`id` 建议与目录名 `features/<category>/<feature-id>/` 中的 `<feature-id>` 一致（或与 `spec.md` frontmatter 的 `id` 一致）。
 
+当前无已登记需求；新建时请复制 `features/_template/` 并按 `knowledge/playbooks/add-umbrella-feature.md` 更新本表。
 
-| id                            | title                                                 | category | status | path                                              | primary_repo_id |
-| ----------------------------- | ----------------------------------------------------- | -------- | ------ | ------------------------------------------------- | --------------- |
-| agent-framework               | 智能体框架 — meta/agents.yaml + 适配器扩展 + worktree/deploy 约定 | core     | done   | `features/core/agent-framework/`                  | one-context     |
-| auto-context-compression      | 自动上下文压缩 — 定时扫描 knowledge/features 等，去重与去陈旧            | core     | draft  | `features/core/auto-context-compression/`         | one-context     |
-| agent-collaboration           | 智能体协作增强 — 状态流转、决策手册、条件知识、生成保护                         | core     | draft  | `features/core/agent-collaboration/`              | one-context     |
-| profile-inheritance           | Profile 继承与 Mixin 机制                                  | core     | draft  | `features/core/profile-inheritance/`              | one-context     |
-| claudecode-source-analysis    | Claude Code 源码解析知识整理                                  | develop  | done   | `features/develop/claudecode-source-analysis/`    | one-context     |
-| openclaw-source-analysis      | OpenClaw 源码解析知识整理                                     | develop  | done   | `features/develop/openclaw-source-analysis/`      | one-context     |
-| claude-caveman-mode           | 用穴居人模式让 Claude 省 Token                                | develop  | done   | `features/develop/claude-caveman-mode/`           | one-context     |
-| math-teacher-ai-platform      | 数学教师 AI 工作台 — Phase 1 可视化资产化与 AI 出题 MVP          | develop  | draft  | `features/develop/math-teacher-ai-platform/`      | FunctionCanvas  |
-| one-context-intro-short-video | one-context 中视频介绍（爆款口播框架）                             | content-pipeline  | draft  | `features/content-pipeline/one-context-intro-short-video/` | one-context     |
-| hermes-agent-short-video      | Hermes Agent 短视频口播成片（wav-auto）                          | content-pipeline  | draft  | `features/content-pipeline/hermes-agent-short-video/`      | one-context     |
-| anthropic-agent-harness-narration | Anthropic Agent Harness 哲学 — 口播稿                         | content-pipeline  | draft  | `features/content-pipeline/anthropic-agent-harness-narration/` | one-context |
-| damai-ticket-bot              | 大麦抢票助手 — 浏览器插件 + CLI 集成 one-context skill                 | develop  | draft  | `features/develop/damai-ticket-bot/`              | one-context     |
-| operator-spaces-paper-analysis | 算子空间论文深度分析 — 发现证明漏洞与改进机会 | research | in_progress | `features/research/operator-spaces-paper-analysis/` | paperwork |
-| skill-windows-c-drive-cleanup | Windows C 盘空间清理 — 仓库内 Agent Skill                     | core     | done   | `features/core/skill-windows-c-drive-cleanup/`    | one-context     |
-| unified-adapter-rules         | 统一适配器规则源 — 声明式 manifest，消除 PROFILE_RULES 重复          | core     | done   | `features/core/unified-adapter-rules/`            | one-context     |
-| ai-mid-mgmt-video             | AI 中视频管理 — 素材与发布工具链                                       | content-pipeline  | draft  | `features/content-pipeline/ai-mid-mgmt-video/`             | one-context     |
-| hermes-adapter                | Hermes Adapter — one-context 支持 Hermes Agent CLI                     | core     | draft  | `features/core/hermes-adapter/`                   | one-context     |
-| gsd-integration               | GSD 集成 — one-context 上下文注入 GSD 工作流                              | core     | draft  | `features/core/gsd-integration/`                  | one-context     |
-| trend-radar-integration        | TrendRadar 趋势雷达集成 — 热点情报 + MCP + 微信推送                         | integrations | in_progress | `features/integrations/trend-radar/`      | trend-radar    |
-| short-video-reporting-paradigm | 短视频式汇报范式 — 用内容创作思路重塑职场汇报                             | content-pipeline | draft | `features/content-pipeline/short-video-reporting-paradigm/` | one-context |
-| hyperframes-video              | HyperFrames WAV-to-Video — HTML Native 动画视频制作技能              | content-pipeline | draft | `features/content-pipeline/hyperframes-video/` | one-context |
-
+| id | title | category | status | path | primary_repo_id |
+| -- | ----- | -------- | ------ | ---- | --------------- |
+| — | — | — | — | — | — |
 
 **Columns**
 
@@ -904,6 +884,27 @@ features/
 - 不要在 `test_report.md` / `mr_report.md` 中粘贴密钥；内部 URL 若仓库可能对外公开，需脱敏。
 
 更完整的 one-context 约定见根目录 `README.md`、`knowledge/standards/one-context-conventions.md`。
+
+<!-- source: features/_template/content-production/production/content/00-structure.md -->
+# 话题大纲
+
+<!-- 视频的话题拆分、每段核心要点、预计时长 -->
+
+<!-- source: features/_template/content-production/production/content/01-script.md -->
+# 口播讲稿
+
+<!-- 完整口播文字稿，按话题段落组织 -->
+
+<!-- source: features/_template/content-production/production/content/05-publish-kit.md -->
+# 发布素材
+
+标题：
+
+简介：
+
+话题：
+
+<!-- 各平台标题、简介、话题标签、置顶评论、章节轴、检查清单 -->
 
 <!-- source: features/_template/content-production/README.md -->
 # Content Production — 短视频 Feature 模板
@@ -1013,27 +1014,6 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | 8 | content/ 有讲稿 | `production/content/01-script.md` 存在 |
 | 9 | INDEX.md 一致 | `features/INDEX.md` 中该 feature 的 path 与实际目录一致 |
 | 10 | spec.md 路径自洽 | spec.md 内引用的路径前缀与实际 `features/content-pipeline/<id>/` 一致 |
-
-<!-- source: features/_template/content-production/production/content/00-structure.md -->
-# 话题大纲
-
-<!-- 视频的话题拆分、每段核心要点、预计时长 -->
-
-<!-- source: features/_template/content-production/production/content/01-script.md -->
-# 口播讲稿
-
-<!-- 完整口播文字稿，按话题段落组织 -->
-
-<!-- source: features/_template/content-production/production/content/05-publish-kit.md -->
-# 发布素材
-
-标题：
-
-简介：
-
-话题：
-
-<!-- 各平台标题、简介、话题标签、置顶评论、章节轴、检查清单 -->
 
 <!-- source: features/_template/deliver.md -->
 # 交付说明 — {{title}}
