@@ -862,7 +862,12 @@ version: 1
 #   - url: git@test.local:your-org/research-notes
 #     category: research
 #     description: Research notes and documentation.
-repos: []
+repos:
+  - url: https://github.com/CarmanMS/hangprofile.git
+    category: develop
+    id: hangprofile
+    alias: hang-profile
+    description: CarmanMS/hangprofile (hang profile).
 
 <!-- source: meta/workspaces.yaml -->
 # Task- or theme-oriented workspace definitions.

@@ -1529,11 +1529,10 @@ features/
 
 在新建或归档需求时更新本表。`id` 建议与目录名 `features/<category>/<feature-id>/` 中的 `<feature-id>` 一致（或与 `spec.md` frontmatter 的 `id` 一致）。
 
-当前无已登记需求；新建时请复制 `features/_template/` 并按 `knowledge/playbooks/add-umbrella-feature.md` 更新本表。
-
 | id | title | category | status | path | primary_repo_id |
 | -- | ----- | -------- | ------ | ---- | --------------- |
-| — | — | — | — | — | — |
+| p-operator-space-injective-papers | p 算子空间 injective 文献研究 | research | draft | `features/research/p-operator-space-injective-papers/` | — |
+| operator-space-paper-writing-style | 算子空间论文表述：范本蒸馏 + Skill | research | in_progress | `features/research/operator-space-paper-writing-style/` | — |
 
 **Columns**
 
