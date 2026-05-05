@@ -21,14 +21,14 @@
 
 ## Cursor 内人工抽检（请你本地执行）
 
-1. **新开 Agent 对话**，输入：
-   > 写算子空间论文。先读取 `knowledge/references/operator-space-paper-prose.md`，再用英文写 120 词以内的 introduction，主题是 completely bounded maps 与 \(M_n\)。
-2. 检查：英文、少禁用套话、未抄书评句子。
+1. **新开 Agent 对话**，输入（**不要**写「先读取 kb」——用来验证代理是否自觉 Read）：
+   > 写算子空间论文。用英文写 120 词以内的 introduction，主题是 completely bounded maps 与 \(M_n\)。
+2. 检查：代理是否 **先** Read 了 `knowledge/references/operator-space-paper-prose.md`（工具记录可见）；正文是否英文、少禁用套话、未抄书评句子。
 3. **同线程第二条**（不提触发词）：「把上一段压缩到约 80 词。」检查是否仍紧缩、学术语气。
 
 ## 已知问题
 
-- 文风无自动化断言；模型未必每次都主动 `Read` kb，可在提示里写明「先读 kb 文件」。
+- 文风无自动化断言。若模型跳过 Read 直接写稿，视为 **未遵守 Skill**，应重试同一会话或换模型；**不要求用户**在提示里补「先读文件」。
 
 ## 说明
 
