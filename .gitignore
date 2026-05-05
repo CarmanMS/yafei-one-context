@@ -80,6 +80,10 @@ backups/
 *.jpg
 deck-slides/
 
+# Tracked knowledge reference images (exceptions to *.png / *.jpg above)
+!knowledge/references/assets/**/*.png
+!knowledge/references/assets/**/*.jpg
+
 # OS
 .DS_Store
 *.swp
