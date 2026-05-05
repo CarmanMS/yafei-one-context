@@ -13,5 +13,6 @@
 | [`skill-parallel-verify/`](skill-parallel-verify/) | **Skill 交付前并行验证**；5 个测试专家独立执行→测试主管判定语义等价→不一致自动修复循环；见 `SKILL.md` |
 | [`windows-c-drive-cleanup/`](windows-c-drive-cleanup/) | Windows C 盘清理；**授权后** `invoke-c-drive-cleanup.ps1` 白名单自动清理；只读 `survey-c-drive-report.ps1`（五-A 自动 / 五-B 手动）；见 `SKILL.md` |
 | [`project-audit/`](project-audit/) | **项目整理**；审计全量已追踪文件，识别错位/误提交文件，列出清单供确认后执行挪正/排除/清理；触发词：项目整理/审计/清理仓库；见 `SKILL.md` |
+| [`operator-space-paper-prose/`](operator-space-paper-prose/) | **算子空间论文英文表述**；触发「写算子空间论文」及同线程后续修改；读 `knowledge/references/operator-space-paper-prose.md`；去 AI 腔、精简；含定理与证明；见 `SKILL.md` |
 
 各视频选题目录**不应**再复制一套 Node 脚本；应通过 `--project` 指向仅含素材的文件夹。
