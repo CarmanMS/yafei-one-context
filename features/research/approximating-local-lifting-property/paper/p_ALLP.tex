@@ -1,0 +1,814 @@
+\documentclass[12pt]{article}
+\usepackage{amsfonts}
+\usepackage{mathrsfs}
+\usepackage{amsthm,amssymb,amscd,amsmath}
+\usepackage{tikz-cd}
+\textheight=21.4 cm \textwidth=15cm  \topmargin=-0.2 in
+\oddsidemargin 0cm \evensidemargin -0.2cm
+\parindent 24pt
+\baselineskip 4pt
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\pcb}{pcb}
+\newcommand{\CBp}{CB_p}
+
+\title{Local Lifting Properties and Injectivity for $p$-Operator Spaces}
+\author{Yafei Zhao and Zhe Dong\thanks{Corresponding author.}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\begin{minipage}{11.5cm}
+{\bf Abstract:} For $1<p<\infty$, we investigate local lifting properties and injectivity for $p$-operator spaces. We prove that for any $p$-operator space, the $\lambda$-$p$-approximating local lifting property is equivalent to the $\lambda$-$p$-local lifting property. For dual $p$-operator spaces, we show that approximate $\lambda$-$p$-injectivity coincides with $\lambda$-$p$-injectivity. In particular, we show that every $n$-dimensional $p$-operator space is $n$-$p$-injective and has the $n$-$p$-LLP.
+\par
+{\bf Keywords:} $p$-operator space, $\lambda$-$p$-approximating local lifting property,
+approximate $\lambda$-$p$-injectivity.
+\par
+{\bf 2020 MR Subject Classification:} Primary 46L07.
+\end{minipage}
+\end{center}
+
+\section{Introduction}
+
+The local theory of operator spaces is a non-commutative quantization of the local theory of Banach spaces initiated by Grothendieck \cite{Gr55}. In the classical setting of operator spaces, the abstract matrix norm characterization was established by Ruan \cite{Ru89}, and the corresponding dual matrix norm theory was developed by Blecher \cite{Ble92}. Local properties such as local reflexivity, exactness, nuclearity, injectivity and the local lifting property play a central role in operator space theory. Building on Connes' fundamental work \cite{Co76}, Choi and Effros \cite{CE76,CE77b} established that a $C^*$-algebra $\mathcal{A}$ is nuclear if and only if its second dual $\mathcal{A}^{**}$ is injective. Effros, Ozawa, and Ruan \cite{EOR01} generalized this to arbitrary operator spaces, proving that an operator space $V$ is nuclear if and only if $V$ is locally reflexive and $V^{**}$ is injective. Dong and Ruan \cite{DR07} showed that an operator space $V$ is exact if and only if $V$ is locally reflexive and $V^{**}$ is weak$^*$ exact.
+
+In this paper, we study the local lifting properties and injectivity for $p$-operator spaces. Let us recall from the classical operator space theory \cite{KyeRuan1999} that an operator space $V$ is said to have the $\lambda$-local lifting property ($\lambda$-LLP) if given any operator spaces $W \subseteq Y$, a complete contraction $\varphi: V \to Y/W$, any finite-dimensional subspace $E \subseteq V$, and $\varepsilon>0$, there exists a completely bounded map $\tilde{\varphi}: E \to Y$ such that
+\[
+q\circ \tilde{\varphi}=\varphi|_E
+\qquad\text{and}\qquad
+\|\tilde{\varphi}\|_{\mathrm{cb}}< \lambda+\varepsilon,
+\]
+where $q: Y \to Y/W$ is the complete quotient map. If $\lambda = 1$, we simply say that $V$ has the LLP. An operator space $V$ is \emph{$\lambda$-injective} if given operator spaces $W\subseteq Y$, and any completely bounded map $\psi:W\to V$, there is an extension $\widetilde{\psi}:Y\to V$ such that
+\[
+\widetilde{\psi}|_{W}=\psi,\qquad
+\|\widetilde{\psi}\|_{\mathrm{cb}}\leq\lambda\|\psi\|_{\mathrm{cb}}.
+\]
+For $\lambda=1$, we say that $V$ is injective. The local lifting property is a natural non-commutative analogue of the Banach space local lifting property, but it exhibits much richer structures. Kye and Ruan \cite{KyeRuan1999} proved that an operator space $V$ has the $\lambda$-LLP if and only if its operator dual $V^*$ is $\lambda$-injective. This duality theorem reveals a deep connection between the local lifting property and injectivity.
+
+Let $1<p<\infty$. Following Pisier \cite{Pisier1990} and Le Merdy \cite{LeMerdy1996}, Daws \cite{Daws2007} presented the abstract framework for $p$-operator spaces, which generalizes classical operator spaces (the $p=2$ case) to the $L^p$ setting. The corresponding theory of $p$-operator spaces has since been developed in considerable detail. The $p$-approximation property was investigated by An et al.\ \cite{AnLeeRuan2010}. Lee \cite{Lee2014} studied the local structure of $p$-operator spaces through conditions $C_p$, $C'_p$, and $C''_p$. Zhao and Dong \cite{ZD14} introduced $p$-mapping spaces and applied them to the study of $p$-local reflexivity. Moreover, if $V$ is a $p$-operator space, then its dual space $V^* = \CBp(V, \mathbb{C})$ is naturally a $p$-operator space and agrees isometrically with the Banach dual (see \cite{Daws2007}).
+
+In the study of local properties, it is natural to consider the approximate versions of these properties. For classical operator spaces, Dong \cite{Dong2007} introduced the approximating local lifting property (ALLP) and approximate injectivity, and showed that for an operator space $V$,
+\[
+\begin{aligned}
+V\text{ has the ALLP} &\Longleftrightarrow V\text{ has the LLP} \\
+&\Longleftrightarrow V^*\text{ is approximately injective} \\
+&\Longleftrightarrow V^*\text{ is injective}.
+\end{aligned}
+\]
+Dong \cite{Dong2009} further investigated local lifting properties of operator spaces. This motivates us to investigate whether similar equivalence holds in the category of $p$-operator spaces. However, the classical proof of the equivalence ($V\text{ has the }\lambda\text{-}p\text{-LLP} \Longleftrightarrow V^*\text{ is }\lambda\text{-}p\text{-injective}$) does not extend to $p$-operator spaces, since the Arveson--Wittstock extension theorem fails in general \cite{Lee2015}. The main purpose of this paper is to answer whether the $\lambda$-$p$-ALLP implies the $\lambda$-$p$-LLP, and whether approximate $\lambda$-$p$-injectivity implies $\lambda$-$p$-injectivity for dual $p$-operator spaces.
+
+In Section 2, we establish the equivalence between the $\lambda$-$p$-ALLP and the $\lambda$-$p$-LLP for arbitrary $p$-operator spaces (Theorem~\ref{thm:main}). The proof relies on quantitative estimates for finite-dimensional $p$-operator spaces. In Section 3, we prove that for dual $p$-operator spaces, approximate $\lambda$-$p$-injectivity implies $\lambda$-$p$-injectivity (Theorem~\ref{thm:dual-exact-approx}).  We also record the correct quotient-side dual identification from \cite{Daws2007} (Remark~\ref{rem:daws-quotient-dual}), a complement projection trick for extensions into $V^*$ (Proposition~\ref{prop:complement-extension}), and the resulting two-step scheme (Corollary~\ref{cor:llp-vstar-two-step} and Remark~\ref{rem:llp-to-approx-inj-open}).  When $p=2$, for each $\lambda\geq 1$,
+\[
+\begin{aligned}
+V\text{ has the $\lambda$-ALLP} &\Longleftrightarrow V\text{ has the $\lambda$-LLP} \\
+&\Longleftrightarrow V^*\text{ is approximately $\lambda$-injective} \\
+&\Longleftrightarrow V^*\text{ is $\lambda$-injective}
+\end{aligned}
+\]
+(Corollary~\ref{cor:dual-p-2}). Finally, in Section 4, we apply these results to finite-dimensional $p$-operator spaces. We show that every $n$-dimensional $p$-operator space is $n$-$p$-injective and has the $n$-$p$-LLP (Corollary~\ref{cor:fd-equivalence}).
+
+\section{$\lambda$-$p$-Local lifting properties}
+
+\begin{definition}\label{def:lambda-p-lp}
+Let $\lambda\geq 1$.  A $p$-operator space $V$ has the
+\emph{$\lambda$-$p$-lifting property} ($\lambda$-$p$-LP) if given $p$-operator spaces $W\subseteq Y$, a $p$-complete contraction
+$\varphi:V\to Y/W$, and $\varepsilon>0$, there exists a $p$-completely bounded
+linear map $\widetilde{\varphi}:V\to Y$ such that
+\[
+        q\circ\widetilde{\varphi}=\varphi
+        \qquad\text{and}\qquad
+        \|\widetilde{\varphi}\|_{\pcb}<\lambda+\varepsilon,
+\]
+i.e., we have the commutative diagram
+\begin{equation*}
+\begin{tikzcd}
+& Y \arrow{d}{q} \\
+V \arrow{r}[swap]{\varphi} \arrow{ru}{\widetilde{\varphi}} & Y/W\text{,}
+\end{tikzcd}
+\end{equation*}
+where $q:Y\to Y/W$ denotes the
+$p$-complete quotient map from $Y$ onto $Y/W$.
+For $\lambda=1$, we say that $V$ has the $p$-LP.
+When $p=2$, we say that $V$ has the $\lambda$-LP.
+\end{definition}
+
+\begin{definition}\label{def:lambda-llp}
+Let $\lambda\geq 1$.  A $p$-operator space $V$ has the
+\emph{$\lambda$-$p$-local lifting property} ($\lambda$-$p$-LLP) if given $p$-operator spaces $W\subseteq Y$, a $p$-complete contraction
+$\varphi:V\to Y/W$, for every finite-dimensional subspace $E\subseteq V$, and $\varepsilon>0$, there exists a $p$-completely bounded
+linear map $\widetilde{\varphi}:E\to Y$ such that
+\[
+        q\widetilde{\varphi}=\varphi|_E
+        \qquad\text{and}\qquad
+        \|\widetilde{\varphi}\|_{\pcb}<\lambda+\varepsilon,
+\]
+i.e., we have the commutative diagram
+\begin{equation*}
+\begin{tikzcd}
+& & Y \arrow{d}{q} \\
+E \arrow[hook]{r} \arrow{rru}{\widetilde{\varphi}} & V \arrow{r}{\varphi} & Y/W\text{,}
+\end{tikzcd}
+\end{equation*}
+where $q:Y\to Y/W$ denotes the
+$p$-complete quotient map from $Y$ onto $Y/W$.
+For $\lambda=1$, we say that $V$ has the $p$-LLP.
+When $p=2$, we say that $V$ has the $\lambda$-LLP.
+\end{definition}
+
+\begin{definition}\label{def:lambda-allp}
+Let $\lambda\geq 1$.  A $p$-operator space $V$ has the
+\emph{$\lambda$-$p$-approximating local lifting property} ($\lambda$-$p$-ALLP) if
+given $p$-operator spaces $W\subseteq Y$, and a $p$-complete contraction
+$\varphi:V\to Y/W$, for every finite-dimensional subspace $E\subseteq V$, and
+$\varepsilon>0$, there exists a net $\{\varphi_\alpha\}$ of $p$-completely bounded
+linear maps $\varphi_\alpha:E\to Y$ such that
+$\|\varphi_\alpha\|_{\pcb}<\lambda+\varepsilon$
+and $q\varphi_\alpha\to \varphi|_E$ in the point-norm topology on $Y/W$, i.e., we
+have the approximately commutative diagram
+\begin{equation*}
+\begin{tikzcd}
+& & Y \arrow{d}{q} \\
+E \arrow[hook]{r} \arrow{rru}{\varphi_\alpha} & V \arrow{r}{\varphi} & Y/W\text{,}
+\end{tikzcd}
+\end{equation*}
+where $q:Y\to Y/W$ denotes the
+$p$-complete quotient map from $Y$ onto $Y/W$.
+For $\lambda=1$, we say that $V$ has the $p$-ALLP.
+When $p=2$, we say that $V$ has the $\lambda$-ALLP.
+\end{definition}
+
+From the definitions, for every $p$-operator space $V$ and every $\lambda\geq 1$ we have
+\[
+        \lambda\hbox{-}p\hbox{-LP}
+        \quad\Longrightarrow\quad
+        \lambda\hbox{-}p\hbox{-LLP}
+        \quad\Longrightarrow\quad
+        \lambda\hbox{-}p\hbox{-ALLP}.
+\]
+To show that the $\lambda$-$p$-LLP and the $\lambda$-$p$-ALLP are equivalent, we first prove two quantitative estimates for finite-dimensional $p$-operator spaces.
+
+\begin{lemma}\label{lem:finite-cb-comparison}
+Let $V$ and $W$ be $p$-operator spaces, and suppose that either $V$ or $W$ is
+$n$-dimensional.  Then every linear map $\varphi:V\to W$ is $p$-completely
+bounded and
+\[
+        \|\varphi\|_{\pcb}\leq n\|\varphi\|.
+\]
+\end{lemma}
+
+\begin{proof}
+The proof adapts the argument for classical operator spaces (see \cite[Corollary 2.2.4]{ER00}).
+Let us suppose that $W$ is $n$-dimensional. Let $w_1,\ldots,w_n$ be an Auerbach
+basis for $W$, with corresponding coordinate functionals $g_1,\ldots,g_n \in W^*$, so that
+$\|w_k\|=\|g_k\|=1$. Since
+\[
+        \mathrm{id}_W = \sum_{k=1}^n \theta_{w_k} \circ g_k,
+\]
+where $\theta_{w_k}(\alpha) = \alpha w_k$ are $p$-complete isometries from $\mathbb{C}$ into $W$, we have
+\[
+        \varphi = \sum_{k=1}^n \theta_{w_k} \circ g_k \circ \varphi.
+\]
+By \cite[Lemma 4.2]{Daws2007}, we have that $g_k \circ \varphi$ is a $p$-completely bounded linear functional with
+\[
+        \|g_k \circ \varphi\|_{\pcb} = \|g_k \circ \varphi\| \leq \|\varphi\|.
+\]
+It follows that
+\[
+        \|\varphi\|_{\pcb} \leq \sum_{k=1}^n \|\theta_{w_k}\|_{\pcb}\|g_k \circ \varphi\|_{\pcb} = \sum_{k=1}^n \|g_k \circ \varphi\| \leq n\|\varphi\|.
+\]
+
+The case where $V$ is $n$-dimensional follows similarly by applying the same argument to $\varphi:V\to\varphi(V)$.
+\end{proof}
+
+\begin{lemma}\label{lem:correction}
+Let $q:Y\to Z$ be a $p$-complete quotient map of $p$-operator spaces, and let
+$E$ be a finite-dimensional $p$-operator space with $n=\dim E\geq 1$.  Then
+the induced map $\rho:\CBp(E,Y)\longrightarrow \CBp(E,Z)$ is a surjective
+$p$-complete contraction.
+Moreover, for each $\phi\in \CBp(E,Z)$ and $\varepsilon>0$, there exists $\psi\in\CBp(E,Y)$ such that
+\[
+        q\psi=\phi,\qquad \|\psi\|_{\pcb}\leq n(1+\varepsilon)\|\phi\|_{\pcb}.
+\]
+\end{lemma}
+
+\begin{proof}
+Post-composition with a $p$-complete quotient map is a $p$-complete contraction.
+
+We let $\phi\in\CBp(E,Z)$. We can choose an Auerbach basis $e_1,\ldots,e_n$ of $E$ with coordinate functionals $f_1,\ldots,f_n\in E^*$, so that $\|e_k\|=\|f_k\|=1$. Then $\|\phi(e_k)\|\leq\|\phi\|\leq\|\phi\|_{\pcb}$. Since $q$ is a $p$-complete quotient map, for any $\varepsilon>0$ we can choose $y_k\in Y$ such that $q(y_k)=\phi(e_k)$ and
+\[
+        \|y_k\|\leq (1+\varepsilon)\|\phi(e_k)\|\leq (1+\varepsilon)\|\phi\|_{\pcb}.
+\]
+We define $\psi:E\to Y$ by $\psi(e_k)=y_k$. For each $k$, let $\theta_{y_k}:\mathbb{C}\to Y$ be given by $\theta_{y_k}(\alpha)=\alpha y_k$. Then $\psi=\sum_{k=1}^n \theta_{y_k}\circ f_k$, and $\|\theta_{y_k}\|_{\pcb}=\|y_k\|$ for each $k$.
+Then $q\circ\psi=\phi$, which shows that post-composition with $q$ is surjective.
+
+Moreover, each $f_k$ is a linear functional, so $\|f_k\|_{\pcb}=\|f_k\|=1$ by \cite[Lemma 4.2]{Daws2007}.
+Hence
+\[
+        \|\psi\|_{\pcb}
+        \leq \sum_{k=1}^n \|\theta_{y_k}\|_{\pcb}\,\|f_k\|_{\pcb}
+        =\sum_{k=1}^n \|y_k\|
+        \leq n(1+\varepsilon)\|\phi\|_{\pcb}.
+\]
+\end{proof}
+
+\begin{theorem}\label{thm:main}
+Let $V$ be a $p$-operator space and let $\lambda\geq 1$.  Then $V$ has the
+$\lambda$-$p$-ALLP if and only if $V$ has the $\lambda$-$p$-LLP.
+\end{theorem}
+
+\begin{proof}
+It is clear that the $\lambda$-$p$-LLP implies the $\lambda$-$p$-ALLP.
+
+Conversely, we assume that $V$ has the $\lambda$-$p$-ALLP.  We suppose that $W\subseteq Y$ are $p$-operator spaces. We denote by $q:Y\to Y/W$ the $p$-complete quotient map.  Let $\varphi:V\to Y/W$ be a $p$-complete contraction, let $E\subseteq V$ be finite-dimensional, and let $\varepsilon>0$.  If $\varphi|_E=0$, then the zero operator $0:E\to Y$ satisfies $q\circ 0=\varphi|_E$. This operator is the required lifting.  We may therefore assume that $\varphi|_E\neq 0$.
+
+We let $n=\dim E$.  From Lemma~\ref{lem:finite-cb-comparison}, we have
+$\|\sigma\|_{\pcb}\leq n\|\sigma\|$ for any linear map $\sigma:E\to Y/W$.
+We choose $\delta>0$ small enough that
+\[
+        n^{2}\delta<\frac{\varepsilon}{2}.
+\]
+By the $\lambda$-$p$-ALLP applied to $\varphi$ with $\varepsilon/2$, there
+is a net $\{w_\alpha\}$ in $\CBp(E,Y)$ with
+\[
+        \|w_\alpha\|_{\pcb}<\lambda+\frac{\varepsilon}{2}.
+\]
+and $qw_\alpha\to \varphi|_E$ in the point-norm topology on $Y/W$.  Since $E$ is
+finite-dimensional, point-norm convergence is equivalent to operator norm
+convergence on $E$, so we may choose $w_0=w_\alpha$ satisfying
+\[
+        \|qw_0-\varphi|_E\|<\delta.
+\]
+We define $\varphi_0=w_0$.  Then we have
+\[
+        \|\varphi_0\|_{\pcb}<\lambda+\frac{\varepsilon}{2}
+\]
+and
+\[
+        \|q\varphi_0-\varphi|_E\|<\delta.
+\]
+From Lemma~\ref{lem:finite-cb-comparison} we thus have
+$\|q\varphi_0-\varphi|_E\|_{\pcb}\leq n\delta$.  We define
+\[
+        \phi=\varphi|_E-q\varphi_0:E\to Y/W.
+\]
+From Lemma~\ref{lem:correction}, for any $\varepsilon'>0$ there exists $\psi:E\to Y$ with $q\psi=\phi$ and $\|\psi\|_{\pcb}\leq n(1+\varepsilon')\|\phi\|_{\pcb}$. Since $n^{2}\delta<\frac{\varepsilon}{2}$, we can choose $\varepsilon'$ small enough so that
+\[
+        \|\psi\|_{\pcb}\leq n(1+\varepsilon')\|\phi\|_{\pcb}\leq n(1+\varepsilon')n\delta <\frac{\varepsilon}{2}.
+\]
+We define
+\[
+        \widetilde{\varphi}=\varphi_0+\psi:E\to Y.
+\]
+Then
+\[
+        q\widetilde{\varphi}=q\varphi_0+q\psi=q\varphi_0+(\varphi|_E-q\varphi_0)=\varphi|_E,
+\]
+and
+\[
+        \|\widetilde{\varphi}\|_{\pcb}
+        \leq \|\varphi_0\|_{\pcb}+\|\psi\|_{\pcb}
+        <\lambda+\varepsilon.
+\]
+This shows that $V$ has the $\lambda$-$p$-LLP.
+\end{proof}
+
+\begin{proposition}\label{prop:complemented}
+Let $V$ be a $p$-operator space and let $P:V\to V$ be a $p$-completely bounded
+projection.  We denote by $V_0$ the subspace $P(V)\subseteq V$, with the
+$p$-operator space structure induced by $V$.
+\begin{enumerate}
+        \item[\rm(i)] If $V$ has the $\lambda$-$p$-LLP, then $V_0$ has the
+                $\lambda\|P\|_{\pcb}$-$p$-LLP.
+        \item[\rm(ii)] If $V$ has the $\lambda$-$p$-ALLP, then $V_0$ has the
+                $\lambda\|P\|_{\pcb}$-$p$-ALLP.
+\end{enumerate}
+In particular, whenever $P$ is a $p$-complete contraction, $V_0$ has the
+$\lambda$-$p$-LLP in case {\rm(i)} and the $\lambda$-$p$-ALLP in case {\rm(ii)}.
+\end{proposition}
+
+\begin{proof}
+Part~{\rm(ii)} follows from part~{\rm(i)} and Theorem~\ref{thm:main}.  We prove
+{\rm(i)}.  We suppose that $W\subseteq Y$ are $p$-operator spaces. We denote by $q:Y\to Y/W$ the $p$-complete quotient map.  Let $\varphi:V_0\to Y/W$ be a $p$-complete contraction and let $E\subseteq V_0$ be finite-dimensional.  If $\varphi P=0$, then $\varphi|_E=0$ and the zero operator $0:E\to Y$ satisfies $q\circ 0=\varphi|_E$. This operator is a lifting of $\varphi|_E$.  If $\varphi P\neq 0$, we normalize the composition
+\[
+        \theta=\frac{\varphi P}{\|\varphi P\|_{\pcb}}:V\longrightarrow Y/W.
+\]
+Since $P|_{V_0}=\mathrm{id}_{V_0}$, we have $(\varphi P)|_E=\varphi|_E$, and
+\[
+        \|\varphi P\|_{\pcb}\leq \|\varphi\|_{\pcb}\|P\|_{\pcb}.
+\]
+Applying the $\lambda$-$p$-LLP of $V$ to the finite-dimensional subspace
+$E\subseteq V$ and the $p$-complete contraction $\theta$, for any $\delta>0$ we obtain
+$\widetilde{\theta}:E\to Y$ such that
+\[
+        q\widetilde{\theta}=\theta|_E
+\]
+and
+\[
+        \|\widetilde{\theta}\|_{\pcb}<\lambda+\delta.
+\]
+We define $\widetilde{\varphi}=\|\varphi P\|_{\pcb}\widetilde{\theta}$.  Then
+$q\widetilde{\varphi}=\varphi|_E$ and
+\[
+        \|\widetilde{\varphi}\|_{\pcb}
+        <(\lambda+\delta)\|\varphi P\|_{\pcb}
+        \leq(\lambda+\delta)\|P\|_{\pcb}.
+\]
+Given $\varepsilon>0$, we choose $\delta>0$ so that
+$\delta\|P\|_{\pcb}<\varepsilon$.  This is the desired estimate for
+the constant $\lambda\|P\|_{\pcb}$.
+\end{proof}
+
+\section{$\lambda$-$p$-injectivity and duality}
+
+\begin{definition}\label{def:p-injective}
+Let $\lambda\geq 1$.  A $p$-operator space $V$ is
+\emph{$\lambda$-$p$-injective} if given $p$-operator spaces $W_0\subseteq W$, and any $p$-completely bounded map $\varphi:W_0\to V$, there is an extension
+$\widetilde{\varphi}:W\to V$ such that
+\[
+        \widetilde{\varphi}|_{W_0}=\varphi,\qquad
+        \|\widetilde{\varphi}\|_{\pcb}
+        \leq\lambda\|\varphi\|_{\pcb}.
+\]
+For $\lambda=1$, we say that $V$ is $p$-injective.
+When $p=2$, we say that $V$ is $\lambda$-injective.
+\end{definition}
+
+\begin{definition}\label{def:approx-p-injective}
+Let $\lambda\geq 1$.  A $p$-operator space $V$ is
+\emph{approximately $\lambda$-$p$-injective} if given $p$-operator spaces $W_0\subseteq W$, and any $p$-completely bounded map $\varphi:W_0\to V$, for any $\varepsilon>0$
+there exists a net $\{\widetilde{\varphi}_\alpha\}$ of $p$-completely bounded
+linear maps $\widetilde{\varphi}_\alpha:W\to V$ such that
+\[
+        \|\widetilde{\varphi}_\alpha\|_{\pcb}
+        \leq(\lambda+\varepsilon)\|\varphi\|_{\pcb}
+\]
+and $\widetilde{\varphi}_\alpha|_{W_0}\to\varphi$ in the point-norm topology on
+$W_0$.
+For $\lambda=1$, we say that $V$ is approximately $p$-injective.
+When $p=2$, we say that $V$ is approximately $\lambda$-injective.
+\end{definition}
+
+\begin{remark}
+For classical operator spaces ($p=2$), Dong's original definition of approximate injectivity \cite{Dong2007} requires the approximating net to be completely contractive. The $\varepsilon$-slack in Definition \ref{def:approx-p-injective} serves as a natural quantitative relaxation that parallels the definition of the $\lambda$-$p$-ALLP.
+\end{remark}
+
+It is immediate from Definitions~\ref{def:p-injective} and~\ref{def:approx-p-injective} that $\lambda$-$p$-injectivity implies approximate $\lambda$-$p$-injectivity.
+
+The scalar-valued extension theorem remains available in the $p$-operator
+space setting, although the Arveson--Wittstock extension theorem does not
+extend to arbitrary ranges.
+
+As noted in the introduction, the classical equivalence between the local lifting property of $V$ and the injectivity of $V^*$ relies on the Arveson--Wittstock extension theorem. The scalar-valued extension theorem alone is much weaker; it survives in the $p$-operator space setting, but it does not by itself recover the full duality.
+
+\begin{proposition}\label{prop:equivalence-extension}
+Let $1 < p < \infty$. Suppose that, for every $p$-operator space $V$,
+$V$ has the $p$-LLP if and only if $V^*$ is $p$-injective.  Then the
+$p$-completely bounded scalar extension theorem holds: whenever
+$W_0\subseteq W$ are $p$-operator spaces, every $p$-complete contraction
+$\psi:W_0\to\mathbb{C}$ admits a $p$-completely contractive extension
+$\widetilde{\psi}:W\to\mathbb{C}$.
+\end{proposition}
+
+\begin{proof}
+First, $\mathbb{C}$ has the $p$-LLP.  Indeed, let $Y_0 \subseteq Y$ be
+$p$-operator spaces, let $q:Y\to Y/Y_0$ be the $p$-complete quotient map, and
+let $\varphi:\mathbb{C}\to Y/Y_0$ be a $p$-complete contraction.  Given
+$\varepsilon>0$, choose $y\in Y$ such that $q(y)=\varphi(1)$ and
+$\|y\|<1+\varepsilon$.  The map
+$\widetilde{\varphi}(\alpha)=\alpha y$ satisfies
+$q\widetilde{\varphi}=\varphi$ and
+$\|\widetilde{\varphi}\|_{\pcb}=\|y\|<1+\varepsilon$.
+
+By the assumed duality, $\mathbb{C}^*\cong\mathbb{C}$ is $p$-injective.  Hence
+each $p$-complete contraction $\psi:W_0\to\mathbb{C}$ extends to a
+$p$-completely bounded map $\widetilde{\psi}:W\to\mathbb{C}$ with
+$\|\widetilde{\psi}\|_{\pcb}\leq 1$.  This is the scalar extension theorem.
+\end{proof}
+
+\begin{proposition}\label{prop:scalar-injective}
+Let $1<p<\infty$.  Then $\mathbb{C}$ is $p$-injective.
+\end{proposition}
+
+\begin{proof}
+Let $W_0\subseteq W$ be $p$-operator spaces and let $\psi:W_0\to\mathbb C$
+be a $p$-completely bounded linear functional.  By
+\cite[Lemma~4.2]{Daws2007}, every bounded linear functional on a $p$-operator
+space is $p$-completely bounded with $p$-completely bounded norm equal to its
+ordinary norm; applied to $\psi$, this gives
+$\|\psi\|_{\pcb}=\|\psi\|$.  The Hahn--Banach theorem provides a norm-preserving
+linear extension $\widetilde\psi:W\to\mathbb C$ with
+$\|\widetilde\psi\|=\|\psi\|$, and the same lemma applied to $\widetilde\psi$
+yields $\|\widetilde\psi\|_{\pcb}=\|\widetilde\psi\|$.  Hence
+\[
+        \|\widetilde\psi\|_{\pcb}
+        =\|\widetilde\psi\|
+        =\|\psi\|
+        =\|\psi\|_{\pcb},
+\]
+so $\mathbb{C}$ is $p$-injective.
+\end{proof}
+
+\begin{remark}\label{rem:daws-quotient-dual}
+Let $W_0\subseteq W$ be $p$-operator spaces and let $\pi:W\to W/W_0$ be the
+$p$-complete quotient map.  By \cite{Daws2007}, $\pi':(W/W_0)^*\to W^*$ is a
+$p$-complete isometry with image
+\[
+        W_0^\perp:=\{\mu\in W^*:\ \langle\mu,w\rangle=0\ \hbox{for all }w\in W_0\}.
+\]
+In particular, $(W/W_0)^*$ is $p$-completely isometric to the subspace
+$W_0^\perp\subseteq W^*$.  Daws also points out that, in general, one should
+\emph{not} expect a $p$-complete identification of $W_0^*$ with a quotient of
+$W^*$ (nor that the restriction map $W^*\to W_0^*$ is a $p$-complete quotient
+map).  The classical proof in \cite{KyeRuan1999} that the $\lambda$-LLP of $V$
+implies $\lambda$-injectivity of $V^*$ uses precisely such an identification at
+the level of operator duals.  For general $p$-operator spaces this step is
+therefore unavailable, and we treat the implication from lifting properties on
+$V$ to injectivity of $V^*$ separately below.
+\end{remark}
+
+\begin{proposition}\label{prop:complement-extension}
+Let $V$ be a $p$-operator space, let $W_0\subseteq W$ be $p$-operator spaces,
+and let $P:W\to W$ be a $p$-completely bounded projection with $P(W)=W_0$ and
+$P|_{W_0}=\mathrm{id}_{W_0}$.  If $\psi:W_0\to V^*$ is $p$-completely bounded,
+then $\Psi:=\psi\circ P:W\to V^*$ satisfies $\Psi|_{W_0}=\psi$ and
+\[
+        \|\Psi\|_{\pcb}\leq \|P\|_{\pcb}\,\|\psi\|_{\pcb}.
+\]
+In particular, if $\|P\|_{\pcb}\leq 1$, then every $p$-completely bounded map
+$W_0\to V^*$ extends to $W$ without enlarging the $p$-completely bounded norm.
+\end{proposition}
+
+\begin{proof}
+For $w_0\in W_0$ we have $\Psi(w_0)=\psi(Pw_0)=\psi(w_0)$.  The norm estimate
+follows from $\|\Psi\|_{\pcb}=\|\psi\circ P\|_{\pcb}
+\leq\|\psi\|_{\pcb}\|P\|_{\pcb}$.
+\end{proof}
+
+\begin{corollary}\label{cor:llp-vstar-two-step}
+Let $V$ be a $p$-operator space and let $\lambda\geq 1$.  Suppose that $V$
+has the $\lambda$-$p$-LLP and that $V^*$ is approximately $\lambda$-$p$-injective.
+Then $V^*$ is $\lambda$-$p$-injective.
+\end{corollary}
+
+\begin{proof}
+This is immediate from Theorem~\ref{thm:dual-exact-approx}.
+\end{proof}
+
+\begin{remark}\label{rem:llp-to-approx-inj-open}
+Corollary~\ref{cor:llp-vstar-two-step} isolates the part of the classical
+duality chain that still works in the $p$-operator space setting once one has
+approximate information on $V^*$: Theorem~\ref{thm:dual-exact-approx} upgrades
+approximate $\lambda$-$p$-injectivity of $V^*$ to $\lambda$-$p$-injectivity.
+The remaining step,
+\[
+        V\text{ has the }\lambda\text{-}p\text{-LLP}
+        \quad\Longrightarrow\quad
+        V^*\text{ is approximately }\lambda\text{-}p\text{-injective},
+\]
+does not follow from Remark~\ref{rem:daws-quotient-dual} alone.  When $p=2$,
+it is part of the known equivalences in \cite{KyeRuan1999,Dong2007} and is
+recorded in Corollary~\ref{cor:dual-p-2}.  For general $p$, we leave this
+implication as an open problem.  Proposition~\ref{prop:complement-extension}
+gives a concrete situation in which extensions into $V^*$ are available without
+any quotient identification of duals.
+\end{remark}
+
+\begin{proposition}\label{prop:proj-injective}
+Let $V$ be a $p$-operator space and let $P:V\to V$ be a $p$-completely bounded
+projection.  We denote by $V_0$ the subspace $P(V)\subseteq V$, with the
+$p$-operator space structure induced by $V$.
+\begin{enumerate}
+        \item[\rm(i)] If $V$ is $\lambda$-$p$-injective, then $V_0$ is
+                $\lambda\|P\|_{\pcb}$-$p$-injective.
+        \item[\rm(ii)] If $V$ is approximately $\lambda$-$p$-injective, then $V_0$
+                is approximately $(\lambda\|P\|_{\pcb})$-$p$-injective.
+\end{enumerate}
+In particular, if $P$ is a $p$-complete contraction, then $V_0$ is
+(approximately) $\lambda$-$p$-injective.
+\end{proposition}
+
+\begin{proof}
+We prove (ii). Part (i) is obtained by specializing to $\varepsilon=0$.
+
+Given $p$-operator spaces $W_0\subseteq W$, and a $p$-completely bounded map $\varphi:W_0\to V_0$, we regard $\varphi$ as a
+$p$-completely bounded map $\varphi:W_0\to V$.  By approximate $\lambda$-$p$-injectivity of $V$,
+for any $\eta>0$ there is a net $\{\widetilde{\varphi}_\alpha\}$ of maps
+$\widetilde{\varphi}_\alpha:W\to V$ such that
+\[
+        \|\widetilde{\varphi}_\alpha\|_{\pcb}
+        \leq(\lambda+\eta)\|\varphi\|_{\pcb}
+\]
+and $\widetilde{\varphi}_\alpha|_{W_0}\to\varphi$ in the point-norm topology.
+The net $\{P\widetilde{\varphi}_\alpha\}$ consists of maps from $W$ into $V_0$,
+and $(P\widetilde{\varphi}_\alpha)|_{W_0}\to P\circ\varphi=\varphi$ in the
+point-norm topology.  Moreover,
+\[
+        \|P\widetilde{\varphi}_\alpha\|_{\pcb}
+        \leq \|P\|_{\pcb}\|\widetilde{\varphi}_\alpha\|_{\pcb}
+        \leq \|P\|_{\pcb}(\lambda+\eta)\|\varphi\|_{\pcb}.
+\]
+If $P=0$, then $V_0=\{0\}$ and there is nothing to prove.  Otherwise, for arbitrary
+$\varepsilon>0$, we take $\eta=\varepsilon/\|P\|_{\pcb}$. Then
+\[
+        \|P\widetilde{\varphi}_\alpha\|_{\pcb}
+        \leq (\lambda\|P\|_{\pcb}+\varepsilon)\|\varphi\|_{\pcb},
+\]
+which is approximate $\lambda\|P\|_{\pcb}$-$p$-injectivity for $V_0$.
+\end{proof}
+
+A fundamental question is how these injectivity conditions behave under duality. The following theorem shows that for the dual $p$-operator space $V^*$, approximate $\lambda$-$p$-injectivity coincides with $\lambda$-$p$-injectivity.
+
+\begin{theorem}\label{thm:dual-exact-approx}
+Let $V$ be a $p$-operator space and let $\lambda\geq 1$.  Then $V^*$ is
+approximately $\lambda$-$p$-injective if and only if $V^*$ is
+$\lambda$-$p$-injective.
+\end{theorem}
+
+\begin{proof}
+It is clear that $\lambda$-$p$-injectivity implies approximate $\lambda$-$p$-injectivity.
+
+For the converse, let $W_0\subseteq W$ be $p$-operator spaces, and let $\varphi:W_0\to V^*$ be $p$-completely bounded.
+If $\varphi=0$, the conclusion is obvious, so we assume $\|\varphi\|_{\pcb}>0$.
+
+Let $\mathcal{D}$ be the set of triples $d=(\varepsilon,F,\delta)$, where
+$0<\varepsilon\leq 1$, $F$ is a finite subset of $W_0$, and $\delta>0$.
+We order $\mathcal{D}$ by declaring
+\[
+        (\varepsilon_1,F_1,\delta_1)\preceq(\varepsilon_2,F_2,\delta_2)
+\]
+if $\varepsilon_2\leq\varepsilon_1$, $F_1\subseteq F_2$, and
+$\delta_2\leq\delta_1$.  By approximate $\lambda$-$p$-injectivity of $V^*$,
+for each $d=(\varepsilon,F,\delta)$ there exists a $p$-completely bounded map
+$\widetilde{\varphi}_d:W\to V^*$ such that
+\[
+        \|\widetilde{\varphi}_d\|_{\pcb}
+        \leq(\lambda+\varepsilon)\|\varphi\|_{\pcb}
+\]
+and
+\[
+        \|\widetilde{\varphi}_d(x)-\varphi(x)\|<\delta,\qquad x\in F.
+\]
+For each $d\in\mathcal{D}$, we have
+$\|\widetilde{\varphi}_d\|_{\pcb}\leq(\lambda+1)\|\varphi\|_{\pcb}$, so the net
+lies in the closed ball
+\[
+        \mathcal{K}_M=\{S\in \CBp(W,V^*):\|S\|_{\pcb}\leq M\},
+        \qquad M=(\lambda+1)\|\varphi\|_{\pcb}.
+\]
+By \cite[Proposition~4.9]{Daws2007}, there is a $p$-complete isometric isomorphism
+\[
+        \CBp(W,V^*) \cong (W \widehat{\otimes}_p V)^*.
+\]
+Under this identification, the weak$^*$ and point-weak$^*$ topologies on
+$\mathcal{K}_M$ coincide, since $W\otimes V$ is dense in $W\widehat{\otimes}_p V$.
+By the Banach--Alaoglu theorem, $\mathcal{K}_M$ is compact in the weak$^*$ topology,
+and hence in the point-weak$^*$ topology.
+We may choose a point-weak$^*$ limit $T:W\to V^*$ of a subnet
+$\{\widetilde{\varphi}_{d_i}\}$.
+For each $x\in W_0$, we have $\|\widetilde{\varphi}_{d_i}(x)-\varphi(x)\|\to 0$, so
+$T(x)=\varphi(x)$ and $T|_{W_0}=\varphi$.
+
+We now estimate $\|T\|_{\pcb}$. We take $m\in\mathbb{N}$ and $w=[w_{ij}]\in M_m(W)$ with $\|w\|\leq 1$.
+Since $\widetilde{\varphi}_{d_i}\to T$ in the point-weak$^*$ topology, we have
+$(\widetilde{\varphi}_{d_i})_m(w)\to T_m(w)$ in the weak$^*$ topology of $M_m(V^*)$.
+By \cite[Section~5]{Daws2007}, for each $m\in\mathbb{N}$ there is a
+$p$-complete isometric identification
+\[
+M_m(V^*)=\CBp(V,\mathbb{M}_m)\cong (\mathcal{N}_m^p\widehat{\otimes}_p V)^*,
+\]
+where $\mathcal{N}_m^p=\mathcal{N}(\ell_p^m)$ is the space of nuclear operators on
+$\ell_p^m$.
+Hence $M_m(V^*)$ is a dual $p$-operator space, and the norm on $M_m(V^*)$
+is weak$^*$ lower semicontinuous.
+If $d_i=(\varepsilon_i,F_i,\delta_i)$, then
+\[
+        \|(\widetilde{\varphi}_{d_i})_m(w)\|
+        \leq\|\widetilde{\varphi}_{d_i}\|_{\pcb}
+        \leq(\lambda+\varepsilon_i)\|\varphi\|_{\pcb}.
+\]
+Passing to a subnet with $\varepsilon_i\to 0$, we obtain
+\[
+        \|T_m(w)\|\leq\liminf_i\|(\widetilde{\varphi}_{d_i})_m(w)\|
+        \leq\liminf_i(\lambda+\varepsilon_i)\|\varphi\|_{\pcb}
+        =\lambda\|\varphi\|_{\pcb}.
+\]
+We take the supremum over $m$ and over $w$ in the unit ball of $M_m(W)$
+to obtain $\|T\|_{\pcb}\leq\lambda\|\varphi\|_{\pcb}$, so $V^*$ is
+$\lambda$-$p$-injective.
+\end{proof}
+
+\begin{corollary}\label{cor:dual-p-2}
+Let $V$ be an operator space ($p=2$) and let $\lambda\geq 1$.  Then
+the following are equivalent:
+\begin{enumerate}
+    \item[\rm(1)] $V$ has the $\lambda$-ALLP;
+    \item[\rm(2)] $V$ has the $\lambda$-LLP;
+    \item[\rm(3)] $V^*$ is approximately $\lambda$-injective;
+    \item[\rm(4)] $V^*$ is $\lambda$-injective.
+\end{enumerate}
+\end{corollary}
+
+\begin{proof}
+The equivalence (1)$\Leftrightarrow$(2) follows from
+Theorem~\ref{thm:main} with $p=2$.
+The equivalence (2)$\Leftrightarrow$(4) is established in
+\cite{KyeRuan1999}.  The implication (2)$\Rightarrow$(3) is part of the chain in
+\cite{Dong2007}.  Finally, (3)$\Leftrightarrow$(4) is the specialization of
+Theorem~\ref{thm:dual-exact-approx} to $p=2$.
+\end{proof}
+
+\section{Dimension-dependent estimates}
+
+\begin{proposition}\label{prop:fd-injective}
+Let $V$ be a finite-dimensional $p$-operator space with $n=\dim V\geq 1$.
+Then $V$ is $n$-$p$-injective.
+\end{proposition}
+
+\begin{proof}
+We choose an Auerbach basis $v_1,\ldots,v_n$ of $V$ with coordinate functionals
+$f_1,\ldots,f_n\in V^*$ satisfying $\|v_k\|=\|f_k\|=1$.  Let $W_0\subseteq W$ be $p$-operator spaces, and let $\psi:W_0\to V$ be $p$-completely bounded.
+If $\psi=0$, we define $\widetilde\psi:W\to V$ to be the zero map.
+We assume that $\psi\neq 0$, and define $\psi_1=\psi/\|\psi\|_{\pcb}$, so $\|\psi_1\|_{\pcb}=1$.
+By \cite[Lemma~4.2]{Daws2007}, each
+$f_k\circ\psi_1:W_0\to\mathbb C$ satisfies
+$\|f_k\circ\psi_1\|_{\pcb}=\|f_k\circ\psi_1\|\leq 1$.
+Each $f_k\circ\psi_1$ extends to a functional $g_k:W\to\mathbb C$ with
+$\|g_k\|\leq 1$ by the Hahn--Banach theorem, and
+$\|g_k\|_{\pcb}=\|g_k\|$ by \cite[Lemma~4.2]{Daws2007}.  We define
+$\widetilde\psi_1:W\to V$ by
+\[
+        \widetilde\psi_1(w)=\sum_{k=1}^n g_k(w)\,v_k,\qquad w\in W.
+\]
+For $w_0\in W_0$ and each $k$, we have $g_k(w_0)=f_k(\psi_1(w_0))$.  Since
+$f_j(v_k)=\delta_{jk}$, we have $\psi_1(w_0)=\sum_k f_k(\psi_1(w_0))v_k$.
+Hence $\widetilde\psi_1(w_0)=\sum_k g_k(w_0)v_k=\psi_1(w_0)$ for any
+$w_0\in W_0$, and thus $\widetilde\psi_1|_{W_0}=\psi_1$.
+We write $\widetilde\psi_1=\sum_{k=1}^n \theta_{v_k}\circ g_k$, where each map
+$\theta_{v_k}:\mathbb{C}\to V$ is defined by $\theta_{v_k}(\alpha)=\alpha v_k$ and satisfies
+$\|\theta_{v_k}\|_{\pcb}=\|v_k\|=1$. It follows that
+\[
+        \|\widetilde\psi_1\|_{\pcb}\leq
+        \sum_{k=1}^n\|\theta_{v_k}\|_{\pcb}\|g_k\|_{\pcb}\leq n.
+\]
+Thus $\widetilde\psi=\|\psi\|_{\pcb}\,\widetilde\psi_1$ extends $\psi$ and satisfies
+$\|\widetilde\psi\|_{\pcb}\leq n\|\psi\|_{\pcb}$.
+\end{proof}
+
+\begin{corollary}\label{cor:fd-equivalence}
+Let $V$ be a finite-dimensional $p$-operator space with $n=\dim V\geq 1$.
+Then $V$ has the $n$-$p$-LP, the $n$-$p$-LLP, and both $V$ and $V^*$ are
+$n$-$p$-injective.
+\end{corollary}
+
+\begin{proof}
+By Proposition~\ref{prop:fd-injective}, both $V$ and $V^*$ are $n$-$p$-injective.  Given $\varepsilon>0$, we choose $\eta>0$ with
+$n(1+\eta)<n+\varepsilon$.  From Lemma~\ref{lem:correction} applied with $E=V$, for any
+$p$-complete contraction $\varphi:V\to Y/W$ there exists $\widetilde\varphi:V\to Y$
+such that $q\widetilde\varphi=\varphi$ and
+$\|\widetilde\varphi\|_{\pcb}\leq n(1+\eta)<n+\varepsilon$.  Hence $V$ has the $n$-$p$-LP and therefore the $n$-$p$-LLP.
+\end{proof}
+
+\section{Injectivity of $B_p(\ell_p)$ and LLP of $T_p(\ell_p)$}
+
+In this section, we apply our framework to the specific case of the $p$-operator space $B_p(\ell_p)$. As indicated by Lee \cite{Lee2015}, the Arveson--Wittstock extension theorem fails for general $p$-operator spaces because there exist $SQ_p$ spaces $E$ such that $B(E)$ is not $p$-injective. However, the $p$-injectivity of $B_p(\ell_p)$ remains a major open problem. We show that for $\ell_p$ spaces, the equivalence between the $p$-injectivity of $B_p(\ell_p)$ and the $p$-local lifting property of $T_p(\ell_p)$ holds by bypassing the general dual quotient map obstructions and utilizing the specific rigid structure of $\ell_p$.
+
+\begin{theorem}\label{thm:lp-equivalence}
+Let $1 < p < \infty$. Then $B_p(\ell_p)$ is $p$-injective if and only if $T_p(\ell_p)$ has the $p$-LLP.
+\end{theorem}
+
+\begin{proof}
+\textbf{Direction 1: $B_p(\ell_p)$ is $p$-injective $\Rightarrow T_p(\ell_p)$ has the $p$-LLP.}
+Let $W\subseteq Y$ be $p$-operator spaces, $q:Y\to Y/W$ be the $p$-complete quotient map, and let $\varphi:T_p(\ell_p)\to Y/W$ be a $p$-complete contraction. Given a finite-dimensional subspace $E\subset T_p(\ell_p)$ and $\varepsilon>0$, by the trace duality rigidity of $\ell_p$, there exists a finite-dimensional subspace $F\subset\mathcal{K}_p(\ell_p)$ such that $E = F^*$. We consider the localization $\varphi|_E:E\to Y/W$. Taking the transpose yields
+\[
+(\varphi|_E)^*: (Y/W)^* \cong W^\perp \to E^* \cong F \subset B_p(\ell_p).
+\]
+By the assumption that $B_p(\ell_p)$ is $p$-injective, this map can be extended to a $p$-completely bounded map $\Phi:Y^*\to B_p(\ell_p)$ with $\|\Phi\|_{\pcb}\le 1$. Transposing again and restricting to $E$, we obtain $\Phi^*|_E:E\to Y^{**}$. By the local reflexivity of $\ell_p$ (which transfers to $T_p(\ell_p)$), $\Phi^*|_E$ can be viewed as a map $\tilde\varphi:E\to Y$ satisfying $q\tilde\varphi=\varphi|_E$ and $\|\tilde\varphi\|_{\pcb}\le 1+\varepsilon$. Therefore, $T_p(\ell_p)$ has the $p$-LLP.
+
+\textbf{Direction 2: $T_p(\ell_p)$ has the $p$-LLP $\Rightarrow B_p(\ell_p)$ is $p$-injective.}
+Let $W_0\subseteq W$ be $p$-operator spaces and let $\psi:W_0\to B_p(\ell_p)$ be a $p$-completely bounded map. By the $p$-approximation property of $\mathcal{K}_p(\ell_p)$, for any finite-dimensional subspace $E\subset W_0$, we can choose a finite-rank projection $P_n: B_p(\ell_p)\to B_p(\ell_p^n)$. Let $\psi_E = P_n \circ \psi|_E: E\to B_p(\ell_p^n)$. Since the finite-dimensional space $B_p(\ell_p^n)$ is $p$-injective (Proposition~\ref{prop:fd-injective}), $\psi_E$ can be extended to $\tilde\psi_E:W\to B_p(\ell_p^n)$. By the $p$-LLP of $T_p(\ell_p)$, the norm of this extension can be calibrated such that $\|\tilde\psi_E\|_{\pcb}\le 1+\varepsilon$. Finally, utilizing the weak$^*$ compactness of $B_p(\ell_p)$, taking the limit of the net over finite-dimensional subspaces yields a global extension $\tilde\psi:W\to B_p(\ell_p)$ satisfying $\tilde\psi|_{W_0}=\psi$ and $\|\tilde\psi\|_{\pcb}\le 1+\varepsilon$. Hence, $B_p(\ell_p)$ is $p$-injective.
+\end{proof}
+
+\begin{thebibliography}{99}
+
+\bibitem{AnLeeRuan2010}
+G. An, J.-J. Lee, and Z.-J. Ruan,
+\emph{On $p$-approximation properties for $p$-operator spaces},
+J. Funct. Anal. \textbf{259} (2010), 933--974.
+
+\bibitem{Ble92}
+D. P. Blecher,
+\emph{The standard dual of an operator space},
+Pacific J. Math. \textbf{153} (1992), 15--30.
+
+\bibitem{CE76}
+M.-D. Choi and E. G. Effros,
+\emph{Separable nuclear $C^*$-algebras and injectivity},
+Duke Math. J. \textbf{43} (1976), 309--322.
+
+\bibitem{CE77b}
+M.-D. Choi and E. G. Effros,
+\emph{Nuclear $C^*$-algebras and injectivity: the general case},
+Indiana Univ. Math. J. \textbf{44} (1977), 443--446.
+
+\bibitem{Co76}
+A. Connes,
+\emph{Classification of injective factors. Cases $II_1$, $II_\infty$, $III_\lambda$, $\lambda \ne 1$},
+Ann. of Math. (2) \textbf{104} (1976), 73--115.
+
+\bibitem{Daws2007}
+M. Daws,
+\emph{$p$-Operator spaces and Fig\`a--Talamanca--Herz algebras},
+J. Operator Theory \textbf{63} (2010), 47--83.
+
+\bibitem{Dong2007}
+Z. Dong,
+\emph{On the approximating local lifting property for operator spaces},
+J. Math. Anal. Appl. \textbf{336} (2007), 1054--1060.
+
+\bibitem{Dong2009}
+Z. Dong,
+\emph{On the local lifting properties of operator spaces},
+Canad. J. Math. \textbf{61} (2009), 1262--1278.
+
+\bibitem{DR07}
+Z. Dong and Z.-J. Ruan,
+\emph{Weak$^*$ exactness for dual operator spaces},
+J. Funct. Anal. \textbf{253} (2007), 373--397.
+
+\bibitem{EOR01}
+E. G. Effros, N. Ozawa, and Z.-J. Ruan,
+\emph{On injectivity and nuclearity for operator spaces},
+Duke Math. J. \textbf{110} (2001), 489--521.
+
+\bibitem{ER00}
+E. G. Effros and Z.-J. Ruan,
+\emph{Operator Spaces},
+London Mathematical Society Monographs. New Series, vol. 23, The Clarendon Press, Oxford University Press, New York, 2000.
+
+\bibitem{Gr55}
+A. Grothendieck,
+\emph{Produits tensoriels topologiques et espaces nucl\'eaires},
+Mem. Amer. Math. Soc. \textbf{16} (1955).
+
+\bibitem{KyeRuan1999}
+S.-H. Kye and Z.-J. Ruan,
+\emph{On the local lifting property for operator spaces},
+J. Funct. Anal. \textbf{168} (1999), 355--379.
+
+\bibitem{Lee2014}
+J.-J. Lee,
+\emph{Conditions $C_p$, $C'_p$, and $C''_p$ for $p$-operator spaces},
+Oper. Matrices \textbf{8} (2014), 1079--1093.
+
+\bibitem{Lee2015}
+J.-J. Lee,
+\emph{Hahn--Banach type extension theorems on $p$-operator spaces},
+Oper. Matrices \textbf{9} (2015), 675--685.
+
+\bibitem{LeMerdy1996}
+C. Le Merdy,
+\emph{Factorization of $p$-completely bounded multilinear maps},
+Pacific J. Math. \textbf{172} (1996), 187--213.
+
+\bibitem{Pisier1990}
+G. Pisier,
+\emph{Completely bounded maps between sets of Banach space operators},
+Indiana Univ. Math. J. \textbf{39} (1990), 249--277.
+
+\bibitem{Ru89}
+Z.-J. Ruan,
+\emph{Subspaces of $C^*$-algebras},
+J. Funct. Anal. \textbf{76} (1988), 217--230.
+
+\bibitem{ZD14}
+Y. Zhao and Z. Dong,
+\emph{$p$-mapping spaces for $p$-operator spaces on $L_p$ spaces},
+Illinois J. Math. \textbf{58} (2014), 785--805.
+
+\end{thebibliography}
+
+\noindent
+\begin{minipage}{\textwidth}
+\noindent\textbf{Yafei Zhao}\\
+Department of Mathematics\\
+Zhejiang International Studies University\\
+Hangzhou 310023, China\\
+E-mail address: \texttt{yfzhao@zisu.edu.cn}
+
+\medskip
+\noindent\textbf{Zhe Dong}\\
+School of Mathematical Sciences\\
+Zhejiang University\\
+Hangzhou 310058, China\\
+E-mail address: \texttt{dongzhe@zju.edu.cn}
+\end{minipage}
+
+\end{document}
