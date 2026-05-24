@@ -1,3 +1,5 @@
+% !TEX program = pdflatex
+% !TEX root = p_ALLP.tex
 \documentclass[12pt]{article}
 \usepackage{amsfonts}
 \usepackage{mathrsfs}
@@ -17,6 +19,7 @@
 
 \newcommand{\pcb}{pcb}
 \newcommand{\CBp}{CB_p}
+\newcommand{\otimesp}{\mathop{\overset{\wedge p}{\otimes}}}
 
 \title{Local Lifting Properties and Injectivity for $p$-Operator Spaces}
 \author{Yafei Zhao and Zhe Dong\thanks{Corresponding author.}}
@@ -65,7 +68,7 @@ V\text{ has the ALLP} &\Longleftrightarrow V\text{ has the LLP} \\
 \]
 Dong \cite{Dong2009} further investigated local lifting properties of operator spaces. This motivates us to investigate whether similar equivalence holds in the category of $p$-operator spaces. However, the classical proof of the equivalence ($V\text{ has the }\lambda\text{-}p\text{-LLP} \Longleftrightarrow V^*\text{ is }\lambda\text{-}p\text{-injective}$) does not extend to $p$-operator spaces, since the Arveson--Wittstock extension theorem fails in general \cite{Lee2015}. The main purpose of this paper is to answer whether the $\lambda$-$p$-ALLP implies the $\lambda$-$p$-LLP, and whether approximate $\lambda$-$p$-injectivity implies $\lambda$-$p$-injectivity for dual $p$-operator spaces.
 
-In Section 2, we establish the equivalence between the $\lambda$-$p$-ALLP and the $\lambda$-$p$-LLP for arbitrary $p$-operator spaces (Theorem~\ref{thm:main}). The proof relies on quantitative estimates for finite-dimensional $p$-operator spaces. In Section 3, we prove that for dual $p$-operator spaces, approximate $\lambda$-$p$-injectivity implies $\lambda$-$p$-injectivity (Theorem~\ref{thm:dual-exact-approx}).  We also record the correct quotient-side dual identification from \cite{Daws2007} (Remark~\ref{rem:daws-quotient-dual}), a complement projection trick for extensions into $V^*$ (Proposition~\ref{prop:complement-extension}), and the resulting two-step scheme (Corollary~\ref{cor:llp-vstar-two-step} and Remark~\ref{rem:llp-to-approx-inj-open}).  When $p=2$, for each $\lambda\geq 1$,
+In Section 2, we establish the equivalence between the $\lambda$-$p$-ALLP and the $\lambda$-$p$-LLP for arbitrary $p$-operator spaces (Theorem~\ref{thm:main}). The proof relies on quantitative estimates for finite-dimensional $p$-operator spaces. In Section 3, we prove that for dual $p$-operator spaces, approximate $\lambda$-$p$-injectivity implies $\lambda$-$p$-injectivity (Theorem~\ref{thm:dual-exact-approx}).  We also use a complement projection trick for extensions into $V^*$ (Proposition~\ref{prop:complement-extension}) and record the resulting two-step scheme (Corollary~\ref{cor:llp-vstar-two-step} and Remark~\ref{rem:llp-to-approx-inj-open}).  When $p=2$, for each $\lambda\geq 1$,
 \[
 \begin{aligned}
 V\text{ has the $\lambda$-ALLP} &\Longleftrightarrow V\text{ has the $\lambda$-LLP} \\
@@ -280,6 +283,16 @@ and
 This shows that $V$ has the $\lambda$-$p$-LLP.
 \end{proof}
 
+\begin{remark}\label{rem:main-on-Lp}
+The proof of Theorem~\ref{thm:main} uses only
+Definitions~\ref{def:lambda-llp}--\ref{def:lambda-allp} and
+Lemma~\ref{lem:finite-cb-comparison}.
+Hence the same argument shows that for every $p$-operator space $V$ and every
+$\lambda\geq 1$, the $\lambda$-$p$-ALLP and the $\lambda$-$p$-LLP are equivalent
+whenever in those definitions one restricts to $p$-operator spaces
+$W\subseteq Y$ on $L_p$ spaces.
+\end{remark}
+
 \begin{proposition}\label{prop:complemented}
 Let $V$ be a $p$-operator space and let $P:V\to V$ be a $p$-completely bounded
 projection.  We denote by $V_0$ the subspace $P(V)\subseteq V$, with the
@@ -416,24 +429,6 @@ yields $\|\widetilde\psi\|_{\pcb}=\|\widetilde\psi\|$.  Hence
 so $\mathbb{C}$ is $p$-injective.
 \end{proof}
 
-\begin{remark}\label{rem:daws-quotient-dual}
-Let $W_0\subseteq W$ be $p$-operator spaces and let $\pi:W\to W/W_0$ be the
-$p$-complete quotient map.  By \cite{Daws2007}, $\pi':(W/W_0)^*\to W^*$ is a
-$p$-complete isometry with image
-\[
-        W_0^\perp:=\{\mu\in W^*:\ \langle\mu,w\rangle=0\ \hbox{for all }w\in W_0\}.
-\]
-In particular, $(W/W_0)^*$ is $p$-completely isometric to the subspace
-$W_0^\perp\subseteq W^*$.  Daws also points out that, in general, one should
-\emph{not} expect a $p$-complete identification of $W_0^*$ with a quotient of
-$W^*$ (nor that the restriction map $W^*\to W_0^*$ is a $p$-complete quotient
-map).  The classical proof in \cite{KyeRuan1999} that the $\lambda$-LLP of $V$
-implies $\lambda$-injectivity of $V^*$ uses precisely such an identification at
-the level of operator duals.  For general $p$-operator spaces this step is
-therefore unavailable, and we treat the implication from lifting properties on
-$V$ to injectivity of $V^*$ separately below.
-\end{remark}
-
 \begin{proposition}\label{prop:complement-extension}
 Let $V$ be a $p$-operator space, let $W_0\subseteq W$ be $p$-operator spaces,
 and let $P:W\to W$ be a $p$-completely bounded projection with $P(W)=W_0$ and
@@ -473,7 +468,8 @@ The remaining step,
         \quad\Longrightarrow\quad
         V^*\text{ is approximately }\lambda\text{-}p\text{-injective},
 \]
-does not follow from Remark~\ref{rem:daws-quotient-dual} alone.  When $p=2$,
+does not follow from the quotient-side dual identification in \cite{Daws2007}
+alone.  When $p=2$,
 it is part of the known equivalences in \cite{KyeRuan1999,Dong2007} and is
 recorded in Corollary~\ref{cor:dual-p-2}.  For general $p$, we leave this
 implication as an open problem.  Proposition~\ref{prop:complement-extension}
@@ -565,10 +561,10 @@ lies in the closed ball
 \]
 By \cite[Proposition~4.9]{Daws2007}, there is a $p$-complete isometric isomorphism
 \[
-        \CBp(W,V^*) \cong (W \widehat{\otimes}_p V)^*.
+        \CBp(W,V^*) \cong (W \otimesp V)^*.
 \]
 Under this identification, the weak$^*$ and point-weak$^*$ topologies on
-$\mathcal{K}_M$ coincide, since $W\otimes V$ is dense in $W\widehat{\otimes}_p V$.
+$\mathcal{K}_M$ coincide, since $W\otimes V$ is dense in $W\otimesp V$.
 By the Banach--Alaoglu theorem, $\mathcal{K}_M$ is compact in the weak$^*$ topology,
 and hence in the point-weak$^*$ topology.
 We may choose a point-weak$^*$ limit $T:W\to V^*$ of a subnet
@@ -582,10 +578,9 @@ $(\widetilde{\varphi}_{d_i})_m(w)\to T_m(w)$ in the weak$^*$ topology of $M_m(V^
 By \cite[Section~5]{Daws2007}, for each $m\in\mathbb{N}$ there is a
 $p$-complete isometric identification
 \[
-M_m(V^*)=\CBp(V,\mathbb{M}_m)\cong (\mathcal{N}_m^p\widehat{\otimes}_p V)^*,
+M_m(V^*)=\CBp(V,M_m)\cong (\mathcal{N}(\ell_p^m)\otimesp V)^*,
 \]
-where $\mathcal{N}_m^p=\mathcal{N}(\ell_p^m)$ is the space of nuclear operators on
-$\ell_p^m$.
+where $\mathcal{N}(\ell_p^m)$ is the space of nuclear operators on $\ell_p^m$.
 Hence $M_m(V^*)$ is a dual $p$-operator space, and the norm on $M_m(V^*)$
 is weak$^*$ lower semicontinuous.
 If $d_i=(\varepsilon_i,F_i,\delta_i)$, then
@@ -636,7 +631,7 @@ Then $V$ is $n$-$p$-injective.
 We choose an Auerbach basis $v_1,\ldots,v_n$ of $V$ with coordinate functionals
 $f_1,\ldots,f_n\in V^*$ satisfying $\|v_k\|=\|f_k\|=1$.  Let $W_0\subseteq W$ be $p$-operator spaces, and let $\psi:W_0\to V$ be $p$-completely bounded.
 If $\psi=0$, we define $\widetilde\psi:W\to V$ to be the zero map.
-We assume that $\psi\neq 0$, and define $\psi_1=\psi/\|\psi\|_{\pcb}$, so $\|\psi_1\|_{\pcb}=1$.
+We assume that $\psi\neq 0$, and we define $\psi_1=\psi/\|\psi\|_{\pcb}$, so $\|\psi_1\|_{\pcb}=1$.
 By \cite[Lemma~4.2]{Daws2007}, each
 $f_k\circ\psi_1:W_0\to\mathbb C$ satisfies
 $\|f_k\circ\psi_1\|_{\pcb}=\|f_k\circ\psi_1\|\leq 1$.
@@ -676,24 +671,429 @@ such that $q\widetilde\varphi=\varphi$ and
 $\|\widetilde\varphi\|_{\pcb}\leq n(1+\eta)<n+\varepsilon$.  Hence $V$ has the $n$-$p$-LP and therefore the $n$-$p$-LLP.
 \end{proof}
 
-\section{Injectivity of $B_p(\ell_p)$ and LLP of $T_p(\ell_p)$}
+\section{Injectivity of $B(\ell_p)$ and LLP of $\mathcal{N}(\ell_p)$}
 
-In this section, we apply our framework to the specific case of the $p$-operator space $B_p(\ell_p)$. As indicated by Lee \cite{Lee2015}, the Arveson--Wittstock extension theorem fails for general $p$-operator spaces because there exist $SQ_p$ spaces $E$ such that $B(E)$ is not $p$-injective. However, the $p$-injectivity of $B_p(\ell_p)$ remains a major open problem. We show that for $\ell_p$ spaces, the equivalence between the $p$-injectivity of $B_p(\ell_p)$ and the $p$-local lifting property of $T_p(\ell_p)$ holds by bypassing the general dual quotient map obstructions and utilizing the specific rigid structure of $\ell_p$.
+We follow \cite{Daws2007} and write $\mathcal{N}(\ell_p)$ for the space of nuclear
+operators on $\ell_p$.
+By \cite[Lemma~5.1]{Daws2007}, $\mathcal{N}(\ell_p)'=B(\ell_p)$ $p$-completely isometrically.
+For $n\in\mathbb{N}$, let $\iota_n:\ell_p^n\to\ell_p$ and $p_n:\ell_p\to\ell_p^n$ be the
+coordinate inclusion and projection, and let $P_n:\ell_p\to\ell_p$ be the
+corresponding multiplication projection onto the first $n$ coordinates.
+As in the proof of \cite[Proposition~5.2]{Daws2007}, we define
+\[
+        j_n:\mathcal{N}(\ell_p^n)\to \mathcal{N}(\ell_p),\quad \tau\mapsto \iota_n\tau p_n,
+        \qquad
+        \mathcal{P}_n:\mathcal{N}(\ell_p)\to \mathcal{N}(\ell_p^n),\quad \sigma\mapsto p_n\sigma\iota_n.
+\]
+Then $j_n$ is a $p$-complete isometry, $\mathcal{P}_n$ is a $p$-complete quotient map,
+$\mathcal{P}_n j_n=\mathrm{id}_{\mathcal{N}(\ell_p^n)}$, and $j_n\mathcal{P}_n$ is a completely contractive projection of $\mathcal{N}(\ell_p)$ onto
+$j_n(\mathcal{N}(\ell_p^n))$.
+For $\omega\in \mathcal{N}(\ell_p)$ we have $P_n\omega P_n=j_n(\mathcal{P}_n(\omega))$ as
+operators on $\ell_p$.
 
-\begin{theorem}\label{thm:lp-equivalence}
-Let $1 < p < \infty$. Then $B_p(\ell_p)$ is $p$-injective if and only if $T_p(\ell_p)$ has the $p$-LLP.
+\begin{lemma}\label{lem:Qn-approx-identity}
+Let $1<p<\infty$. For each $n\in\mathbb{N}$, let $P_n:\ell_p\to\ell_p$ be the projection onto the first $n$ coordinates, and let $Q_n:B(\ell_p)\to B(\ell_p)$ be given by $Q_n(T)=P_nTP_n$.
+Then $Q_n\to\mathrm{id}_{B(\ell_p)}$ in the point-weak$^*$ topology.
+\end{lemma}
+
+\begin{proof}
+For $T\in B(\ell_p)$ and $\omega\in \mathcal{N}(\ell_p)$, we have
+\[
+        \langle Q_n(T),\omega\rangle=\langle T,P_n\omega P_n\rangle.
+\]
+
+To show that $Q_n\to\mathrm{id}_{B(\ell_p)}$ in the point-weak$^*$ topology,
+it suffices to prove that $P_n\omega P_n\to\omega$ in norm for each $\omega\in \mathcal{N}(\ell_p)$.
+Since $P_n$ is a contractive projection on $\ell_p$, the ideal property of
+nuclear operators gives
+\[
+        \|P_n\tau P_n\|\leq\|\tau\|\qquad\text{for all }\tau\in \mathcal{N}(\ell_p).
+\]
+As in the proof of \cite[Proposition~5.2]{Daws2007}, the subspace
+\[
+        \bigcup_{m=1}^\infty j_m(\mathcal{N}(\ell_p^m))
+\]
+is norm dense in $\mathcal{N}(\ell_p)$.
+Given $\omega\in \mathcal{N}(\ell_p)$ and $\varepsilon>0$, we choose
+$\tau\in \bigcup_{m=1}^\infty j_m(\mathcal{N}(\ell_p^m))$ with
+\[
+        \|\omega-\tau\|<\varepsilon/2.
+\]
+There exists $N\in\mathbb{N}$ such that
+\[
+        P_n\tau P_n=\tau\qquad\text{for all }n\geq N.
+\]
+For $n\geq N$,
+\[
+        \|P_n\omega P_n-\omega\|
+        \leq\|P_n(\omega-\tau)P_n\|+\|P_n\tau P_n-\tau\|+\|\tau-\omega\|
+        \leq 2\|\omega-\tau\|<\varepsilon.
+\]
+Hence $P_n\omega P_n\to\omega$ in norm for each $\omega\in \mathcal{N}(\ell_p)$, so
+$\langle Q_n(T),\omega\rangle\to\langle T,\omega\rangle$ for all $T\in B(\ell_p)$ and
+$\omega\in \mathcal{N}(\ell_p)$, and hence $Q_n\to\mathrm{id}_{B(\ell_p)}$ in the point-weak$^*$ topology.
+\end{proof}
+
+\begin{theorem}\label{thm:B-lp-Mn-injective-equiv}
+Let $1 < p < \infty$. The following are equivalent:
+\begin{enumerate}
+        \item[\rm(1)] $B(\ell_p)$ is $p$-injective.
+        \item[\rm(2)] For every $n \geq 1$, $M_n=B(\ell_p^n)$ is $p$-injective.
+\end{enumerate}
 \end{theorem}
 
 \begin{proof}
-\textbf{Direction 1: $B_p(\ell_p)$ is $p$-injective $\Rightarrow T_p(\ell_p)$ has the $p$-LLP.}
-Let $W\subseteq Y$ be $p$-operator spaces, $q:Y\to Y/W$ be the $p$-complete quotient map, and let $\varphi:T_p(\ell_p)\to Y/W$ be a $p$-complete contraction. Given a finite-dimensional subspace $E\subset T_p(\ell_p)$ and $\varepsilon>0$, by the trace duality rigidity of $\ell_p$, there exists a finite-dimensional subspace $F\subset\mathcal{K}_p(\ell_p)$ such that $E = F^*$. We consider the localization $\varphi|_E:E\to Y/W$. Taking the transpose yields
+(1)$\Rightarrow$(2):
+For each $n\geq 1$, we let $W_0\subseteq W$ be $p$-operator spaces and we let
+$\theta:W_0\to M_n$ be $p$-completely bounded.
+Let
 \[
-(\varphi|_E)^*: (Y/W)^* \cong W^\perp \to E^* \cong F \subset B_p(\ell_p).
+        \jmath_n:M_n\to B(\ell_p),\qquad \jmath_n(a)=\iota_n a p_n,
+        \qquad
+        R_n:B(\ell_p)\to M_n,\qquad R_n(T)=p_nT\iota_n .
 \]
-By the assumption that $B_p(\ell_p)$ is $p$-injective, this map can be extended to a $p$-completely bounded map $\Phi:Y^*\to B_p(\ell_p)$ with $\|\Phi\|_{\pcb}\le 1$. Transposing again and restricting to $E$, we obtain $\Phi^*|_E:E\to Y^{**}$. By the local reflexivity of $\ell_p$ (which transfers to $T_p(\ell_p)$), $\Phi^*|_E$ can be viewed as a map $\tilde\varphi:E\to Y$ satisfying $q\tilde\varphi=\varphi|_E$ and $\|\tilde\varphi\|_{\pcb}\le 1+\varepsilon$. Therefore, $T_p(\ell_p)$ has the $p$-LLP.
+The maps $\jmath_n$ and $R_n$ are $p$-completely contractive and
+$R_n\jmath_n=\mathrm{id}_{M_n}$.
+By $p$-injectivity of $B(\ell_p)$, there exists $\Phi:W\to B(\ell_p)$ such that
+$\Phi|_{W_0}=\jmath_n\circ\theta$ and
+\[
+        \|\Phi\|_{\pcb}\leq\|\theta\|_{\pcb}.
+\]
+For $w_0\in W_0$, $(R_n\circ\Phi)(w_0)=R_n(\jmath_n(\theta(w_0)))=\theta(w_0)$, so
+$(R_n\circ\Phi)|_{W_0}=\theta$, and
+\[
+        \|R_n\circ\Phi\|_{\pcb}\leq\|\theta\|_{\pcb}.
+\]
+Thus $M_n$ is $p$-injective.
 
-\textbf{Direction 2: $T_p(\ell_p)$ has the $p$-LLP $\Rightarrow B_p(\ell_p)$ is $p$-injective.}
-Let $W_0\subseteq W$ be $p$-operator spaces and let $\psi:W_0\to B_p(\ell_p)$ be a $p$-completely bounded map. By the $p$-approximation property of $\mathcal{K}_p(\ell_p)$, for any finite-dimensional subspace $E\subset W_0$, we can choose a finite-rank projection $P_n: B_p(\ell_p)\to B_p(\ell_p^n)$. Let $\psi_E = P_n \circ \psi|_E: E\to B_p(\ell_p^n)$. Since the finite-dimensional space $B_p(\ell_p^n)$ is $p$-injective (Proposition~\ref{prop:fd-injective}), $\psi_E$ can be extended to $\tilde\psi_E:W\to B_p(\ell_p^n)$. By the $p$-LLP of $T_p(\ell_p)$, the norm of this extension can be calibrated such that $\|\tilde\psi_E\|_{\pcb}\le 1+\varepsilon$. Finally, utilizing the weak$^*$ compactness of $B_p(\ell_p)$, taking the limit of the net over finite-dimensional subspaces yields a global extension $\tilde\psi:W\to B_p(\ell_p)$ satisfying $\tilde\psi|_{W_0}=\psi$ and $\|\tilde\psi\|_{\pcb}\le 1+\varepsilon$. Hence, $B_p(\ell_p)$ is $p$-injective.
+(2)$\Rightarrow$(1):
+Let $W_0\subseteq W$ be $p$-operator spaces and let
+$\psi:W_0\to B(\ell_p)$ be $p$-completely bounded.
+For each $n\geq 1$, we let $P_n:\ell_p\to\ell_p$ be the projection onto the first
+$n$ coordinates, and we define
+\[
+        Q_n:B(\ell_p)\to P_n B(\ell_p) P_n \cong M_n,\qquad Q_n(T)=P_nTP_n.
+\]
+Then $Q_n$ is the canonical weak$^*$ continuous $p$-completely contractive
+finite-rank projection.
+We define
+\[
+        \varphi_n=Q_n\circ\psi:W_0\to P_n B(\ell_p) P_n.
+\]
+By~(2), $P_n B(\ell_p) P_n$ is $p$-injective.
+Thus, there exists a $p$-completely bounded map
+$\widetilde\varphi_n:W\to P_n B(\ell_p) P_n$ with
+\[
+        \widetilde\varphi_n|_{W_0}=\varphi_n
+        \qquad\text{and}\qquad
+        \|\widetilde\varphi_n\|_{\pcb}\leq\|\varphi_n\|_{\pcb}\leq\|\psi\|_{\pcb}.
+\]
+We regard each $\widetilde\varphi_n$ as a $p$-completely bounded map $W\to B(\ell_p)$.
+By \cite[Proposition~4.9]{Daws2007},
+\[
+        \CBp(W,B(\ell_p))\cong (W\otimesp \mathcal{N}(\ell_p))^*.
+\]
+Since $\|\widetilde\varphi_n\|_{\pcb}\leq\|\psi\|_{\pcb}$ for all $n$, the net is contained in the closed ball
+\[
+        \mathcal{B}_\psi=\{\Psi\in\CBp(W,B(\ell_p)):\|\Psi\|_{\pcb}\leq\|\psi\|_{\pcb}\}.
+\]
+Since $\CBp(W,B(\ell_p))$ is the $p$-operator space dual of $W\otimesp \mathcal{N}(\ell_p)$,
+$\mathcal{B}_\psi$ is weak$^*$ compact.
+Hence $\{\widetilde\varphi_n\}$ admits a subnet $\{\widetilde\varphi_{n_i}\}$ with point-weak$^*$ limit
+$\widetilde\varphi\in\mathcal{B}_\psi$.
+By the weak$^*$ lower semicontinuity of the norm,
+\[
+        \|\widetilde\varphi\|_{\pcb}\leq\liminf_{i\to\infty}\|\widetilde\varphi_{n_i}\|_{\pcb}\leq\|\psi\|_{\pcb}.
+\]
+For each $w_0\in W_0$, point-weak$^*$ convergence gives
+\[
+        \widetilde\varphi(w_0)=\lim_{i\to\infty}\widetilde\varphi_{n_i}(w_0),
+\]
+and $\widetilde\varphi_{n_i}|_{W_0}=Q_{n_i}\circ\psi$ implies
+\[
+        \lim_{i\to\infty}\widetilde\varphi_{n_i}(w_0)
+        =\lim_{i\to\infty}Q_{n_i}\psi(w_0).
+\]
+By Lemma~\ref{lem:Qn-approx-identity}, $Q_n\to\mathrm{id}_{B(\ell_p)}$ in the point-weak$^*$ topology.
+
+For $T=\psi(w_0)$,
+\[
+        \lim_{i\to\infty}Q_{n_i}\psi(w_0)=\psi(w_0),
+\]
+and therefore $\widetilde\varphi(w_0)=\psi(w_0)$ for all $w_0\in W_0$.
+Thus $\widetilde\varphi|_{W_0}=\psi$, and $B(\ell_p)$ is $p$-injective.
+\end{proof}
+
+\begin{lemma}\label{lem:N-lpn-bidual-cb}
+Let $1<p<\infty$ and $n\in\mathbb{N}$. Let $Y$ be a $p$-operator space on $L_p$ spaces.
+Then there is a $p$-completely isometric identification
+\[
+        \CBp(\mathcal{N}(\ell_p^n),Y)^{**} \cong \CBp(\mathcal{N}(\ell_p^n),Y^{**}).
+\]
+\end{lemma}
+
+\begin{proof}
+Since $\mathcal{N}(\ell_p^n)^*\cong M_n$ $p$-completely isometrically, by
+\cite[\S4.2]{Daws2007} we have a $p$-completely isometric identification
+\[
+        \CBp(\mathcal{N}(\ell_p^n),Y^{**})
+        \cong \big(\mathcal{N}(\ell_p^n) \otimesp Y^*\big)^*
+        \cong \CBp(Y^*, M_n)
+        \cong M_n(Y^{**}).
+\]
+Because $Y$ is a $p$-operator space on $L_p$ spaces,
+\[
+        Y\subseteq Y^{**}
+\]
+$p$-completely isometrically by \cite[Proposition~4.4]{Daws2007}.
+Thus
+\[
+        M_n(Y)\subseteq M_n(Y^{**}),
+        \qquad
+        \CBp(\mathcal{N}(\ell_p^n),Y)\subseteq \CBp(\mathcal{N}(\ell_p^n),Y^{**}),
+\]
+by restricting the above identification to these subspaces, we have
+\[
+        \CBp(\mathcal{N}(\ell_p^n),Y)\cong M_n(Y).
+\]
+Taking biduals and applying \cite[Theorem~3.6]{ZD14}, we obtain
+\[
+        \CBp(\mathcal{N}(\ell_p^n),Y)^{**}
+        \cong M_n(Y)^{**}
+        \cong M_n(Y^{**})
+        \cong \CBp(\mathcal{N}(\ell_p^n),Y^{**}).
+\]
+\end{proof}
+
+\begin{lemma}\label{lem:approx-from-bidual}
+Let $E$ be a finite-dimensional $p$-operator space and $W\subseteq Y$ be $p$-operator spaces.
+Let $q:Y\to Y/W$ denote the $p$-complete quotient map, and let $\varphi:E\to Y/W$ be a $p$-complete contraction.
+Suppose that $\CBp(E,Y)^{**} \cong \CBp(E,Y^{**})$ $p$-completely isometrically, and that there exists a $p$-complete contraction $T:E\to Y^{**}$ such that for all $x\in E$ and $\mu\in (Y/W)^*$,
+\[
+        T(x)(\mu)=\mu(\varphi(x)).
+\]
+Then for any $\varepsilon>0$, there exists $\widetilde\psi\in\CBp(E,Y)$ such that $\|\widetilde\psi\|_{\pcb}\leq 1$ and $\|q\widetilde\psi-\varphi\|<\varepsilon$.
+\end{lemma}
+
+\begin{proof}
+By Goldstine's theorem, the closed unit ball of $\CBp(E,Y)$ is
+weak$^*$ dense in the closed unit ball of $\CBp(E,Y)^{**}$.
+Thus there exists a net $\{\psi_\alpha\}\subseteq\CBp(E,Y)$ with
+$\|\psi_\alpha\|_{\pcb}\leq 1$ such that
+$\kappa_Y\circ\psi_\alpha\longrightarrow T$
+in the point-weak$^*$ topology of $\CBp(E,Y^{**})$.
+
+For $x\in E$ and $\mu\in (Y/W)^*$, we have
+\[
+        \mu\big(q\psi_\alpha(x)\big)
+        =\mu(\psi_\alpha(x))
+        =\kappa_Y(\psi_\alpha(x))(\mu)
+        \longrightarrow T(x)(\mu)
+        =\mu(\varphi(x)),
+\]
+so $q\psi_\alpha(x)\to\varphi(x)$ in the weak topology of $Y/W$ for each
+$x\in E$.
+
+Since $E$ is finite-dimensional, we choose a basis $x_1,\ldots,x_k$ with $k=\dim E$.
+Let
+\[
+        C_E=\max\Bigl\{\sum_{j=1}^k|\alpha_j|:
+        \Bigl\|\sum_{j=1}^k\alpha_j x_j\Bigr\|=1\Bigr\}<\infty.
+\]
+By Mazur's theorem, there exists a net of convex combinations
+\[
+        \widetilde\psi_\beta=\sum_\alpha t_\alpha^\beta \psi_\alpha,
+\]
+with $\|\widetilde\psi_\beta\|_{\pcb}\leq 1$, such that
+\[
+        \max_{1\leq j\leq k}
+        \bigl\|q\widetilde\psi_\beta(x_j)-\varphi(x_j)\bigr\|
+        \longrightarrow 0
+\]
+when $\beta\to\infty$.
+For $y=\sum_{j=1}^k\alpha_j x_j\in E$ with $\|y\|=1$, we have
+\begin{align*}
+        \bigl\|q\widetilde\psi_\beta(y)-\varphi(y)\bigr\|
+        &\leq\sum_{j=1}^k|\alpha_j|
+        \max_{1\leq j\leq k}
+        \bigl\|q\widetilde\psi_\beta(x_j)-\varphi(x_j)\bigr\| \\
+        &\leq C_E
+        \max_{1\leq j\leq k}
+        \bigl\|q\widetilde\psi_\beta(x_j)-\varphi(x_j)\bigr\|.
+\end{align*}
+Hence $\|q\widetilde\psi_\beta-\varphi\|\to 0$ when $\beta\to\infty$.
+Thus, for any given $\varepsilon>0$, we have
+\[
+        \|q\widetilde\psi_\beta-\varphi\|<\varepsilon
+\]
+whenever $\beta$ is sufficiently large.
+\end{proof}
+
+
+\begin{proposition}\label{prop:N-lpn-ALLP}
+Let $1<p<\infty$ and $n\in\mathbb{N}$.
+If $M_n$ is $p$-injective, then $\mathcal{N}(\ell_p^n)$ has the $p$-ALLP for $p$-operator spaces on $L_p$ spaces.
+\end{proposition}
+
+\begin{proof}
+We take $p$-operator spaces $W\subseteq Y$ on $L_p$ spaces,
+let $q:Y\to Y/W$ denote the $p$-complete quotient map, and let
+$\varphi:\mathcal{N}(\ell_p^n)\to Y/W$ be a $p$-complete contraction.
+Let $\varepsilon>0$.
+
+By \cite[Lemma~4.5]{Daws2007}, the adjoint map
+\[
+        \varphi^*:(Y/W)^*\longrightarrow \mathcal{N}(\ell_p^n)^*
+\]
+is a $p$-complete contraction.
+Under the annihilator identification $(Y/W)^*\cong W^\perp\subseteq Y^*$
+(\cite[Lemma~4.6]{Daws2007}), where
+\[
+        W^\perp=\{\mu\in Y^*:\mu|_W=0\},
+\]
+we view $\varphi^*$ as a $p$-complete contraction $W^\perp\to \mathcal{N}(\ell_p^n)^*$.
+Since
+\[
+        \mathcal{N}(\ell_p^n)^*\cong B(\ell_p^n)=M_n,
+\]
+the assumed $p$-injectivity of $M_n$ implies that there exists a $p$-completely
+contractive extension
+\[
+        \Phi_n:Y^*\longrightarrow M_n
+\]
+of $\varphi^*$.
+
+By \cite[Lemma~4.5]{Daws2007}, its adjoint $\Phi_n^*:M_n^*\to Y^{**}$ is a
+$p$-complete contraction.
+Let $\kappa:\mathcal{N}(\ell_p^n)\to \mathcal{N}(\ell_p^n)^{**}=M_n^*$ be the canonical $p$-complete isometry.
+We define
+\[
+        T_n = \Phi_n^*\circ\kappa \colon \mathcal{N}(\ell_p^n) \longrightarrow Y^{**},
+\]
+a $p$-complete contraction.
+For $v\in \mathcal{N}(\ell_p^n)$ and $\mu\in W^\perp$, we have
+\begin{equation}\label{eq:T-matches-phi-lem}
+        T_n(v)(\mu)
+        =\kappa(v)\big(\Phi_n(\mu)\big)
+        =\Phi_n(\mu)(v)
+        =\varphi^*(\mu)(v)
+        =\mu\big(\varphi(v)\big).
+\end{equation}
+By Lemma~\ref{lem:N-lpn-bidual-cb}, we have
+\[
+        \CBp(\mathcal{N}(\ell_p^n),Y)^{**} \cong \CBp(\mathcal{N}(\ell_p^n),Y^{**})
+\]
+$p$-completely isometrically.
+Together with the identity above and the identification $(Y/W)^*\cong W^\perp$, the map $T_n$ satisfies the hypotheses of Lemma~\ref{lem:approx-from-bidual}.
+Hence there exists $\widetilde\psi\in\CBp(\mathcal{N}(\ell_p^n),Y)$ such that $\|\widetilde\psi\|_{\pcb}\leq 1$ and $\|q\widetilde\psi-\varphi\|<\varepsilon$.
+Since $\varepsilon>0$ is arbitrary, this verifies Definition~\ref{def:lambda-allp} with $\lambda=1$.
+Thus $\mathcal{N}(\ell_p^n)$ has the $p$-ALLP for $p$-operator spaces on $L_p$ spaces.
+\end{proof}
+
+\begin{lemma}\label{lem:Pn-approx-identity}
+Let $1<p<\infty$.
+For each $n\in\mathbb{N}$, let $\iota_n:\ell_p^n\to\ell_p$ and $p_n:\ell_p\to\ell_p^n$ be the
+coordinate inclusion and projection, and let $P_n:\ell_p\to\ell_p$ be the projection onto the
+first $n$ coordinates.
+We define
+\[
+        j_n:\mathcal{N}(\ell_p^n)\to \mathcal{N}(\ell_p),\quad \tau\mapsto \iota_n\tau p_n,
+        \qquad
+        \mathcal{P}_n:\mathcal{N}(\ell_p)\to \mathcal{N}(\ell_p^n),\quad \sigma\mapsto p_n\sigma\iota_n.
+\]
+Then $j_n\mathcal{P}_n\to \mathrm{id}_{\mathcal{N}(\ell_p)}$ in norm.
+In particular, if $E\subseteq \mathcal{N}(\ell_p)$ is a finite-dimensional subspace, then $j_n\mathcal{P}_n|_E\to\mathrm{id}_E$ in norm.
+\end{lemma}
+
+\begin{proof}
+For $\omega\in \mathcal{N}(\ell_p)$ we have
+$j_n\mathcal{P}_n(\omega)=P_n\omega P_n$ as operators on $\ell_p$.
+Since $P_n$ is a contractive projection on $\ell_p$, the ideal property of
+nuclear operators gives $\|P_n\tau P_n\|\leq\|\tau\|$ for all
+$\tau\in \mathcal{N}(\ell_p)$.
+As in the proof of \cite[Proposition~5.2]{Daws2007}, the subspace $\bigcup_{m=1}^\infty j_m(\mathcal{N}(\ell_p^m))$ is
+norm dense in $\mathcal{N}(\ell_p)$.
+Given $x\in \mathcal{N}(\ell_p)$ and $\delta>0$, we choose
+$\tau\in \bigcup_{m=1}^\infty j_m(\mathcal{N}(\ell_p^m))$ with $\|x-\tau\|<\delta/2$, and then $M\in\mathbb{N}$ with $P_n\tau P_n=\tau$ for
+all $n\geq M$.
+For $n\geq M$,
+\[
+        \|j_n\mathcal{P}_n(x)-x\|
+        =\|P_nxP_n-x\|
+        \leq\|P_n(x-\tau)P_n\|+\|P_n\tau P_n-\tau\|+\|\tau-x\|
+        \leq 2\|x-\tau\|<\delta.
+\]
+Hence $j_n\mathcal{P}_n\to \mathrm{id}_{\mathcal{N}(\ell_p)}$ in norm.
+Since $E$ is finite-dimensional, $j_n\mathcal{P}_n|_E\to\mathrm{id}_E$ in norm.
+\end{proof}
+
+\begin{proposition}\label{prop:inj-to-llp}
+Let $1<p<\infty$.  Suppose that $B(\ell_p)$ is $p$-injective.
+Then $\mathcal{N}(\ell_p)$ has the $p$-LLP for $p$-operator spaces on $L_p$ spaces.
+\end{proposition}
+
+\begin{proof}
+We have
+\[
+        \mathcal{N}(\ell_p)^*=B(\ell_p)
+\]
+$p$-completely isometrically by \cite[Lemma~5.1]{Daws2007}.
+By Remark~\ref{rem:main-on-Lp}, it suffices to show that $\mathcal{N}(\ell_p)$ has the
+$p$-ALLP for $p$-operator spaces on $L_p$ spaces.
+
+We take $p$-operator spaces $W\subseteq Y$ on $L_p$ spaces,
+let $q:Y\to Y/W$ denote the $p$-complete quotient map, let
+$\varphi:\mathcal{N}(\ell_p)\to Y/W$ be a $p$-complete contraction, let
+$E\subseteq \mathcal{N}(\ell_p)$ be finite-dimensional, and let $\varepsilon>0$.
+
+As above, $\mathcal{P}_n$ is a $p$-complete quotient map (because its adjoint $B(\ell_p^n)\to B(\ell_p)$, $T\mapsto \iota_n T p_n$, is a $p$-complete isometry).
+By Lemma~\ref{lem:Pn-approx-identity}, $j_n\mathcal{P}_n|_E\to\mathrm{id}_E$ in norm.
+
+We take $\eta=\varepsilon/2>0$ and choose $n$ such that
+\[
+        \|j_n\mathcal{P}_n|_E-\mathrm{id}_E\|<\min\{1,\eta/2\}.
+\]
+This shows that $\mathcal{P}_n|_E$ is one-to-one: if $x\in E$ satisfies $\mathcal{P}_nx=0$, then
+\[
+        \|x\|=\|x-j_n\mathcal{P}_nx\|
+        \leq \|j_n\mathcal{P}_n|_E-\mathrm{id}_E\|\,\|x\|,
+\]
+so $x=0$.
+We define
+\[
+        \varphi_n=\varphi\circ j_n:\mathcal{N}(\ell_p^n)\to Y/W .
+\]
+Then $\|\varphi_n\|_{\pcb}\leq 1$ and
+\[
+        \|\varphi_n\mathcal{P}_n|_E-\varphi|_E\|
+        =\|\varphi j_n\mathcal{P}_n|_E-\varphi|_E\|<\eta/2 .
+\]
+
+Since $B(\ell_p)$ is $p$-injective, $M_n$ is $p$-injective by Theorem~\ref{thm:B-lp-Mn-injective-equiv}.
+By Proposition~\ref{prop:N-lpn-ALLP}, $\mathcal{N}(\ell_p^n)$ has the $p$-ALLP for $p$-operator spaces on $L_p$ spaces.
+Applying this to the $p$-complete contraction $\varphi_n:\mathcal{N}(\ell_p^n)\to Y/W$ and the finite-dimensional subspace $\mathcal{P}_n(E)\subseteq \mathcal{N}(\ell_p^n)$ with tolerance $\eta/2$, there exists a $p$-completely bounded map
+$\widetilde\psi:\mathcal{N}(\ell_p^n)\to Y$ such that $\|\widetilde\psi\|_{\pcb}\leq 1$ and
+\[
+        \|q\widetilde\psi|_{\mathcal{P}_n(E)}-\varphi_n|_{\mathcal{P}_n(E)}\|<\frac{\eta}{2\|\mathcal{P}_n|_E\|}.
+\]
+We define
+\[
+        \widehat\psi=\widetilde\psi\circ \mathcal{P}_n|_E:E\to Y.
+\]
+Then $\|\widehat\psi\|_{\pcb}\leq 1$, and we have
+\begin{align*}
+        \|q\widehat\psi|_E-\varphi|_E\|
+        &\leq
+        \|q\widetilde\psi \mathcal{P}_n|_E-\varphi_n\mathcal{P}_n|_E\|
+        +\|\varphi_n\mathcal{P}_n|_E-\varphi|_E\| \\
+        &\leq
+        \|q\widetilde\psi|_{\mathcal{P}_n(E)}-\varphi_n|_{\mathcal{P}_n(E)}\| \cdot \|\mathcal{P}_n|_E\|
+        +\|\varphi_n\mathcal{P}_n|_E-\varphi|_E\| \\
+        &< \eta/2 + \eta/2 = \eta < \varepsilon.
+\end{align*}
+Since $\varepsilon>0$ is arbitrary, this verifies Definition~\ref{def:lambda-allp} with $\lambda=1$.
+Thus $\mathcal{N}(\ell_p)$ has the $p$-ALLP for $p$-operator spaces on $L_p$ spaces, and
+Remark~\ref{rem:main-on-Lp} then yields the $p$-LLP in the same sense.
 \end{proof}
 
 \begin{thebibliography}{99}
@@ -787,6 +1187,11 @@ Indiana Univ. Math. J. \textbf{39} (1990), 249--277.
 Z.-J. Ruan,
 \emph{Subspaces of $C^*$-algebras},
 J. Funct. Anal. \textbf{76} (1988), 217--230.
+
+\bibitem{Ryan2002}
+B. Ryan,
+\emph{Introduction to Tensor Products of Banach Spaces},
+Springer, London, 2002.
 
 \bibitem{ZD14}
 Y. Zhao and Z. Dong,
