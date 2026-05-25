@@ -1049,16 +1049,12 @@ $E\subseteq \mathcal{N}(\ell_p)$ be finite-dimensional, and let $\varepsilon>0$.
 As above, $\mathcal{P}_n$ is a $p$-complete quotient map (since it has a $p$-completely isometric right inverse $j_n$).
 By Lemma~\ref{lem:Pn-approx-identity}, $j_n\mathcal{P}_n|_E\to\mathrm{id}_E$ in norm.
 
-We take $\eta=\varepsilon/2>0$ and choose $n$ such that
+We may assume that $E\neq\{0\}$ (otherwise the condition is trivial).
+We choose $n$ such that
 \[
-        \|j_n\mathcal{P}_n|_E-\mathrm{id}_E\|<\min\{1,\eta/2\}.
+        \|j_n\mathcal{P}_n|_E-\mathrm{id}_E\|<\min\{1,\varepsilon/2\}.
 \]
-This shows that $\mathcal{P}_n|_E$ is one-to-one: if $x\in E$ satisfies $\mathcal{P}_nx=0$, then
-\[
-        \|x\|=\|x-j_n\mathcal{P}_nx\|
-        \leq \|j_n\mathcal{P}_n|_E-\mathrm{id}_E\|\,\|x\|,
-\]
-so $x=0$.
+In particular, since $\|\mathrm{id}_E\|=1$, this guarantees that $\|\mathcal{P}_n|_E\|\neq 0$.
 We define
 \[
         \varphi_n=\varphi\circ j_n:\mathcal{N}(\ell_p^n)\to Y/W .
@@ -1066,7 +1062,7 @@ We define
 Then $\|\varphi_n\|_{\pcb}\leq 1$ and
 \[
         \|\varphi_n\mathcal{P}_n|_E-\varphi|_E\|
-        =\|\varphi j_n\mathcal{P}_n|_E-\varphi|_E\|<\eta/2 .
+        =\|\varphi j_n\mathcal{P}_n|_E-\varphi|_E\|<\varepsilon/2 .
 \]
 
 Since $B(\ell_p)$ is $p$-injective, $M_n$ is $p$-injective by Theorem~\ref{thm:B-lp-Mn-injective-equiv}.
@@ -1074,7 +1070,7 @@ By Proposition~\ref{prop:N-lpn-ALLP}, $\mathcal{N}(\ell_p^n)$ has the $p$-ALLP f
 Applying this to the $p$-complete contraction $\varphi_n:\mathcal{N}(\ell_p^n)\to Y/W$ and the finite-dimensional subspace $\mathcal{P}_n(E)\subseteq \mathcal{N}(\ell_p^n)$, there exists a $p$-completely bounded map
 $\widetilde\psi:\mathcal{N}(\ell_p^n)\to Y$ such that $\|\widetilde\psi\|_{\pcb}\leq 1$ and
 \[
-        \|q\widetilde\psi|_{\mathcal{P}_n(E)}-\varphi_n|_{\mathcal{P}_n(E)}\|<\frac{\eta}{2\|\mathcal{P}_n|_E\|}.
+        \|q\widetilde\psi|_{\mathcal{P}_n(E)}-\varphi_n|_{\mathcal{P}_n(E)}\|<\frac{\varepsilon}{2\|\mathcal{P}_n|_E\|}.
 \]
 We define
 \[
@@ -1089,7 +1085,7 @@ Then $\|\widehat\psi\|_{\pcb}\leq 1$, and we have
         &\leq
         \|q\widetilde\psi|_{\mathcal{P}_n(E)}-\varphi_n|_{\mathcal{P}_n(E)}\| \cdot \|\mathcal{P}_n|_E\|
         +\|\varphi_n\mathcal{P}_n|_E-\varphi|_E\| \\
-        &< \eta/2 + \eta/2 = \eta < \varepsilon.
+        &< \varepsilon/2 + \varepsilon/2 = \varepsilon.
 \end{align*}
 Since $\varepsilon>0$ is arbitrary, this verifies Definition~\ref{def:lambda-allp} with $\lambda=1$.
 Thus $\mathcal{N}(\ell_p)$ has the $p$-ALLP for $p$-operator spaces on $L_p$ spaces, and
