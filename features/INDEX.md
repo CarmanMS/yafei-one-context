@@ -9,6 +9,8 @@
 | approximating-local-lifting-property | Approximating Local Lifting Property | research | draft | `features/research/approximating-local-lifting-property/` | — |
 | pdf-math-exam-to-latex-skill-survey | 数学试卷 PDF → LaTeX 能力调研（Skill / 工具 / 开源方案） | research | in_progress | `features/research/pdf-math-exam-to-latex-skill-survey/` | one-context |
 | second-dual-local-properties | 算子空间局部性质与二重对偶（exactness、local reflexivity 等下降无提升律） | research | done | `features/research/second-dual-local-properties/` | — |
+| completely-integral-corrigendum | Completely integral nuclearity 勘误与结构定理 | research | in_progress | `features/research/completely-integral-corrigendum/` | — |
+| local-reflexivity-exactness | Local reflexivity 与 exactness（Effros--Ruan、Pisier 常数） | research | in_progress | `features/research/local-reflexivity-exactness/` | — |
 
 **Columns**
 

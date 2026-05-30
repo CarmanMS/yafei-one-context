@@ -6,6 +6,7 @@ repos/**
 
 # Python
 .venv/
+.venv-pdf-exam/
 venv/
 __pycache__/
 *.py[cod]
@@ -142,3 +143,17 @@ canvas-philosophy.md
 .claude/settings.json
 # Test screenshots
 tester*-screenshot.png
+
+# pdf-exam-pipeline local build output
+skills/pdf-exam-pipeline/scripts/output/
+
+# Research LaTeX compile artifacts (track .tex sources only)
+features/research/**/paper/*.aux
+features/research/**/paper/*.log
+features/research/**/paper/*.out
+features/research/**/paper/texput.log
+features/research/**/paper/compile*.out
+features/research/**/paper/*.pdf
+features/research/**/paper/fix.py
+features/research/**/paper/tmp_*.py
+features/research/**/paper/pdf_snip.txt
