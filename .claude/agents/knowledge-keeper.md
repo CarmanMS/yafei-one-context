@@ -46,6 +46,7 @@ Read these files for context:
 @knowledge/README.md
 @knowledge/references/linear-section-and-weak-star-norm-semicontinuity.md
 @knowledge/references/operator-space-paper-prose.md
+@knowledge/references/p-operator-space-injective-survey.md
 @knowledge/references/README.md
 @knowledge/standards/agent-framework.md
 @knowledge/standards/agent-friendly-testing.md
