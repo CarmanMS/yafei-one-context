@@ -647,7 +647,7 @@ This keeps `knowledge/` stable even when tools change.
 > 发布日期：2003（以剑桥版权页为准）  
 > 收录日期：2026-05-05  
 >
-> **补充**：叙述语气与结构对齐本地工作副本 `repos/research/ai/archive/20201107/revisedoperatorspace.tex`（私用修订稿，不外传全文）。本文 **不包含** 该书或 `.tex` 的原文摘抄，仅保留可执行的写作规则。
+> **补充**：叙述语气与结构对齐本地工作副本 `repos/research/paperwork/archive/20201107/revisedoperatorspace.tex`（私用修订稿，不外传全文）。本文 **不包含** 该书或 `.tex` 的原文摘抄，仅保留可执行的写作规则。
 
 ---
 

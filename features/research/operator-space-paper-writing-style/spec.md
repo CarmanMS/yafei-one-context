@@ -3,7 +3,7 @@ id: operator-space-paper-writing-style
 title: 算子空间论文表述规范（范本蒸馏 + Skill）
 status: in_progress
 category: research
-primary_repo_id: ""
+primary_repo_id: paperwork
 owner: ""
 updated: "2026-05-05"
 ---
@@ -20,7 +20,7 @@ updated: "2026-05-05"
 
 - 在 `knowledge/references/` 新增一篇 **写作规范**（kebab-case 英文名），包含：术语与符号习惯摘要、段落节奏偏好、常见句式类别（定义—命题—证明衔接）、**禁止的机翻/模型腔**列表、**精简**原则（删冗余从句、避免重复铺垫）。
 - 在 `skills/<name>/SKILL.md` 新增薄 Skill：**起草/改写**算子空间论文自然段时必须先读该 knowledge 文件；输出前过一遍「去 AI 味 + 删冗」自检。
-- 规范正文中 **显式指向** 范本路径：`repos/research/ai/archive/20201107/revisedoperatorspace.tex`（仅作本地参照；若日后该书有正式出版信息，在 knowledge 来源块中补充并可注明「叙述风格对齐该书修订稿」）。
+- 规范正文中 **显式指向** 范本路径：`repos/research/paperwork/archive/20201107/revisedoperatorspace.tex`（仅作本地参照；若日后该书有正式出版信息，在 knowledge 来源块中补充并可注明「叙述风格对齐该书修订稿」）。
 - 完成后可选运行 `onecxt adapt`（或项目惯例的适配命令），使 Cursor / Claude Code 等侧出现对应 skill 规则（与现有 skill 管线一致）。
 
 ## 非目标
@@ -43,11 +43,11 @@ updated: "2026-05-05"
 
 # 实现落点（必填）
 
-- **仓库 id**（`meta/repos.yaml`）：`—`（当前 `repos:` 为空；实现落在伞仓本体）。若日后将 `repos/research/...` 登记为独立 repo，在此追加 `id`。
+- **仓库 id**（`meta/repos.yaml`）：`paperwork`（`repos/research/paperwork`，远程 `CarmanMS/paperwork`）。
 - **分支 / PR**：文档与 skill；按团队习惯开分支或直接 `main` 小步提交。
 - **主要路径或模块**：
   - 任务追踪：`features/research/operator-space-paper-writing-style/`（本目录）。
-  - 范本（只读参照）：`repos/research/ai/archive/20201107/revisedoperatorspace.tex`。
+  - 范本（只读参照）：`repos/research/paperwork/archive/20201107/revisedoperatorspace.tex`。
   - 计划产出：`knowledge/references/operator-space-paper-prose.md`（文件名可按 `tech_design.md` 最终裁定微调）。
   - 计划产出：`skills/operator-space-paper-prose/SKILL.md`（目录名与 adapt 生成物对齐）。
 

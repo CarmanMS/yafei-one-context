@@ -35,3 +35,7 @@ repos:
     id: hangprofile
     alias: hang-profile
     description: CarmanMS/hangprofile (hang profile).
+  - url: https://github.com/CarmanMS/paperwork.git
+    category: research
+    id: paperwork
+    description: CarmanMS/paperwork (research LaTeX papers and notes).

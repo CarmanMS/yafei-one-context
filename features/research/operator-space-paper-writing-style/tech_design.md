@@ -4,7 +4,7 @@
 
 ## 上下文与约束
 
-- **范本**：`repos/research/ai/archive/20201107/revisedoperatorspace.tex`（体积大，留在 `repos/`；knowledge 只存蒸馏条文与极短摘录）。
+- **范本**：`repos/research/paperwork/archive/20201107/revisedoperatorspace.tex`（体积大，留在 `repos/`；knowledge 只存蒸馏条文与极短摘录）。
 - **规范**：`knowledge/references/` 文档须符合 `one-context-conventions.md` 的来源信息要求；对外转载时注意原版版权。
 - **Skill**：遵循 `skills/*/SKILL.md` + frontmatter；工具中立，不出现特定 IDE 指令语法。
 

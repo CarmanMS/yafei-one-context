@@ -1,5 +1,5 @@
---- a/repos/research/ai/papers/Approximate local properties(1).tex
-+++ b/repos/research/ai/papers/Approximate local properties(1).tex
+--- a/repos/research/paperwork/papers/Approximate local properties(1).tex
++++ b/repos/research/paperwork/papers/Approximate local properties(1).tex
 @@ -131,7 +131,7 @@
  \begin{proof}
  Local reflexivity clearly implies approximately local reflexivity.

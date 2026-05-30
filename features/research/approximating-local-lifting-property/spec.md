@@ -3,7 +3,7 @@ id: approximating-local-lifting-property
 title: Approximating Local Lifting Property
 status: draft
 category: research
-primary_repo_id: ""
+primary_repo_id: paperwork
 owner: ""
 updated: "2026-05-11"
 ---
@@ -12,7 +12,7 @@ updated: "2026-05-11"
 
 英文稿 **The Approximating Local Lifting Property for $p$-Operator Spaces**（ALLP / $\lambda$-$p$-LLP 等价与近似 $p$-内射性等），写作中与修订同步。
 
-本目录 `paper/p_ALLP.tex` 为便于伞仓跟踪而保存的副本；若你还在 `repos/research/ai/` 下放有同名 `.tex`，编辑后需 **双向同步**，并在 **实际编译的那份** 上运行 `pdflatex`（本仓库 glob 显示当前仅有 `features/.../paper/p_ALLP.tex` 一份源文件）。
+本目录 `paper/p_ALLP.tex` 为便于伞仓跟踪而保存的副本；若你还在 `repos/research/paperwork/` 下放有同名 `.tex`，编辑后需 **双向同步**，并在 **实际编译的那份** 上运行 `pdflatex`（本仓库 glob 显示当前仅有 `features/.../paper/p_ALLP.tex` 一份源文件）。
 
 **硬性约定（避免「tex 已改、PDF 看起来没改」）**
 
@@ -33,21 +33,21 @@ updated: "2026-05-11"
 
 ## 非目标
 
-- 不在此 feature 内替代 `repos/research/ai` 的 Git 版本历史（仍以研究目录仓库为准）。
+- 不在此 feature 内替代 `repos/research/paperwork` 的 Git 版本历史（仍以研究目录仓库为准）。
 
 # 验收标准
 
 - [ ] `paper/p_ALLP.tex` 与既定主副本一致或可解释的差异说明。
-- [ ] PDF 可由 `pdflatex` 无错误编译（建议在 `repos/research/ai/papers/` 执行）。
+- [ ] PDF 可由 `pdflatex` 无错误编译（建议在 `repos/research/paperwork/papers/` 执行）。
 
 # 实现落点（必填）
 
-- **仓库 id**（`meta/repos.yaml`）: —（研究稿路径未单独注册时用 `—`）
+- **仓库 id**（`meta/repos.yaml`）: `paperwork`
 - **分支 / PR**: —
 - **主要路径或模块**:
   - `features/research/approximating-local-lifting-property/paper/p_ALLP.tex`（本 feature 副本）
-  - `repos/research/ai/p_ALLP.tex`
-  - `repos/research/ai/papers/p_ALLP.tex`
+  - `repos/research/paperwork/p_ALLP.tex`
+  - `repos/research/paperwork/papers/p_ALLP.tex`
 
 # 关联
 
