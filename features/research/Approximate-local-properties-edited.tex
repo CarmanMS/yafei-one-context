@@ -1,0 +1,934 @@
+\documentclass[12pt]{article}
+\usepackage{amsfonts}
+\usepackage{amsmath, amssymb, amsthm}
+\textheight=21.4 cm \textwidth=15cm  \topmargin=-0.2 in
+\oddsidemargin 0cm \evensidemargin -0.2cm
+\parindent 24pt
+\baselineskip 4pt
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\title{Approximately local properties of operator spaces}
+\author{Yafei Zhao and Zhe Dong\thanks{Corresponding author.}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\begin{minipage}{11.5cm}
+{\bf Abstract:} In this paper, we investigate the equivalence between the approximately local properties (local reflexivity, exactness and nuclearity) on operator spaces and their corresponding local properties, as well as the related problems for dual operator spaces. We mainly resolve the equivalence problem of  approximately weak$^*$ exactness and weak$^*$ exactness proposed by Professor Zhong-Jin Ruan twenty years ago.
+\par
+{\bf Keywords:} local reflexivity, exactness, nuclearity, approximately local properties, approximately weak$^*$ local properties
+\par
+{\bf 2020 MR Subject Classification:} Primary 46L07
+\end{minipage}
+\end{center}
+
+
+\section{Introduction}
+
+The local theory of operator spaces is a non-commutative quantization of the local theory of Banach spaces. The basic notions such as local reflexivity, exactness, nuclearity form the main part of the standard structure theory for operator spaces (see \cite{CE77b,ER00,EOR,Ki93,Pi92,Pi03,Ru88,Ru89}). In particular, we have for any operator space \(V\)
+\[
+V\;\mbox{is nuclear}\Rightarrow V\;\mbox{is exact}\Rightarrow V\;\mbox{is locally reflexive}.
+\]
+The first implication is due to \cite{Pi92}, and the second to \cite{EOR}. In \cite{EOR}, Effros, Ozawa and Ruan showed that an operator space \(V\) is nuclear if and only if \(V\) is locally reflexive and \(V^{**}\) is injective. Turning to \(C^*\)-algebra theory, using Connes' deep work in \cite{Co76}, Choi and Effros proved the following result in \cite{CE76,CE77a}: a \(C^*\)-algebra \(\mathcal{A}\) is nuclear if and only if \(\mathcal{A}^{**}\) is injective. In \cite{DR}, Dong and Ruan showed that an operator space \(V\) is exact if and only if \(V\) is locally reflexive and \(V^{**}\) is weak$^*$ exact.
+
+
+
+Definition \ref{def:weak-star} of  weak$^*$ exactness for dual operator spaces is taken from \cite{DR} by Professor Ruan and the second author. During the preparation of that paper, Definition \ref{def:approx-weak-star} of approximately weak$^{*}$ exactness  for dual operator spaces was proposed, and an analogous result to Theorem 3.6 in \cite{DR} was established, namely:
+an operator space $V$ is exact if and only if $V$ is locally reflexive and $V^{**}$ is approximately weak$^{*}$ exact.
+At that time, it remained unknown whether weak$^{*}$ exactness and approximately weak$^{*}$ exactness are equivalent for general dual operator spaces (or even von Neumann algebras). In Section 3, Theorem \ref{thm:weak-star}  settles the equivalence problem between weak$^*$ exactness and approximately weak$^*$ exactness raised by Professor Zhong-Jin Ruan two decades ago.  This equivalence constitutes the main conclusion and motivation of our paper. 
+Inspired by this conclusion, in Section 2 of this paper we investigate the equivalence relations between approximately local reflexivity, approximate exactness, approximate nuclearity and the corresponding local properties for general operator spaces. In the remaining part of Section 3, we further study approximately weak$^*$ local reflexivity and approximately weak$^*$ nuclearity.
+
+
+For the convenience of the readers, we recall
+some of basic notations and terminologies in operator spaces, more
+details can be found in \cite{ER00, Pi03}. Given a Hilbert space $\mathcal{H}$, we
+let $\mathcal{B}(\mathcal{H})$ denote the space of all bounded linear operators on
+$\mathcal{H}$. For each natural number $n\in\mathbb{N}$, there is a
+canonical norm $\Vert\cdot\Vert_{n}$ on the $n\times n$ matrix space
+$M_{n}(\mathcal{B}(\mathcal{H}))$ given by identifying $M_{n}(\mathcal{B}(\mathcal{H}))$ with ${\cal
+B}({\cal H}^{n})$. We call this family of norms
+$\{\Vert \cdot\Vert_{n}\}$ an operator space matrix norm on $\mathcal{B}(\mathcal{H})$. An
+operator space $V$ is a norm closed subspace of some $\mathcal{B}(\mathcal{H})$
+equipped with the distinguished operator space matrix norm
+inherited from $\mathcal{B}(\mathcal{H})$. An abstract matrix norm characterization of
+operator spaces was given in \cite{Ru89}. The morphisms in the category
+of operator spaces are the completely bounded linear maps. Given
+operator spaces $V$ and $W$, a linear map $\varphi:V\rightarrow W$
+is completely bounded if the corresponding linear mappings
+$\varphi_{n}:M_{n}(V)\rightarrow M_{n}(W)$ defined by
+$\varphi_{n}([x_{ij}])=[\varphi(x_{ij})]$ are uniformly bounded,
+i.e.
+$$\Vert\varphi\Vert_{cb}=\mbox{sup}\{\Vert\varphi_{n}\Vert: n\in\mathbb{N}\}<\infty.$$
+A map $\varphi$ is completely contractive (respectively,
+completely isometric, a complete quotient) if
+$\Vert\varphi\Vert_{cb}\leq 1$ (respectively, for each
+$n\in\mathbb{N}, \varphi_{n}$ is an isometry, a quotient map). We
+denote by $CB(V, W)$ the space of all completely bounded maps from
+$V$ into $W$. It is known that $CB(V, W)$ is an operator space
+with the operator space matrix norm given by identifying
+$M_{n}(CB(V, W))=CB(V, M_{n}(W))$. In particular, if $V$ is an
+operator space, then its dual space $V^{*}$ is an operator space
+with operator space matrix norm given by the identification
+$M_{n}(V^{*})=CB(V, M_{n})$. Given operator spaces $V$ and $W$,
+and a completely bounded mapping $\varphi: V\rightarrow W$, the
+corresponding adjoint mapping $\varphi^{*}: W^{*}\rightarrow V^{*}$ is
+completely bounded with
+$\Vert\varphi^{*}\Vert_{cb}=\Vert\varphi\Vert_{cb}$. Furthermore,
+$\varphi: V\rightarrow W$ is a completely isometric injection if and only
+if $\varphi^{*}$ is a completely quotient mapping. On the other
+hand, if $\varphi: V\rightarrow W$ is a surjection, then $\varphi$ is a
+completely quotient mapping if and only if $\varphi^{*}$ is a
+completely isometric injection.
+
+
+
+
+
+\section{Approximately Local Properties}
+\subsection{Local reflexivity}\label{sec:local-reflexivity}
+
+We define  local reflexivity following Lemma~14.3.3 in~\cite{ER00}.
+
+\begin{definition}\label{def:local-reflexivity}
+An operator space $V$ is \emph{locally reflexive} if for any
+finite-dimensional subspace $E\subseteq V^{**}$,  finite-dimensional
+subspace $F\subseteq V^*$ and $\varepsilon>0$, there exists a
+completely bounded map $\varphi:E\to V$ such that $\Vert\varphi\Vert_{cb}<1+\varepsilon$
+and
+\[
+\langle \varphi(x),f\rangle=\langle x,f\rangle,\qquad x\in E,\ f\in F.
+\]
+\end{definition}
+
+\begin{definition}\label{def:approx-local-reflexivity}
+An operator space $V$ is \emph{approximately locally reflexive} if for
+any finite-dimensional subspace $E\subseteq V^{**}$, 
+finite-dimensional subspace $F\subseteq V^*$ and $\varepsilon>0$,
+there is a completely bounded map $\varphi:E\to V$ such that
+$\Vert \varphi\Vert_{cb}<1+\varepsilon$ and
+\[
+|\langle \varphi(x)-x,f\rangle|
+\le \varepsilon\Vert x\Vert\,\Vert f\Vert,
+\qquad x\in E,\ f\in F.
+\]
+\end{definition}
+
+\begin{theorem}\label{thm:approx-local-reflexivity}
+An operator space $V$ is locally reflexive if and only if $V$ is
+approximately locally reflexive.
+\end{theorem}
+
+\begin{proof}
+Local reflexivity clearly implies approximately local reflexivity.
+
+Conversely, assume that $V$ is approximately locally reflexive. Let
+$E\subseteq V^{**}$ and $F\subseteq V^*$ be finite-dimensional subspaces,
+and let $\varepsilon>0$.  In the following we will construct $\varphi:E\to V$ as in
+Definition~\ref{def:local-reflexivity}.
+
+If $F=\{0\}$, the conclusion follows directly from approximately local
+reflexivity. Suppose $F\ne\{0\}$. Let $P:V\to F^*$ be the
+restriction map $P(v)(f)=\langle v,f\rangle$ for $v\in V$, $f\in F$. It is routine to check that $P^*=\iota: F\hookrightarrow V^{*}$ and so $P$ is a completely  quotient mapping. 
+Since $\dim F^{*}<\infty$ and $P$ is surjective,  we can define a linear
+map $R:F^*\to V$ with $P\circ R=\mathrm{id}_{F^*}$. The map $R$ is completely
+bounded because $F^*$ is finite-dimensional. We define $c=\Vert R\Vert_{cb}$. Since $1=\Vert\mathrm{id}_{F^*}\Vert \leq \Vert P\Vert_{cb}\Vert R\Vert_{cb}$, $c>0$.
+
+ It follows from Corollary 2.2.4 in 
+\cite{ER00} that there is a constant $k=\dim F^{*}>0$ such that
+\[
+\Vert u\Vert_{cb}\le k\Vert u\Vert
+\]
+for all $u\in\mathcal{CB}(E,F^*)$.
+We choose $\delta>0$ such that
+\[
+\delta<\frac{\varepsilon}{2ck}.
+\]
+By Definition~\ref{def:approx-local-reflexivity} with
+$\eta=\min\{\varepsilon/2,\delta\}$, there exists a completely bounded map
+$\varphi_0:E\to V$ such that
+\[
+\Vert \varphi_0\Vert_{cb}<1+\eta\leq1+\frac{\varepsilon}{2}
+\]
+and
+\[
+|\langle \varphi_0(x)-x,f\rangle|
+\leq  \eta\Vert x\Vert\,\Vert f\Vert \leq \delta\Vert x\Vert\,\Vert f\Vert,
+\qquad x\in E,\ f\in F.
+\]
+Let $Q:E\to F^*$ be the restriction map
+\[
+Q(x)(f)=\langle x,f\rangle,\qquad x\in E,\ f\in F,
+\]
+and define
+\[
+T=Q-P\circ \varphi_0:E\to F^*.
+\]
+For every $x\in E$ and $f\in F$,
+\[
+T(x)(f)=(Q-P\circ \varphi_0)(x)(f)
+=\langle x,f\rangle-\langle \varphi_0(x),f\rangle
+=\langle x-\varphi_0(x),f\rangle,
+\]
+The preceding inequality gives $\Vert T\Vert\le\delta$, and hence
+\[
+\Vert T\Vert_{cb}\le k\delta<\frac{\varepsilon}{2c}.
+\]
+
+Set
+\[
+\varphi=\varphi_0+R\circ T:E\to V.
+\]
+Then
+\[
+\Vert \varphi\Vert_{cb}
+\le \Vert \varphi_0\Vert_{cb}+\Vert R\Vert_{cb}\Vert T\Vert_{cb}
+<1+\frac{\varepsilon}{2}+\frac{\varepsilon}{2}
+=1+\varepsilon.
+\]
+Finally, for $x\in E$ and $f\in F$,
+\[
+\begin{aligned}
+\langle \varphi(x),f\rangle
+&=P(\varphi(x))(f)\\
+&=P(\varphi_0(x))(f)+P(RT(x))(f)\\
+&=P(\varphi_0(x))(f)+T(x)(f)\\
+&=Q(x)(f)
+=\langle x,f\rangle .
+\end{aligned}
+\]
+Thus $\varphi$ satisfies Definition~\ref{def:local-reflexivity}, and $V$ is locally reflexive.
+\end{proof}
+
+\subsection{Exactness}\label{sec:classical}
+
+For finite-dimensional operator spaces $L$ and $S$ of the same dimension,
+the \emph{completely bounded Banach--Mazur distance} is
+\begin{equation}\label{eq:dcb}
+d_{cb}(L,S)=\inf\bigl\{\Vert\varphi\Vert_{cb}\Vert\varphi^{-1}\Vert_{cb}
+:\ L\stackrel{\varphi}{\cong} S\bigr\}.
+\end{equation}
+
+
+\begin{definition}\label{def:exact}
+Let $\lambda\ge 1$. An operator space $V$ is \emph{$\lambda$-exact} if
+for any finite-dimensional subspace $L\subseteq V$ and
+$\varepsilon>0$, there exists a subspace
+$S\subseteq M_n$ for some $n\in\mathbb{N}$ with
+\begin{equation}\label{eq:exact-dcb}
+d_{cb}(L,S)<\lambda+\varepsilon.
+\end{equation}
+We say that $V$ is \emph{exact} if it is $1$-exact.
+\end{definition}
+
+
+\begin{remark}\label{rem:ER-exact}
+This is the standard definition from \S14.4 in \cite{ER00}. The exact
+approximation constant $d_{ex}(L)$ of a finite-dimensional operator
+space $L$ is the infimum of all $\lambda$ such that $L$ is
+$\lambda$-exact. Then an operator space $V$ is $\lambda$-exact
+if and only if $d_{ex}(L)\le\lambda$ for every finite-dimensional
+$L\subseteq V$.
+\end{remark}
+
+
+
+\begin{lemma}\label{lem:exact-equiv}
+An operator space $V$ is exact if and only if for
+any finite-dimensional $E\subseteq V$ with inclusion $\iota_E:E\hookrightarrow V$ and $\varepsilon>0$, there exist a subspace
+$S\subseteq M_n$ for some $n\in\mathbb{N}$ and completely bounded mappings $\varphi:E\to S$, $\psi:S\to V$ such that $\psi\circ\varphi=\iota_E$ and $\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon$.
+\end{lemma}
+
+\begin{proof}
+If $V$ is exact, there exists $S\subseteq M_n$ such that $d_{cb}(E,S)<1+\varepsilon$. Choose an isomorphism
+$\varphi:E\to S$ with
+$\Vert\varphi\Vert_{cb}\Vert\varphi^{-1}\Vert_{cb}<1+\varepsilon$.
+We define $\psi:S\to V$ by $\psi=\iota_E\circ\varphi^{-1}$. Then
+$\psi\circ\varphi=\iota_E$ and
+$\Vert\psi\Vert_{cb}\le\Vert\varphi^{-1}\Vert_{cb}$, hence
+$\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon$.
+
+Conversely, assume the factorization property holds. Fix $\varepsilon>0$ and choose
+$\varphi:E\to S$, $\psi:S\to V$ with $\psi\circ\varphi=\iota_E$ and
+$\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon$. Let
+$S_0=\varphi(E)\subseteq S$. Then $\varphi:E\to S_0$ is a linear isomorphism, and
+$\psi|_{S_0}=\iota_E\circ\varphi^{-1}$, whence
+$\Vert\varphi^{-1}\Vert_{cb}=\Vert\psi|_{S_0}\Vert_{cb}
+\le\Vert\psi\Vert_{cb}$. Therefore
+$d_{cb}(E,S_0)\le\Vert\varphi\Vert_{cb}\Vert\varphi^{-1}\Vert_{cb}
+\le\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon$, and $S_0$
+is a subspace of $M_n$.
+\end{proof}
+
+Inspired by the above Lemma \ref{lem:exact-equiv}, we define the approximate exactness as follows.
+
+\begin{definition}\label{def:approx-exact}
+We say that $V$ is \emph{approximately exact} if for any
+finite-dimensional subspace $E\subseteq V$ and $\varepsilon>0$
+there exist a subspace $S\subseteq M_n$ for some $n\in\mathbb{N}$ and completely bounded
+mappings $\varphi:E\to S$, $\psi:S\to V$ such that
+$$
+\Vert\psi\circ\varphi-\iota_E\Vert_{cb}<\varepsilon,
+\qquad
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon.
+$$
+\end{definition}
+
+
+
+\begin{theorem}\label{thm:approx-exact}
+An operator space $V$ is exact if and only if $V$ is approximately
+exact.
+\end{theorem}
+
+\begin{proof}
+If $V$ is exact, Lemma~\ref{lem:exact-equiv} implies approximate exactness.
+
+Now assume that $V$ is approximately exact. Let $E\subseteq V$ be a
+finite-dimensional subspace and let $\varepsilon>0$. Choose
+$\delta\in(0,1)$ such that
+\[
+\frac{1+\delta}{1-\delta}<1+\varepsilon.
+\]
+By Definition~\ref{def:approx-exact} applied with this $\delta$, there are a subspace
+$S\subseteq M_n$ and completely bounded mappings
+$\varphi:E\to S$, $\psi:S\to V$ such that
+\[
+\Vert\psi\circ\varphi-\iota_E\Vert_{cb}<\delta,
+\qquad
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\delta.
+\]
+For each $m\in\mathbb{N}$ and each $x\in M_m(E)$ we
+have
+\[
+\Vert x\Vert\le\Vert(\psi\circ\varphi)_m(x)\Vert
++\Vert(\psi\circ\varphi-\iota_E)_m(x)\Vert
+\le\Vert\psi\Vert_{cb}\Vert\varphi_m(x)\Vert+\delta\Vert x\Vert,
+\]
+and so
+\[
+(1-\delta)\Vert x\Vert\le\Vert\psi\Vert_{cb}\Vert\varphi_m(x)\Vert.
+\]
+Let $S_0=\varphi(E)$. Then $\varphi:E\to S_0$ is a complete linear
+isomorphism. So $\varphi^{-1}:S_0\to E$ satisfies
+\[
+\Vert\varphi^{-1}\Vert_{cb}
+\le\frac{\Vert\psi\Vert_{cb}}{1-\delta}.
+\]
+Let $\theta:S_0\to V$ be the composition of $\varphi^{-1}:S_0\to E$ with
+the inclusion $\iota_{E}: E\hookrightarrow V$. Then $\theta\circ\varphi=\iota_E$, and
+\[
+\Vert\varphi\Vert_{cb}\Vert\theta\Vert_{cb}
+\le\frac{\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}}{1-\delta}
+<\frac{1+\delta}{1-\delta}<1+\varepsilon.
+\]
+Since $S_0$ is a subspace of $M_n$, we conclude that $V$ is exact.
+\end{proof}
+
+\subsection{Nuclearity}\label{sec:nuclearity}
+
+\begin{definition}\label{def:nuclear}
+An operator space $V$ is \emph{nuclear} if
+there exists a diagram of complete contractions
+\[
+\begin{array}{ccccc}
+&& M_{n(\alpha)} && \\
+&\stackrel{\varphi_\alpha}{ \nearrow }& & \stackrel{ \psi_\alpha}{\searrow}& \\
+V && \xrightarrow{\mathrm{id}_V} & &V
+\end{array}
+\]
+which approximately commutes in the point-norm topology.
+\end{definition}
+
+\begin{lemma}\label{lem:finite-factor}
+Let $E$ be a finite-dimensional operator space. Then a constant
+$k>0$ exists such that, for any operator space $W$ and completely
+bounded map $D:E\to W$, there exist $n\in\mathbb N$ and completely bounded maps
+$s:E\to M_n$, $t:M_n\to W$ with $D=t\circ s$ and
+\[
+\Vert s\Vert_{cb}\Vert t\Vert_{cb}\le k\Vert D\Vert_{cb}.
+\]
+\end{lemma}
+
+\begin{proof}
+Since $E$ is finite-dimensional, $d_{ex}(E)\leq \dim E=r$ by \S 14.4 in
+\cite{ER00}. Thus, there is a complete linear isomorphism $q: E\to S\subseteq M_{n}$ for some $n\in\mathbb{N}$ with $\Vert q\Vert_{cb}\cdot\Vert q^{-1}\Vert_{cb}<r+1$.
+Fix a linear projection $P:M_n\to S$ with $\Vert P\Vert_{cb}\leq r$. To see this, it suffices to choose an Auerbach basis $e_{1}, e_{2}, \cdots, e_{r}\in S $ and a dual basis $f_{1}, f_{2}, \cdots, f_{r}\in S^{*}$, where both the $e_{j}$ and $f_{j}$ have norm 1. We may extend each $f_{j}$ to a functional on $M_n$, which we also denote $f_{j}$, again with norm 1. The mapping $P=\sum f_{j}\otimes e_{j}: M_n\to S$ is a projection with $\Vert P\Vert_{cb}\leq r$.
+For a given $D:E\to W$, let $\iota:S\hookrightarrow M_n$ be the inclusion map, and define
+\[
+s=\iota\circ q:E\to M_n,\qquad t=D\circ q^{-1}\circ P:M_n\to W.
+\]
+Since $P\circ\iota=\mathrm{id}_S$, we have $t\circ s=D\circ q^{-1}\circ P\circ\iota\circ q=D$.
+Moreover, $\Vert s\Vert_{cb}=\Vert\iota\circ q\Vert_{cb}=\Vert q\Vert_{cb}$, so
+\[
+\Vert s\Vert_{cb}\Vert t\Vert_{cb}
+\le \Vert q\Vert_{cb}\Vert q^{-1}\Vert_{cb}\Vert P\Vert_{cb}
+   \Vert D\Vert_{cb}\leq (r+1)r\Vert D\Vert_{cb}.
+\]
+This completes the proof, with $k=(r+1)r$.
+\end{proof}
+
+The following lemma give a new characterization of nuclearity for operator spaces.
+\begin{lemma}\label{lem:nuclear-exact-local}
+An operator space $V$ is nuclear if and only if for any
+finite-dimensional subspace $E\subseteq V$ and $\varepsilon>0$,
+there exist $n\in\mathbb N$ and completely bounded maps
+$\varphi:E\to M_n$ and $\psi:M_n\to V$ such that
+\[
+\psi\circ\varphi=\iota_E,\qquad
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon.
+\]
+\end{lemma}
+
+\begin{proof}
+Suppose that $V$ is nuclear. Let $E\subseteq V$ be finite-dimensional
+and let $\varepsilon>0$. Let $k$ be the constant from Lemma~\ref{lem:finite-factor}. We choose
+$\delta>0$ such that $1+k\delta<1+\varepsilon$.
+By Definition~\ref{def:nuclear}, there are complete contractions
+$\varphi_\beta:V\to M_{n(\beta)}$ and $\psi_\beta:M_{n(\beta)}\to V$ such that
+$\psi_\beta\circ\varphi_\beta\to\mathrm{id}_V$ in the point-norm topology.
+Hence the restrictions $\psi_\beta\circ\varphi_\beta|_E$ converge to
+$\iota_E$ in operator norm. Since $E$ is finite-dimensional, this convergence also holds in completely bounded norm by Corollary 2.2.4 in \cite{ER00}.
+Thus for some $\beta$ we have
+\[
+\Vert\psi_\beta\circ\varphi_\beta|_E-\iota_E\Vert_{cb}<\delta.
+\]
+Let $\varphi_0=\varphi_\beta|_E$ and $\psi_0=\psi_\beta$. 
+We define $D=\iota_E-\psi_0\circ\varphi_0:E\to V$.
+Then $\Vert D\Vert_{cb}<\delta$.
+
+We apply Lemma~\ref{lem:finite-factor} to $D$. Hence there exist $m\in\mathbb N$ and completely bounded maps
+$s:E\to M_m$, $t:M_m\to V$ such that $D=t\circ s$ and
+\[
+\Vert s\Vert_{cb}\Vert t\Vert_{cb}<k\delta.
+\]
+Without loss of generality, we can suppose that $\Vert s\Vert_{cb}\leq 1$ and $\Vert t\Vert_{cb}<k\delta$. We define completely bounded maps $\varphi:E\to M_{n(\beta)+m}$ and $\psi:M_{n(\beta)+m}\to V$ by
+\[
+\varphi(x) = \begin{bmatrix} \varphi_0(x) & 0 \\ 0 & s(x) \end{bmatrix},
+\qquad
+\psi\left( \begin{bmatrix} y_{11} & y_{12} \\ y_{21} & y_{22} \end{bmatrix} \right)
+= \psi_0(y_{11}) + t(y_{22}).
+\]
+Then $\psi\circ\varphi = \psi_0\circ\varphi_0 + t\circ s = \iota_E$, and
+\[
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}
+\leq\max\{\Vert\varphi_0\Vert_{cb}, \Vert s\Vert_{cb}\} (\Vert\psi_0\Vert_{cb} + \Vert t\Vert_{cb})
+<1+k\delta<1+\varepsilon.
+\]
+
+Conversely, let $E\subseteq V$ be finite-dimensional and let $\varepsilon>0$. We choose $\gamma>0$ such
+that $\frac{2\gamma}{1-\gamma}<\varepsilon$. Then there exist $n\in\mathbb N$ and
+completely bounded maps $\varphi:E\to M_n$, $\psi:M_n\to V$ such that
+$\psi\circ\varphi=\iota_E$ with
+$\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\gamma$.
+The case $E=\{0\}$ is trivial, so we may assume $E\ne\{0\}$. Define $\eta=\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}$, thus
+$$1=\Vert\iota_{E}\Vert_{cb}\leq\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}=\eta<1+\gamma.$$
+ Since $M_{n}$ is injective, the complete contraction $\Vert\varphi\Vert_{cb}^{-1}\varphi:E\to M_n$ extends to a complete contraction $\Phi:V\to M_n$. Let $\Psi=\Vert\psi\Vert_{cb}^{-1}\psi: M_n\to V$.
+Since $\Phi\circ\iota_E=\Vert\varphi\Vert_{cb}^{-1}\varphi$, we have $\Psi\circ\Phi\circ\iota_E=\eta^{-1}\iota_E$. It follows that
+\[
+\Vert \Psi\circ\Phi\circ\iota_E-\iota_E\Vert_{cb}
+= 1-\eta^{-1}
+=\frac{\eta-1}{\eta}
+<\frac{\gamma}{\eta}
+\le\gamma<\frac{\varepsilon}{2}<\varepsilon.
+\]
+Let $\mathcal{F}$ be the set of pairs $(E,\varepsilon)$ with $E\subseteq V$ finite-dimensional and $\varepsilon>0$, ordered by $(E_1,\varepsilon_1)\le(E_2,\varepsilon_2)$ if $E_1\subseteq E_2$ and $\varepsilon_2\le\varepsilon_1$.
+For each $\alpha=(E,\varepsilon)\in\mathcal{F}$, we apply the preceding construction to obtain the complete contractions $\Phi_\alpha: V \to M_{n(\alpha)}$ and $\Psi_\alpha: M_{n(\alpha)} \to V$ with $\Vert \Psi_\alpha\circ\Phi_\alpha\circ\iota_E-\iota_E\Vert_{cb}<\varepsilon$.
+Thus for any $x\in V$ and any $\alpha=(E,\varepsilon)$ with $x\in E$, we have
+\[
+\Vert \Psi_\alpha\circ\Phi_\alpha(x)-x\Vert\le\Vert \Psi_\alpha\circ\Phi_\alpha\circ\iota_E-\iota_E\Vert_{cb}\Vert x\Vert\le\varepsilon\Vert x\Vert.
+\]
+Since $\varepsilon\to 0$, we obtain $\Vert \Psi_\alpha\circ\Phi_\alpha(x)-x\Vert\to 0$.
+Hence $\{\Psi_\alpha\circ\Phi_\alpha\}_{\alpha\in\mathcal{F}}\to\mathrm{id}_V$ in the point-norm topology, and $V$ is nuclear.
+\end{proof}
+
+Combined Lemma \ref{lem:exact-equiv} and Lemma \ref{lem:nuclear-exact-local}, we can obtain the following well-known result.
+\begin{corollary}\label{cor:nuclear-exact}
+If an operator space $V$ is nuclear, then $V$ is exact.
+\end{corollary}
+
+\begin{definition}\label{def:approx-nuclear}
+An operator space $V$ is \emph{approximately nuclear} if for any
+finite-dimensional subspace $E\subseteq V$ and $\varepsilon>0$,
+there exist $n\in\mathbb N$ and completely bounded maps
+$\varphi:E\to M_n$, $\psi:M_n\to V$ such that
+\[
+\Vert\psi\circ\varphi-\iota_E\Vert_{cb}<\varepsilon,\qquad
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon.
+\]
+\end{definition}
+
+\begin{theorem}\label{lem:nuclear-local-approx}
+An operator space $V$ is nuclear if and only if $V$ is approximately
+nuclear.
+\end{theorem}
+
+\begin{proof}
+If $V$ is nuclear, we obtain approximate nuclearity immediately by Lemma~\ref{lem:nuclear-exact-local}.
+
+Conversely, we assume that $V$ is approximately nuclear.
+Let $E\subseteq V$ be finite-dimensional and let $\varepsilon>0$. Let
+$k$ be the constant from Lemma~\ref{lem:finite-factor}. We choose
+$\delta>0$ such that
+\[
+1+\delta+k\delta<1+\varepsilon.
+\]
+By Definition~\ref{def:approx-nuclear}, there are $n\in\mathbb N$ and
+completely bounded maps $\varphi_0:E\to M_n$, $\psi_0:M_n\to V$ such that
+\[
+\Vert\psi_0\circ\varphi_0-\iota_E\Vert_{cb}<\delta,\qquad
+\Vert\varphi_0\Vert_{cb}\Vert\psi_0\Vert_{cb}<1+\delta.
+\]
+Without loss of generality, we can suppose that $\Vert \varphi_{0}\Vert_{cb}\leq 1$ and $\Vert \psi_{0}\Vert_{cb}<1+\delta$. We define
+\[
+D=\iota_E-\psi_0\circ\varphi_0:E\to V.
+\]
+Then $\Vert D\Vert_{cb}<\delta$.
+
+We apply Lemma~\ref{lem:finite-factor} to $D$. Hence there exist $m\in\mathbb N$ and completely bounded maps
+$s:E\to M_m$, $t:M_m\to V$ such that $D=t\circ s$ and
+\[
+\Vert s\Vert_{cb}\Vert t\Vert_{cb}<k\delta.
+\]
+Without loss of generality, we can suppose that $\Vert s\Vert_{cb}\leq 1$ and $\Vert t\Vert_{cb}<k\delta$. We define completely bounded maps $\varphi:E\to M_{n+m}$ and $\psi:M_{n+m}\to V$ by
+\[
+\varphi(x) = \begin{bmatrix} \varphi_0(x) & 0 \\ 0 & s(x) \end{bmatrix},
+\qquad
+\psi\left( \begin{bmatrix} y_{11} & y_{12} \\ y_{21} & y_{22} \end{bmatrix} \right)
+= \psi_0(y_{11}) + t(y_{22}).
+\]
+Then $\psi\circ\varphi = \psi_0\circ\varphi_0 + t\circ s = \iota_E$, and
+\[
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}
+\leq\max\{\Vert\varphi_0\Vert_{cb}, \Vert s\Vert_{cb}\} (\Vert\psi_0\Vert_{cb} + \Vert t\Vert_{cb})
+<1+\delta+k\delta<1+\varepsilon.
+\]
+Thus $V$ is nuclear by Lemma~\ref{lem:nuclear-exact-local}.
+\end{proof}
+
+
+
+
+
+
+
+
+\section{Approximately Weak$^{*}$ Local Properties}\label{sec:dual}
+
+In this section, we will investigate the relationship between weak$^*$ local properties and their corresponding approximate properties.
+
+\subsection{Weak$^{*}$ local reflexivity}
+
+In view of Definition \ref{sec:local-reflexivity} and Definition \ref{def:approx-local-reflexivity}, the weak versions of the two definitions are formulated accordingly.
+
+
+\begin{definition}\label{def:weak-star-local-reflexivity}
+Let $V=(V_*)^*$ be a dual operator space. We say that $V$ is
+\emph{weak$^{*}$ locally reflexive} if for any finite-dimensional
+subspace $E\subseteq V^{**}$,  finite-dimensional subspace
+$F\subseteq V_*$ and  $\varepsilon>0$, there is a completely
+boun\-ded map $\varphi:E\to V$ such that $\Vert \varphi\Vert_{cb}<1+\varepsilon$
+and
+\[
+\langle \varphi(x),\omega\rangle=\langle x,\omega\rangle,
+\qquad x\in E,\ \omega\in F.
+\]
+\end{definition}
+
+
+
+
+
+\begin{definition}\label{def:approx-weak-star-local-reflexivity}
+Let $V=(V_*)^*$ be a dual operator space. We say that $V$ is
+\emph{approximately weak$^{*}$ locally reflexive} if for any
+finite-dimensional subspace $E\subseteq V^{**}$, 
+finite-dimensional subspace $F\subseteq V_*$ and 
+$\varepsilon>0$, there is a completely bounded map $\varphi:E\to V$ such that
+$\Vert \varphi\Vert_{cb}<1+\varepsilon$ and
+\[
+|\langle \varphi(x)-x,\omega\rangle|
+\le\varepsilon\Vert x\Vert\,\Vert\omega\Vert,
+\qquad x\in E,\ \omega\in F.
+\]
+\end{definition}
+
+\begin{theorem}\label{thm:approx-weak-star-local-reflexivity}
+Let $V=(V_*)^*$ be a dual operator space. Then $V$ is weak$^{*}$
+locally reflexive if and only if $V$ is approximately weak$^{*}$
+locally reflexive.
+\end{theorem}
+
+\begin{proof}
+Weak$^{*}$ local reflexivity clearly implies approximate weak$^{*}$ local reflexivity.
+
+Conversely, suppose that $V$ is
+approximately weak$^{*}$ locally reflexive. Let $E\subseteq V^{**}$ and
+$F\subseteq V_*$ be finite-dimensional, and let $\varepsilon>0$. If
+$F=\{0\}$, the result follows directly from the approximate condition.
+
+Assume $F\ne\{0\}$. The following proof is almost the same as Theorem \ref{thm:approx-local-reflexivity}, and details are omitted.
+
+\end{proof}
+
+\subsection{Weak$^{*}$ exactness}
+
+\begin{definition}\label{def:weak-star}
+Let $V=(V_*)^*$ be a dual operator space. We say that $V$ is
+\emph{weak$^{*}$ exact} if for any finite-dimensional subspaces
+$E\subseteq V$, $F\subseteq V_*$ and any $\varepsilon>0$, there exist
+a subspace $S\subseteq M_n$ and completely bounded mappings
+$\varphi:E\to S$, $\psi:S\to V$ such that
+$\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon$ and
+\[
+\langle\psi\circ\varphi(x),\,\omega\rangle=\langle x,\,\omega\rangle,
+\qquad x\in E,\ \omega\in F.
+\]
+\end{definition}
+
+\begin{definition}\label{def:approx-weak-star}
+Let $V=(V_*)^*$ be a dual operator space. We say that $V$ is
+\emph{approximately weak$^{*}$ exact} if for any finite-dimensional
+subspaces $E\subseteq V$, $F\subseteq V_*$ and any $\varepsilon>0$,
+there exist a subspace $S\subseteq M_n$ and completely bounded
+mappings $\varphi:E\to S$, $\psi:S\to V$ such that
+$\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon$ and
+\[
+|\langle\psi\circ\varphi(x)-x,\,\omega\rangle|
+\le\varepsilon\Vert x\Vert\,\Vert\omega\Vert,
+\qquad x\in E,\ \omega\in F.
+\]
+\end{definition}
+
+
+
+
+\begin{lemma}\label{lem:sum-ex}
+Let $E$ be a finite-dimensional operator space and let $T_1,T_2:E\to V$
+be linear maps. Suppose that for each $i\in\{1,2\}$ there
+exist a subspace $S_i\subseteq M_{n_i}$ and completely bounded mappings
+$\varphi_i:E\to S_i$, $\psi_i:S_i\to V$ such that
+$T_i=\psi_i\circ\varphi_i$ with
+$\Vert\varphi_i\Vert_{cb}\Vert\psi_i\Vert_{cb}<\lambda_i$. Then there
+exist a subspace $S\subseteq M_{n_1+n_2}$ and completely bounded
+mappings $\varphi:E\to S$, $\psi:S\to V$ such that
+$T_1+T_2=\psi\circ\varphi$ and
+$\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<\lambda_1+\lambda_2$.
+\end{lemma}
+
+\begin{proof}
+If $\Vert\varphi_i\Vert_{cb}>0$, we replace $\varphi_i$ and $\psi_i$ by
+suitable multiples so that $\Vert\varphi_i\Vert_{cb}=1$ and
+$\Vert\psi_i\Vert_{cb}<\lambda_i$. If $\Vert\varphi_i\Vert_{cb}=0$, then
+$T_i=0$. We identify $S_1\oplus_\infty S_2$ with a
+subspace of $M_{n_1+n_2}$ and define
+\[
+\varphi(x)=(\varphi_1(x),\varphi_2(x)),
+\qquad
+\psi(s_1,s_2)=\psi_1(s_1)+\psi_2(s_2).
+\]
+Then we have $T_1+T_2=\psi\circ\varphi$. Moreover,
+$\Vert\varphi\Vert_{cb}\le 1$ and
+$\Vert\psi\Vert_{cb}\le\Vert\psi_1\Vert_{cb}+\Vert\psi_2\Vert_{cb}$, so
+\[
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}
+<\lambda_1+\lambda_2.
+\]
+\end{proof}
+
+\begin{theorem}\label{thm:weak-star}
+Let $V=(V_*)^*$ be a dual operator space. Then $V$ is weak$^{*}$ exact
+if and only if $V$ is approximately weak$^{*}$ exact.
+\end{theorem}
+
+\begin{proof}
+Weak$^{*}$ exactness implies approximate weak$^{*}$ exactness.
+
+Conversely, suppose that $V$ is approximately weak$^{*}$
+exact, and let $E\subseteq V$, $F\subseteq V_*$ be finite-dimensional
+subspaces and $\varepsilon>0$. We will find a subspace
+$S\subseteq M_m$ for some $m$ and completely bounded mappings
+$\varphi:E\to S$ and $\psi:S\to V$ such that
+\[
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon,
+\qquad
+\langle\psi\circ\varphi(x),\omega\rangle=\langle x,\omega\rangle,
+\quad x\in E,\ \omega\in F.
+\]
+If $F=\{0\}$, the result follows directly from the approximate condition.
+Assume $F\ne\{0\}$. 
+Let $P:V\to F^*$ be the restriction $P(v)(\omega)=\langle v,\omega\rangle$.
+Since the inclusion $F\hookrightarrow V_*$ is a complete isometry, its
+adjoint $P$ is a complete quotient mapping. Since $F^*$ is finite-dimensional, there is a completely bounded map
+$R:F^*\to V$ such that $P\circ R=\mathrm{id}_{F^*}$, and let $c=\Vert R\Vert_{cb}$.
+.
+
+
+Since $F^*$ is finite-dimensional, $d_{ex}(F^*)\leq\dim F^{*}=k<\infty$ by \S 14.4 in 
+\cite{ER00}. Thus there is  a complete linear isomorphism $q:F^*\to S_1$
+with $S_1\subseteq M_n$ for some $n\in\mathbb{N}$ and
+$\Vert q\Vert_{cb}\Vert q^{-1}\Vert_{cb}<k+1$. For any
+$T\in\mathcal{CB}(E,F^*)$, the map $R\circ T$ factors through $S_1$ as
+\[
+E\xrightarrow{q\circ T}S_1\xrightarrow{R\circ q^{-1}}V,
+\]
+We define $\varphi_T=q\circ T:E\to S_1$ and $\psi_T=R\circ q^{-1}:S_1\to V$.
+Then $R\circ T=\psi_T\circ\varphi_T$, and
+\begin{equation}\label{eq:exLcomp}
+\Vert\varphi_T\Vert_{cb}\Vert\psi_T\Vert_{cb}
+\le\Vert T\Vert_{cb}\Vert q\Vert_{cb}\Vert q^{-1}\Vert_{cb}\Vert R\Vert_{cb}
+\le c(k+1)\Vert T\Vert_{cb}.
+\end{equation}
+
+We define $\delta=\frac{\varepsilon}{2ck(k+1)}$. Here $k=\dim F^{*}>0$,
+and $c=\Vert R\Vert_{cb}>0$ because
+$1=\Vert\mathrm{id}_{F^*}\Vert_{cb}\le c\,\Vert P\Vert_{cb}$.
+ Now by the definition of approximately
+weak$^{*}$ exactness with $\varepsilon$ replaced by $\min\{\frac{\varepsilon}{2},\delta\}$:
+there exist a subspace $S_0\subseteq M_m$ and completely bounded
+mappings $\varphi_0:E\to S_0$, $\psi_0:S_0\to V$ with
+\[
+\Vert\varphi_0\Vert_{cb}\Vert\psi_0\Vert_{cb}<1+\frac{\varepsilon}{2}
+\]
+and
+\[
+|\langle\psi_0\circ\varphi_0(x)-x,\omega\rangle|
+\le\delta\Vert x\Vert\Vert\omega\Vert,
+\qquad x\in E,\ \omega\in F.
+\]
+The displayed inequality says
+$\Vert P\circ\psi_0\circ\varphi_0-P\circ\iota_E\Vert\le\delta$, and It follows from Corollary 2.2.4 in 
+\cite{ER00} 
+\[
+\Vert P\circ\psi_0\circ\varphi_0-P\circ\iota_E\Vert_{cb}\le k\delta
+=\frac{\varepsilon}{2c(k+1)}.
+\]
+
+
+
+
+We denote $T=P\circ\iota_E-P\circ\psi_0\circ\varphi_0\in\mathcal{CB}(E,F^*)$. Taking the factorization $R\circ T=\psi_T\circ\varphi_T$ as above, by \eqref{eq:exLcomp} we obtain
+
+\[
+\Vert\varphi_T\Vert_{cb}\Vert\psi_T\Vert_{cb}\le c(k+1)\Vert T\Vert_{cb}\le\frac{\varepsilon}{2}.
+\]
+Let $\Phi=\psi_0\circ\varphi_0+\psi_T\circ\varphi_T$. For each $x\in E$,
+\[
+P\circ\Phi(x)=P\circ\psi_0\circ\varphi_0(x)+P\circ R\circ T(x)=P\circ\iota_E(x),
+\]
+Hence $\langle\Phi(x),\omega\rangle=\langle x,\omega\rangle$ for all $\omega\in F$.
+By Lemma~\ref{lem:sum-ex}, there exist $S\subseteq M_{m+n}$ and
+completely bounded $\varphi:E\to S$, $\psi:S\to V$ such that
+$\psi\circ\varphi=\psi_0\circ\varphi_0+\psi_D\circ\varphi_D$ and
+\[
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}
+<\Big(1+\frac{\varepsilon}{2}\Big)+\frac{\varepsilon}{2}=1+\varepsilon.
+\]
+Since $\Phi=\psi_0\circ\varphi_0+\psi_D\circ\varphi_D=\psi\circ\varphi$, it follows from 
+Definition~\ref{def:weak-star} that $V$ is weak$^{*}$ exact.
+\end{proof}
+
+
+
+
+
+\subsection{Weak$^{*}$ nuclearity}
+
+Comparing Lemma \ref{lem:finite-factor} and Definition \ref{def:approx-nuclear}, we may establish their weak forms.
+
+
+
+\begin{definition}\label{def:weak-star-nuclear}
+Let $V=(V_*)^*$ be a dual operator space. We say that $V$ is
+\emph{weak$^{*}$ nuclear} if for any finite-dimensional subspace
+$E\subseteq V$, finite-dimensional subspace $F\subseteq V_*$
+and $\varepsilon>0$, there exist $n\in\mathbb N$ and completely
+bounded maps $\varphi:E\to M_n$, $\psi:M_n\to V$ such that
+\[
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon
+\]
+and
+\[
+\langle\psi\circ\varphi(x),\omega\rangle
+=\langle x,\omega\rangle,\qquad x\in E,\ \omega\in F.
+\]
+\end{definition}
+
+\begin{definition}\label{def:approx-weak-star-nuclear}
+Let $V=(V_*)^*$ be a dual operator space. We say that $V$ is
+\emph{approximately weak$^{*}$ nuclear} if for any finite-dimensional
+subspace $E\subseteq V$, finite-dimensional subspace
+$F\subseteq V_*$ and any $\varepsilon>0$, there exist
+$n\in\mathbb N$ and completely bounded maps $\varphi:E\to M_n$,
+$\psi:M_n\to V$ such that
+\[
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}<1+\varepsilon
+\]
+and
+\[
+|\langle\psi\circ\varphi(x)-x,\omega\rangle|
+\le\varepsilon\Vert x\Vert\,\Vert\omega\Vert,
+\qquad x\in E,\ \omega\in F.
+\]
+\end{definition}
+
+\begin{theorem}\label{thm:approx-weak-star-nuclear}
+Let $V=(V_*)^*$ be a dual operator space. Then $V$ is weak$^{*}$
+nuclear if and only if $V$ is approximately weak$^{*}$ nuclear.
+\end{theorem}
+
+\begin{proof}
+Weak$^{*}$ nuclearity clearly implies approximate weak$^{*}$
+nuclearity.
+
+Conversely, assume that $V$ is approximately weak$^{*}$ nuclear. Let
+$E\subseteq V$ and $F\subseteq V_*$ be finite-dimensional, and let
+$\varepsilon>0$. If $F=\{0\}$, the conclusion follows directly. Assume
+$F\ne\{0\}$.
+
+Let $k$ be the constant from Lemma~\ref{lem:finite-factor}. Let
+$P:V\to F^*$ be given by $P(v)(\omega)=\langle v,\omega\rangle$.
+Choose $R:F^*\to V$ with $P\circ R=\mathrm{id}_{F^*}$ and put
+$c=\Vert R\Vert_{cb}$. By Corollary 2.2.4 in 
+\cite{ER00} there is $\ell>0$ such that
+\[
+\Vert u\Vert_{cb}\le \ell\Vert u\Vert
+\]
+for all $u\in\mathcal{CB}(E,F^*)$.
+We choose $\delta>0$ such that
+\[
+kc\ell\delta<\frac{\varepsilon}{2}.
+\]
+We apply Definition~\ref{def:approx-weak-star-nuclear} with
+$\eta=\min\{\frac{\varepsilon}{2},\delta\}$. Hence there exist $n\in\mathbb N$ and
+completely bounded maps $\varphi_0:E\to M_n$, $\psi_0:M_n\to V$ such
+that
+\[
+\Vert\varphi_0\Vert_{cb}\Vert\psi_0\Vert_{cb}<1+\frac{\varepsilon}{2}
+\]
+and
+\[
+|\langle\psi_0\circ\varphi_0(x)-x,\omega\rangle|
+\le\delta\Vert x\Vert\,\Vert\omega\Vert,
+\qquad x\in E,\ \omega\in F.
+\]
+Without loss of generality, we can suppose that $\Vert \varphi_{0}\Vert_{cb}\leq 1$ and $\Vert \psi_{0}\Vert_{cb}<1+\frac{\varepsilon}{2}$.
+Let $Q:E\to F^*$ be the restriction map
+$Q(x)(\omega)=\langle x,\omega\rangle$, and define
+\[
+T=Q-P\circ\psi_0\circ\varphi_0:E\to F^*.
+\]
+For $x\in E$ and $\omega\in F$ we compute
+\[
+T(x)(\omega)=\langle x,\omega\rangle-\langle\psi_0\circ\varphi_0(x),\omega\rangle
+=\langle x-\psi_0\circ\varphi_0(x),\omega\rangle,
+\]
+so $|T(x)(\omega)|\le \delta\Vert x\Vert\,\Vert\omega\Vert$ by the preceding inequality. Hence $\Vert T\Vert\le \delta$, and therefore $\Vert T\Vert_{cb}\le \ell\delta$.
+We put $D=R\circ T:E\to V$. By Lemma~\ref{lem:finite-factor}, there exist $m\in\mathbb N$ and completely bounded maps $s:E\to M_m$, $t:M_m\to V$ such that $D=t\circ s$ and
+\[
+\Vert s\Vert_{cb}\Vert t\Vert_{cb}
+\le k\Vert D\Vert_{cb}
+\le kc\ell\delta<\frac{\varepsilon}{2}.
+\]
+Without loss of generality, we can suppose that $\Vert s\Vert_{cb}\leq 1$ and $\Vert t\Vert_{cb}<\frac{\varepsilon}{2}$. We define completely bounded maps $\varphi:E\to M_{n+m}$ and $\psi:M_{n+m}\to V$ by
+\[
+\varphi(x) = \begin{bmatrix} \varphi_0(x) & 0 \\ 0 & s(x) \end{bmatrix},
+\qquad
+\psi\left( \begin{bmatrix} y_{11} & y_{12} \\ y_{21} & y_{22} \end{bmatrix} \right)
+= \psi_0(y_{11}) + t(y_{22}).
+\]
+\[
+\psi\circ\varphi = \psi_0\circ\varphi_0 + t\circ s = \psi_0\circ\varphi_0+R\circ T.
+\]
+Then
+\[
+\Vert\varphi\Vert_{cb}\Vert\psi\Vert_{cb}
+\leq\max\{\Vert\varphi_0\Vert_{cb}, \Vert s\Vert_{cb}\} (\Vert\psi_0\Vert_{cb} + \Vert t\Vert_{cb})
+<1+\frac{\varepsilon}{2}+\frac{\varepsilon}{2}=1+\varepsilon.
+\]
+Finally,
+\[
+P(\psi\circ\varphi(x))
+=P(\psi_0\circ\varphi_0(x))+T(x)
+=Q(x),
+\]
+and hence
+\[
+\langle\psi\circ\varphi(x),\omega\rangle
+=\langle x,\omega\rangle,\qquad x\in E,\ \omega\in F.
+\]
+Thus $V$ is weak$^{*}$ nuclear.
+\end{proof}
+
+\begin{thebibliography}{10}
+
+\bibitem{BP}
+D. Blecher and V. Paulsen, Tensor products of operator spaces. \emph{J. Funct. Anal.}, \textbf{99} (1991), 262--292.
+
+\bibitem{CE76}
+M.-D. Choi and E.G. Effros, Separable nuclear \(C^*\)-algebras and injectivity. \emph{Duke Math. J.}, \textbf{43} (1976), 309--322.
+
+\bibitem{CE77a}
+M.-D. Choi and E.G. Effros, Nuclear \(C^*\)-algebras and injectivity: The general case. \emph{Indiana Univ. Math. J.}, \textbf{26} (1977), 443--446.
+
+\bibitem{CE77b}
+M.-D. Choi and E.G. Effros, Injectivity and operator spaces. \emph{J. Funct. Anal.}, \textbf{24} (1977), 156--209.
+
+\bibitem{Co76}
+A. Connes, Classification of injective factors. Cases $II_1$, $II_\infty$, $III_\lambda$, $\lambda \ne 1$. \emph{Ann. of Math.} (2) \textbf{104} (1976), 73--115.
+
+\bibitem{DR}
+Z. Dong and Z.-J. Ruan, Weak* exactness for dual operator spaces. \emph{J. Funct. Anal.}, \textbf{253} (2007), 373--397.
+
+\bibitem{EOR}
+E.\,G. Effros, N. Ozawa, and Z.-J. Ruan, On injectivity and nuclearity for operator spaces. \emph{Duke Math. J.}, \textbf{110} (2001), 489--521.
+
+\bibitem{ER00}
+E.\,G. Effros and Z.-J. Ruan, \emph{Operator Spaces}, London Math. Soc. Monographs (N.\,S.), vol.~23, Oxford Univ. Press, New York, 2000.
+
+\bibitem{Gr55}
+A. Grothendieck, \emph{Produits tensoriels topologiques et espaces nucl\'eaires}. Mem. Amer. Math. Soc. No. 16, American Mathematical Society, Providence, RI, 1955.
+
+\bibitem{Ki93}
+E. Kirchberg, On non-semisplit extensions, tensor products and exactness of group $C^*$-algebras. \emph{Invent. Math.}, \textbf{112} (1993), 449--489.
+
+\bibitem{Pi92}
+G. Pisier, Exact operator spaces. Recent advances in operator algebras, \emph{Ast\'erisque}, \textbf{232} (1995), 159--186.
+
+\bibitem{Pi03}
+G. Pisier, \emph{Introduction to Operator Space Theory}, London Math. Soc. Lecture Note Series, 294, Cambridge University Press, Cambridge, 2003.
+
+\bibitem{Ru88}
+Z.-J. Ruan, Subspaces of $C^*$-algebras. \emph{J. Funct. Anal.}, \textbf{76} (1988), 217--230.
+
+\bibitem{Ru89}
+Z.-J. Ruan, Injectivity of operator spaces. \emph{Trans. Amer. Math. Soc.}, \textbf{315} (1989), 89--104.
+
+\end{thebibliography}
+
+\noindent
+\begin{minipage}{\textwidth}
+\noindent\textbf{Yafei Zhao}\\
+Department of Mathematics\\
+Zhejiang International Studies University\\
+Hangzhou 310023, China\\
+E-mail address: \texttt{yfzhao@zisu.edu.cn}
+
+\medskip
+\noindent\textbf{Zhe Dong}\\
+School of Mathematical Sciences\\
+Zhejiang University\\
+Hangzhou 310058, China\\
+E-mail address: \texttt{dongzhe@zju.edu.cn}
+\end{minipage}
+
+\end{document}

@@ -1,0 +1,47 @@
+{
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.latex.watch.usePolling": true,
+  "latex-workshop.latex.rootFile": "features/research/approximating-local-lifting-property/paper/p_ALLP.tex",
+  "latex-workshop.latex.recipe.default": "pdflatex ×2 (p_ALLP)",
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "pdflatex ×2 (p_ALLP)",
+      "tools": ["pdflatex-pallp", "pdflatex-pallp"]
+    },
+    {
+      "name": "pdflatex ×2 (p_ALLP) + open external PDF",
+      "tools": ["pdflatex-pallp", "pdflatex-pallp", "open-pallp-external"]
+    }
+  ],
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex-pallp",
+      "command": "pdflatex",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "open-pallp-external",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/features/research/approximating-local-lifting-property/paper/open-p_ALLP-external.ps1",
+        "-Quiet"
+      ]
+    }
+  ],
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.view.pdf.ref.viewer": "tab",
+  "latex-workshop.view.pdf.tab.editorGroup": "right",
+  "latex-workshop.latex.outDir": "%DIR%",
+  "workbench.editorAssociations": {
+    "*.pdf": "latex-workshop-pdf-hook"
+  }
+}

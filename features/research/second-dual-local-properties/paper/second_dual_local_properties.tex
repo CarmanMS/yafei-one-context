@@ -1,0 +1,338 @@
+\documentclass[12pt]{article}
+\usepackage{amsfonts}
+\usepackage{amsmath, amssymb, amsthm}
+\textheight=21.4 cm \textwidth=15cm  \topmargin=-0.2 in
+\oddsidemargin 0cm \evensidemargin -0.2cm
+\parindent 24pt
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{question}[theorem]{Question}
+
+\newcommand{\cb}{\mathrm{cb}}
+\newcommand{\CB}{\mathcal{CB}}
+\newcommand{\B}{\mathcal{B}}
+\newcommand{\K}{\mathcal{K}}
+\newcommand{\T}{\mathcal{T}}
+\newcommand{\Hil}{\mathcal{H}}
+\newcommand{\Mn}{M_n}
+\newcommand{\otmin}{\otimes_{\min}}
+\newcommand{\ri}{\rightarrow}
+
+\title{Injectivity, exactness and the weak expectation property\\ for higher duals of operator spaces}
+\author{Yafei Zhao}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\begin{minipage}{11.5cm}
+{\bf Abstract:} We study how exactness, local reflexivity, the weak
+expectation property (WEP), injectivity and nuclearity transfer between an
+operator space $V$ and its second dual $V^{**}$. Known injectivity and
+nuclearity laws are due to Dong and Tao and are cited rather than reproved.
+We record elementary descent, show that exactness, local reflexivity and the
+WEP do not admit simple bidual lift laws, and isolate the reliable substitute
+equivalences given by weak$^*$ exactness, bidual injectivity, and the local
+lifting property. The compact operators $\K(\Hil)$ and the trace class
+$\T(\Hil)$ provide separating examples.
+\par
+{\bf Keywords:} operator space, second dual, exactness, injectivity,
+nuclearity, weak expectation property, local reflexivity
+\par
+{\bf 2020 MR Subject Classification:} Primary 46L07; Secondary 47L25
+\end{minipage}
+\end{center}
+
+\section{Introduction}
+
+The local theory of operator spaces quantises the local theory of Banach
+spaces \cite{Ru89,Ble92}. For an operator space $V$ one has the implications
+\begin{equation}\label{eq:chain}
+V\ \text{nuclear}\ \Longrightarrow\ V\ \text{exact}\ \Longrightarrow\ V\
+\text{locally reflexive},
+\end{equation}
+the first due to Pisier \cite{Pi92} and the second to Effros, Ozawa and Ruan
+\cite{EOR}. The same authors characterised nuclearity through the bidual:
+$V$ is nuclear if and only if $V$ is locally reflexive and $V^{**}$ is
+injective \cite{EOR}. For $C^*$-algebras this specialises, via Connes
+\cite{Co76} and Choi--Effros \cite{CE76,CE77}, to ``$\mathcal A$ nuclear
+$\iff\mathcal A^{**}$ injective''. Dong and Ruan \cite{DR} completed the
+picture for exactness: $V$ is exact if and only if $V$ is locally reflexive
+and $V^{**}$ is weak$^*$ exact.
+
+Each of these results reads a global property of $V$ off the bidual. Here we
+ask the reverse question: for a local property $P$, when does $V^{**}$ have
+$P$, expressed through $V$ and a transfer condition? Dong and Tao \cite{DT}
+settled injectivity and nuclearity; we cite their identities when needed and
+focus on exactness, local reflexivity and the WEP. We first record elementary
+descent (Section~\ref{sec:descent}), then show that for the latter three
+properties no simple bidual law of the form ``$V^{**}$ has $P\iff V$ has $P$
+plus a single transfer condition'' holds (Section~\ref{sec:nolift}). The trace
+class $\T(\Hil)$ and the compact operators $\K(\Hil)$ provide the separating
+examples.
+
+\section{Preliminaries}
+
+We follow \cite{ER00,Pi03} for operator space theory. For operator spaces
+$V,W$ and a linear map $\varphi:V\ri W$, the amplification
+$\varphi_n=\mathrm{id}_{\Mn}\otimes\varphi:\Mn(V)\ri\Mn(W)$ acts entrywise,
+and $\|\varphi\|_\cb=\sup_n\|\varphi_n\|$. We write $\CB(V,W)$ for the
+operator space of completely bounded maps, $V^*=\CB(V,\mathbb C)$ for the
+dual, and $\iota_V:V\ri V^{**}$ for the canonical map; $\iota_V$ is a complete
+isometry \cite[\S 3.2]{ER00}. We use the injective and projective operator
+space tensor products $\otmin$ and $\widehat\otimes$ \cite{Ble92}.
+
+Throughout, the five \emph{local properties} of an operator space $V$ are
+those of \eqref{eq:chain} together with injectivity and the WEP.
+
+\begin{definition}\label{def:props}
+Let $V$ be an operator space.
+\begin{itemize}
+\item[(i)] $V$ is \emph{injective} if for every inclusion $X\subseteq Y$ of
+operator spaces, each complete contraction $X\ri V$ extends to a complete
+contraction $Y\ri V$.
+\item[(ii)] $V$ is \emph{locally reflexive} if for every finite-dimensional
+operator space $L$, each complete contraction $L\ri V^{**}$ is the
+point-weak$^*$ limit of a net of complete contractions $L\ri V$;
+equivalently $\CB(L,V^{**})=\CB(L,V)^{**}$ for every such $L$
+\cite[Thm.~14.3.1]{ER00}.
+\item[(iii)] $V$ is \emph{exact} if for every finite-dimensional $L\subseteq
+V$ and $\varepsilon>0$ there are $n$ and $S\subseteq\Mn$ with
+$d_\cb(L,S)<1+\varepsilon$ \cite{Pi92,Pi03}.
+\item[(iv)] $V$ is \emph{nuclear} if the identity of $V$ factors approximately
+through matrix algebras by complete contractions in the point-norm topology
+\cite{EOR}.
+\item[(v)] $V$ has the \emph{weak expectation property} (WEP) if for one
+(equivalently every) completely isometric inclusion $\tau:V\hookrightarrow
+\B(\Hil)$ there is a complete contraction $P:\B(\Hil)\ri V^{**}$ with
+$P\circ\tau=\iota_V$ \cite[\S 15]{ER00}.
+\end{itemize}
+\end{definition}
+
+We record the inclusions we use. Exactness passes to subspaces
+\cite[\S 17]{Pi03}; injectivity passes to completely contractively
+complemented subspaces \cite[\S 6.1]{ER00}; and an operator space which is
+injective and dual as a Banach space has the form $eR(1-e)$ for an injective
+von Neumann algebra $R$ and a projection $e\in R$ \cite{EOR}. We also use that
+every dual operator space $V^*$ is completely contractively complemented in
+its bidual $V^{***}$ by the adjoint of $\iota_V$, since
+$(\iota_V)^*:V^{***}\ri V^*$ satisfies $(\iota_V)^*\circ\iota_{V^*}
+=\mathrm{id}_{V^*}$ \cite[\S 3.2]{ER00}.
+
+\section{Descent of local properties}\label{sec:descent}
+
+We first observe that all the local properties in question pass from the
+second dual down to the space, by the completely isometric inclusion
+$\iota_V:V\hookrightarrow V^{**}$.
+
+\begin{proposition}\label{prop:descent}
+Let $V$ be an operator space.
+\begin{itemize}
+\item[(i)] If $V^{**}$ is exact, then $V$ is exact.
+\item[(ii)] If $V^{**}$ is injective, then $V$ has the WEP.
+\end{itemize}
+\end{proposition}
+
+\begin{proof}
+(i) Exactness passes to subspaces, and $V$ embeds completely isometrically in
+$V^{**}$ via $\iota_V$.
+
+(ii) Fix a completely isometric inclusion $\tau:V\hookrightarrow\B(\Hil)$. The
+complete contraction $\iota_V:V\ri V^{**}$ then extends, by injectivity of
+$V^{**}$ applied to $\tau$, to a complete contraction $P:\B(\Hil)\ri V^{**}$
+with $P\circ\tau=\iota_V$. Hence $V$ has the WEP.
+\end{proof}
+
+For injectivity and nuclearity, the corresponding lift laws and their
+converses are due to Dong and Tao \cite{DT}; we use them only by citation.
+For example, $V^*=\B(\ell^2)$ is injective for $V=\T(\ell^2)$, yet
+$V^{***}$ is not injective \cite[after Prop.~2.7]{DT}, so injectivity does
+not lift without an exactness hypothesis.
+
+\section{Alternative equivalences and the failure of simple lifting}
+\label{sec:nolift}
+
+Dong and Tao \cite{DT} show that injectivity and nuclearity lift to higher
+duals with transfer condition ``exact''. One might hope for similar bidual
+laws for exactness, local reflexivity and the WEP. Proposition~\ref{prop:descent}
+gives only descent. Reverse lifting fails, and the search for equivalences
+leads to the following three substitutes.
+
+\subsection{The Weak Expectation Property (WEP)}
+
+For the WEP, the bidual property collapses to injectivity on the dual space
+$V^{**}$ via a standard argument.
+
+\begin{proposition}\label{prop:wep-equiv}
+For any operator space $V$, the following are equivalent:
+\begin{enumerate}
+\item[(i)] $V^{**}$ has the WEP;
+\item[(ii)] $V^{**}$ is injective.
+\end{enumerate}
+Consequently, if $V$ is locally reflexive, then
+\[
+        V^{**}\in\mathrm{WEP}\quad\Longleftrightarrow\quad V\ \text{is nuclear}.
+\]
+In particular, the same equivalence holds for every exact operator space $V$.
+\end{proposition}
+
+\begin{proof}
+It is a well-known fact that for dual operator spaces, the WEP coincides with
+injectivity. Indeed, (ii) $\Rightarrow$ (i) is trivial. Conversely,
+let $X=V^{**}$, which is a dual operator space. If $X$ has the WEP, then for
+any completely isometric inclusion $X\subset \B(\Hil)$, the canonical map
+$\iota_X: X \ri X^{**}$ extends to a complete contraction $P:\B(\Hil)\ri X^{**}$.
+Since $X$ is a dual space, the canonical projection $\pi:X^{**}\ri X$ is
+completely contractive. The composition $\pi\circ P:\B(\Hil)\ri X$ is then a
+completely contractive projection onto $X$, so $X$ is injective. 
+The final assertion follows from the Effros--Ozawa--Ruan theorem:
+$V$ is nuclear if and only if $V$ is locally reflexive and $V^{**}$ is
+injective \cite[Thm.~4.5]{EOR}.
+\end{proof}
+
+Thus a WEP law for $V^{**}$ is not governed by the WEP of $V$ alone. It is
+governed by injectivity of $V^{**}$, and by nuclearity of $V$ once local
+reflexivity is assumed. The local reflexivity hypothesis cannot be omitted:
+Kirchberg's example, quoted in \cite{EOR}, gives a separable non-nuclear
+operator space $V$ with $V^{**}=\prod_{n=1}^{\infty}M_n$, hence with
+$V^{**}$ injective and WEP.
+
+\subsection{Exactness and Weak$^*$ Exactness}
+
+Exactness does not lift to the second dual, even for highly tractable spaces.
+
+\begin{theorem}\label{thm:exact-nolift}
+There is an exact operator space $V$ with $V^{**}$ not exact.
+\end{theorem}
+
+\begin{proof}
+Take $V=\K(\ell^2)$, the compact operators. Then $V$ is nuclear, hence exact
+by \eqref{eq:chain}. Its bidual $V^{**}=\B(\ell^2)$ is not exact
+\cite[\S 9.3]{Pi03}. 
+\end{proof}
+
+For $C^*$-algebras, Wassermann proved that a von Neumann algebra is exact if and
+only if it is subhomogeneous \cite{Wa94}. Thus, $V^{**}$ being exact forces extremely
+restrictive finite-dimensional-like constraints on $V$ in the self-adjoint case.
+For arbitrary operator spaces the honest bidual equivalence is obtained by
+applying Dong--Ruan's theorem to $V^{**}$:
+\[
+V^{**}\ \text{exact}\quad\Longleftrightarrow\quad
+V^{**}\ \text{locally reflexive and}\ V^{****}\ \text{weak}^*\text{ exact}.
+\]
+This is a genuine equivalence, but it is not a condition on $V$ alone.
+Dong--Ruan's original theorem also gives the balanced substitute
+\begin{equation}
+V\ \text{exact}\quad\Longleftrightarrow\quad V\ \text{locally reflexive and}\
+V^{**}\ \text{weak}^*\text{ exact}.
+\end{equation}
+
+\subsection{Local Reflexivity}
+
+Local reflexivity similarly fails to lift.
+
+\begin{theorem}\label{thm:lr-nolift}
+There is a locally reflexive operator space $V$ with $V^{**}$ not locally reflexive.
+\end{theorem}
+
+\begin{proof}
+Again take $V=\K(\ell^2)$. As a nuclear operator space it is locally reflexive
+by \eqref{eq:chain}. Its bidual $\B(\ell^2)$ is injective, but not nuclear.
+Since an operator space $X$ is nuclear if and only if $X$ is locally reflexive and
+$X^{**}$ is injective \cite{EOR}, applying this to $X=\B(\ell^2)$ shows that $\B(\ell^2)$
+cannot be locally reflexive.
+\end{proof}
+
+The available equivalence is therefore the defining tensor-bidual criterion
+applied to $V^{**}$:
+\[
+V^{**}\ \text{locally reflexive}
+\quad\Longleftrightarrow\quad
+\CB(L,V^{****})=\CB(L,V^{**})^{**}
+\]
+completely isometrically for every finite-dimensional operator space $L$
+\cite[Thm.~14.3.1]{ER00}. This is precise but too tautological to be a
+publishable transfer law. The example $V=\K(\ell^2)$ shows that adding only
+local reflexivity of $V$ cannot suffice.
+
+\subsection{A positive neighbouring result: LLP}
+
+The local lifting property provides a useful contrast. Dong proved that
+\[
+        V^{**}\ \text{has LLP}
+        \quad\Longleftrightarrow\quad
+        V\ \text{has LLP and}\ V^*\ \text{is exact}
+\]
+for every operator space $V$ \cite{DongLLP}. This is the kind of bidual
+equivalence one might hope for in the present problem, but it belongs to LLP,
+not to exactness or local reflexivity. It also explains why replacing WEP by
+LLP leads to a substantially stronger statement.
+
+\section{Summary}
+
+Injectivity and nuclearity lift to higher duals with transfer condition
+``exact'' \cite{DT}. Exactness, local reflexivity and the WEP descend from
+$V^{**}$ to $V$ but do not lift in the same form. The exactness line has a
+true higher-bidual reformulation through weak$^*$ exactness \cite{DR}; the
+local reflexivity line has only the tensor-bidual criterion of
+\cite[Thm.~14.3.1]{ER00}; and the WEP line reduces to injectivity of
+$V^{**}$, hence to nuclearity of $V$ under local reflexivity
+(Proposition~\ref{prop:wep-equiv}). The positive theorem in this neighbourhood is
+Dong's LLP result, where
+$V^{**}$ has LLP if and only if $V$ has LLP and $V^*$ is exact \cite{DongLLP}.
+
+\begin{thebibliography}{99}
+
+\bibitem{Ble92} D.~P. Blecher, Tensor products of operator spaces II,
+\emph{Canad. J. Math.} \textbf{44} (1992), 75--90.
+
+\bibitem{CE76} M.-D. Choi and E.~G. Effros, Separable nuclear $C^*$-algebras
+and injectivity, \emph{Duke Math. J.} \textbf{43} (1976), 309--322.
+
+\bibitem{CE77} M.-D. Choi and E.~G. Effros, Nuclear $C^*$-algebras and
+injectivity: the general case, \emph{Indiana Univ. Math. J.} \textbf{26}
+(1977), 443--446.
+
+\bibitem{Co76} A.~Connes, Classification of injective factors,
+\emph{Ann. of Math.} \textbf{104} (1976), 73--115.
+
+\bibitem{DR} Z.~Dong and Z.-J. Ruan, Weak$^*$ exactness for dual operator
+spaces, \emph{J. Funct. Anal.} \textbf{253} (2007), 373--397.
+
+\bibitem{DongLLP} Z.~Dong, On the local lifting properties of operator spaces,
+\emph{Canad. J. Math.} \textbf{61} (2009), 1262--1278.
+
+\bibitem{DT} Z.~Dong and J.~Tao, On the nuclearity for the dual operator
+space, \emph{Proc. Indian Acad. Sci. (Math. Sci.)} \textbf{120} (2010),
+105--111.
+
+\bibitem{EOR} E.~G. Effros, N.~Ozawa and Z.-J. Ruan, On injectivity and
+nuclearity for operator spaces, \emph{Duke Math. J.} \textbf{110} (2001),
+489--521.
+
+\bibitem{ER00} E.~G. Effros and Z.-J. Ruan, \emph{Operator Spaces}, London
+Math. Soc. Monographs, New Series \textbf{23}, Oxford Univ. Press, 2000.
+
+\bibitem{Pi92} G.~Pisier, Exact operator spaces, in \emph{Recent Advances in
+Operator Algebras}, Astérisque \textbf{232} (1995), 159--186.
+
+\bibitem{Pi03} G.~Pisier, \emph{Introduction to Operator Space Theory}, London
+Math. Soc. Lecture Note Series \textbf{294}, Cambridge Univ. Press, 2003.
+
+\bibitem{Ru89} Z.-J. Ruan, Subspaces of $C^*$-algebras,
+\emph{J. Funct. Anal.} \textbf{76} (1988), 217--230.
+
+\bibitem{Wa94} S. Wassermann, \emph{Exact $C^*$-algebras and related topics},
+Seoul National University, 1994.
+
+\end{thebibliography}
+
+\end{document}

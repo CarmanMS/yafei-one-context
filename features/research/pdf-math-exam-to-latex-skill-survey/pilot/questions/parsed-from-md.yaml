@@ -1,0 +1,91 @@
+meta:
+  school: 浙江外国语学院
+  title: 期末考试试卷
+  course_name: 高等数学C（二）
+  course_id: MATH1029
+  paper_type: A
+  academic_year: 2023-2024-2
+  page_label: （第 1 页共 4 页）
+  total_points: 100
+sections:
+- id: sec-1
+  title: 一、单项选择题
+  instruction: （本大题共5小题，每小题3分，共15分.）在每小题列出的四个备选项中只有一个是符合题目要求的，请将其代码填写在题后的括号内．错选、多选或未选均无分。
+  questions:
+  - id: q1
+    points: 3
+    stem: |-
+      已知F(x)是f(x)的原函数，则 $\int _{a} ^{x} f(t + a) d t = （\quad）$
+    choices:
+      A: |-
+        $F(x) - F(a)$
+      B: |-
+        $F(t) - F(a)$
+      C: |-
+        $F(x + a) - F(x - a)$
+      D: |-
+        $F(x + a) - F(2 a)$
+    choice_layout: inline
+    answer: ''
+    figure: null
+  - id: q2
+    points: 3
+    stem: |-
+      $\lim _{(x, y) \to(0, 0)} {\frac {\ln(1 - x ^{2} - y ^{2})} {\arcsin(x ^{2} + y ^{2})}} $ = （\quad）。
+    choices:
+      A: '1'
+      B: '-1'
+      C: '0'
+      D: 不存在
+    choice_layout: inline
+    answer: ''
+    figure: null
+  - id: q3
+    points: 3
+    stem: |-
+      交换二次积分 $\int _{0} ^{1} d x \int _{x} ^{1} f(x, y) d y$ 的积分次序，它等于（\quad）.
+    choices:
+      A: |-
+        $\int _{x} ^{1} d y \int _{0} ^{1} f(x, y) d x$
+      B: |-
+        $\int _{0} ^{1} d y \int _{0} ^{1} f(x, y) d x$
+      C: |-
+        $\int _{0} ^{1} d y \int _{0} ^{y} f(x, y) d x$
+      D: |-
+        $\int _{0} ^{1} d y \int _{y} ^{1} f(x, y) d x$
+    choice_layout: multiline
+    answer: ''
+    figure: null
+  - id: q4
+    points: 3
+    stem: |-
+      下列方程是一阶线性微分方程的是（\quad）.
+    choices:
+      A: |-
+        $x y ^{\prime} + y = x$
+      B: |-
+        $(y ^{\prime}) ^{2} + 1 2 x y = 0$
+      C: |-
+        $y ^{\prime} + \cos y + 1 2 x = 0$
+      D: |-
+        $y ^{\prime} + e ^{y} = x$
+    choice_layout: multiline
+    answer: ''
+    figure: null
+  - id: q5
+    points: 3
+    stem: |-
+      设 $0 \leq u _{n} < \frac {1} {n} (n = 1, 2, \cdots)$ ，则下列级数中必定收敛的是（\quad）.
+    choices:
+      A: |-
+        $\sum _{n = 1} ^{\infty} u _{n}$
+      B: |-
+        $\sum _{n = 1} ^{\infty} (- 1) ^{n} u _{n}$
+      C: |-
+        $\sum _{n = 1} ^{\infty} {\sqrt {u _{n}}}$
+      D: |-
+        $\sum _{n = 1} ^{\infty} (- 1) ^{n} u _{n} ^{2}$
+    choice_layout: multiline
+    answer: ''
+    figure: null
+_source: mineru-md

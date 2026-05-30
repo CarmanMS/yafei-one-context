@@ -1,0 +1,81 @@
+% 对齐 MinerU 原卷第 1 页版式：浙江外国语学院期末卷
+{% raw %}
+\documentclass[a4paper,12pt]{article}
+\usepackage{fontspec}
+\setmainfont{SimSun}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{multirow}
+\geometry{left=3.2cm,right=1.8cm,top=1.6cm,bottom=1.6cm}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\pagestyle{empty}
+
+\newcommand{\bindline}{%
+  \begin{picture}(0,0)
+    \put(-42,-200){\rotatebox{90}{\small 装\hspace{1.8em}订\hspace{1.8em}线}}
+  \end{picture}%
+}
+
+\begin{document}
+\bindline
+{\small 考试类型：一纸闭卷（\quad）；完全闭卷（$\surd$）；开卷（\quad）}\hfill{\small （第 1 页共 4 页）}
+
+\begin{center}
+  {\Large\bfseries 浙江外国语学院}\\[0.35em]
+  {\Large\bfseries 2023～2024 学年第二学期期末考试试卷}
+\end{center}
+
+\noindent
+课程名称\underline{\hspace{2.2em}}高等数学C（二）\underline{\hspace{1.2em}}
+课程编号\underline{\hspace{1.2em}}
+{% endraw %}{{ meta.course_id | e }}{% raw %}\underline{\hspace{1.2em}}
+试卷类型\underline{\hspace{1.2em}}A\underline{\hspace{1.2em}}
+
+\vspace{0.35em}
+\noindent
+学院\underline{\hspace{4.5em}}
+班级\underline{\hspace{4.5em}}
+学号\underline{\hspace{4.5em}}
+姓名\underline{\hspace{4.5em}}
+
+\vspace{0.35em}
+\noindent
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
+  \hline
+  题号 & 一 & 二 & 三 & 四 & 总分 & 统分人 & 复核人 \\
+  \hline
+  得分 &  &  &  &  &  &  &  \\
+  \hline
+\end{tabular}
+\hfill
+\begin{tabular}{|c|c|}
+  \hline
+  得分 & 阅卷人 \\
+  \hline
+  \rule{0pt}{2.2em} & \\
+  \hline
+\end{tabular}
+
+\vspace{0.5em}
+{% endraw %}
+{% for sec in sections %}
+\noindent{\bfseries {{ sec.title }}（{{ sec.instruction }}）}
+
+\vspace{0.25em}
+{% for q in sec.questions %}
+\noindent {{ loop.index }}．{{ q.stem }}
+{% if q.figure %}
+{% raw %}\par\noindent\hspace{1.5em}{% endraw %}\includegraphics[width=0.52\linewidth]{{ '{' }}{{ q.figure }}{{ '}' }}
+{% endif %}
+{% raw %}\par\noindent\hspace{1.5em}{% endraw %}A．{{ q.choices.A }}{% raw %}\quad B．{% endraw %}{{ q.choices.B }}
+{% raw %}\par\noindent\hspace{1.5em}C．{% endraw %}{{ q.choices.C }}{% raw %}\quad D．{% endraw %}{{ q.choices.D }}
+{% raw %}\vspace{0.15em}
+{% endraw %}
+{% endfor %}
+{% endfor %}
+{% raw %}
+\end{document}
+{% endraw %}

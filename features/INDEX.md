@@ -6,6 +6,9 @@
 | -- | ----- | -------- | ------ | ---- | --------------- |
 | p-operator-space-injective-papers | p 算子空间 injective 文献研究 | research | draft | `features/research/p-operator-space-injective-papers/` | — |
 | operator-space-paper-writing-style | 算子空间论文表述：范本蒸馏 + Skill | research | in_progress | `features/research/operator-space-paper-writing-style/` | — |
+| approximating-local-lifting-property | Approximating Local Lifting Property | research | draft | `features/research/approximating-local-lifting-property/` | — |
+| pdf-math-exam-to-latex-skill-survey | 数学试卷 PDF → LaTeX 能力调研（Skill / 工具 / 开源方案） | research | in_progress | `features/research/pdf-math-exam-to-latex-skill-survey/` | one-context |
+| second-dual-local-properties | 算子空间局部性质与二重对偶（exactness、local reflexivity 等下降无提升律） | research | done | `features/research/second-dual-local-properties/` | — |
 
 **Columns**
 

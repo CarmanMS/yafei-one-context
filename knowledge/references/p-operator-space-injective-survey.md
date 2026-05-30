@@ -12,8 +12,8 @@
 ### Lee (2015) 的真实结论
 
 1.  **反例靶空间并非 $B(\ell_p)$ 或 $B(L_p)$**：
-    *   Lee 构造反例时，选取了一个 Hilbert 空间 $E \hookrightarrow L_p(\Omega)$（$p \neq 2$），并定义混合空间 $\tilde{E} = \mathbb{C} \oplus_p E$。
-    *   其反例的靶空间是 $B(\tilde{E})$。这是一个一般 $SQ_p$ 空间上的算子代数，而**不是** $B(\ell_p)$。
+    *   Lee 构造反例时，选取了一个 Hilbert 空间 $E \hookrightarrow L_p(\Omega)$（$p \neq 2$），并定义混合空间 $\tilde{E} = \mathbb{C} \oplus_p E$。这里 $\tilde{E}$ 是一个 $SQ_p$ 空间（$L_p$ 空间的子商空间）。
+    *   其反例的靶空间是 $B(\tilde{E})$（即 $\tilde{E}$ 上的有界线性算子全体构成的 $p$-算子空间）。这是一个一般 $SQ_p$ 空间上的算子代数，而**不是** $B(\ell_p)$（$\ell_p$ 上的有界线性算子）。
     *   **结论**：存在 $p$-算子空间 $V \subseteq W$，以及 $p$-完全压缩映射 $\phi: V \to B(\tilde{E})$，它没有任何 $p$-完全压缩的延拓。
     *   **真正意义**：该反例仅仅否定了“对所有 $SQ_p$ 空间 $E$，$B(E)$ 都是 $p$-内射的”，它**完全没有涉及** $B(\ell_p)$ 或 $B(L_p)$ 的内射性。
 

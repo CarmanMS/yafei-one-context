@@ -90,7 +90,9 @@ deck-slides/
 
 # IDEs
 .idea/
-.vscode/
+# Track shared LaTeX-on-save for papers; keep other .vscode entries local
+.vscode/*
+!.vscode/settings.json
 .obsidian/
 
 # Agent runtime (local, personal) — keep small project manifest committable
