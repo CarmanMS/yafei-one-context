@@ -4,6 +4,7 @@
 
 | id | title | category | status | path | primary_repo_id |
 | -- | ----- | -------- | ------ | ---- | --------------- |
+| math1027-2025-2026-2-final-b | MATH1027 2025–2026-2 期末 B 卷出卷 | develop | blocked | `features/develop/math1027-2025-2026-2-final-b/` | — |
 | p-operator-space-injective-papers | p 算子空间 injective 文献研究 | research | draft | `features/research/p-operator-space-injective-papers/` | — |
 | operator-space-paper-writing-style | 算子空间论文表述：范本蒸馏 + Skill | research | in_progress | `features/research/operator-space-paper-writing-style/` | paperwork |
 | approximating-local-lifting-property | Approximating Local Lifting Property | research | draft | `features/research/approximating-local-lifting-property/` | paperwork |
