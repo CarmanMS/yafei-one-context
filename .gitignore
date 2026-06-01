@@ -1,5 +1,7 @@
 # Sub-repositories & optional external/ clones: not committed; see meta/repos.yaml and scripts/sync_repos.py
 repos/**
+!repos/teaches/
+!repos/teaches/**
 !repos/**/.gitkeep
 
 
@@ -88,6 +90,10 @@ deck-slides/
 # OS
 .DS_Store
 *.swp
+
+# Microsoft Office lock files (Word/Excel while document is open)
+~$*
+**/~$*
 
 # IDEs
 .idea/
