@@ -2,6 +2,8 @@
 
 适用于需要把 PDF、Office、图片、音频等批量转为 **Markdown**（供 LLM、RAG、笔记或版本管理）的场景。项目常被称为「MakeItDown」，**正式名称为 MarkItDown**。
 
+**前置阅读（可选）**：`knowledge/references/microsoft-markitdown.md`（项目定位与索引）。
+
 **权威文档**（选项最全、随版本更新）：[microsoft/markitdown README](https://github.com/microsoft/markitdown/blob/main/README.md)。
 
 ---
