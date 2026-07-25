@@ -1,0 +1,4 @@
+[submodule "knowledge"]
+	path = knowledge
+	url = https://github.com/CarmanMS/yafei-knowledge.git
+	branch = main
