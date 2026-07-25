@@ -13,6 +13,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
   "PyYAML>=6.0.1",
+  "pydantic>=2.5",
+  "Jinja2>=3.1",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -36,9 +38,13 @@ dev = ["pytest>=7.0", "pytest-cov>=4.0"]
 
 [project.scripts]
 onecxt = "one_context.cli:main"
+onecxt-recorder = "one_context.recorder.mcp_server:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "slow: 真接 LLM 的端到端测试，默认 skip；本地 `pytest -m slow` 才跑（消耗 token）",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

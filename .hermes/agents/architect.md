@@ -87,6 +87,36 @@ Write shared meaning once. Adapt it many times.
 
 The system should avoid storing the same intent separately in multiple vendor-specific configuration files whenever a canonical source can exist instead.
 
+<!-- source: knowledge/standards/README.md -->
+# Standards
+
+Tool-neutral engineering conventions and policies for `one-context`.
+
+## Files
+
+| File | Scope |
+|------|-------|
+| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
+| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
+| `video-voiceover-script-conventions.md` | 口播稿 — 开场钩子（含悬念/排比否定式）后紧接固定关注句（逐字）；与 `01-script.md` 配合 |
+| `content-pipeline-tts-routing.md` | content-pipeline 立项 — **默认** `volc-podcast-tts` action=0、`00-podcast-source.md`、WAV+SRT 真源；action=3 须 `override_reason` |
+| `dev-env-traps.md` | 开发环境陷阱 — 易被误判为代码 bug 的现象（如 Remotion + SOCKS 代理 AbortError） |
+
+## What belongs here
+
+- Coding conventions and repository layout policies
+- Documentation standards and testing expectations
+- Safety, write-boundary, and data-handling policies
+- Schema definitions and interface contracts
+
+## What does NOT belong here
+
+- Architecture analysis or source-code walkthroughs → `references/`
+- Diagram samples and visual design guides → `references/`
+- Step-by-step operating procedures → `playbooks/`
+
+Add links to new standards in the table above when creating a file.
+
 <!-- source: knowledge/standards/agent-framework.md -->
 # Agent Framework — 智能体框架规范
 
@@ -486,6 +516,140 @@ Each role has different prompts but shares the same coordination protocol.
 - No cross-agent communication mechanism (currently only indirect info exchange via git commits)
 - Agents may choose wrong task priorities (no global view)
 
+<!-- source: knowledge/standards/content-pipeline-tts-routing.md -->
+# content-pipeline 口播 / TTS 路由（立项默认）
+
+> 来源：one-context 内部约定（2026-05-25，workflows 选题复盘）
+
+## 默认策略（新建 feature 必须遵守）
+
+| 项 | 默认值 | 说明 |
+|----|--------|------|
+| 模式 | `duo` | `solo`（单人旁白）或 `duo`（双人播客），立项时选定 |
+| 引擎 | `volc-podcast-tts`（duo）/ `doubao-dialogue-tts`（solo） | 由 mode 自动路由 |
+| **action** | **`0`** | duo 专用；solo 时忽略 |
+| 时间轴真源 | **`wav_srt`** | 成片以 `media/voiceover.wav` + `subtitles/sub.srt` 为准 |
+| 讲稿角色 | **结构参考**（duo）/ **TTS 直接输入**（solo） | duo: `00-podcast-source.md`；solo: `01-script.md` |
+
+**立项时禁止**在未填 `tts.override_reason` 的情况下把 spec 写成 action=3。
+
+## 三条路径
+
+### 路径 S — 单人旁白（`mode: solo`）
+
+适用：需要精确逐字念稿、单人讲解/教程、画面与口播严格对齐。
+
+| 步骤 | 产出 |
+|------|------|
+| 写 `01-script.md` | 逐字稿（纯文本，不带 `男：/女：` 前缀） |
+| 写 `00-structure.md` | Scene 大纲 |
+| TTS | `doubao-dialogue-tts --mono` |
+| 后续 | Whisper → `srt-proofread` → `scene-boundaries` / Remotion `audioConfig` |
+
+### 路径 A — 播客总结（`mode: duo`，**默认**）
+
+适用：素材来自 **微信稿 / 文章 / URL / 结构化摘要**；接受服务端改写口播；画面跟 **SRT** 切 Scene。
+
+| 步骤 | 产出 |
+|------|------|
+| 写 `00-podcast-source.md` | 长文要点 + 钩子 + 固定关注句（给 action=0） |
+| 写 `00-structure.md` | Scene 大纲（口播**预期**话题，非逐字稿） |
+| 可选 `01-script.md` | 仅结构/核对表，标注「非 TTS 输入」 |
+| `timing/video-input.json` | `podcastTts.action: 0`，`scriptPath: content/00-podcast-source.md` |
+| TTS | `volc-podcast-tts --action 0` 或流水线 `podcastTts` |
+| 后续 | Whisper → `srt-proofread` → `scene-boundaries` / Remotion `audioConfig` |
+
+参考：`features/content-pipeline/ai-companies-build-ai-mid-video/`
+
+### 路径 B — 逐字对白（`mode: duo` + `action: 3`，**例外**）
+
+适用：已有人审定稿、法律/品牌要求 **逐字**、或口播与画面已按句锁死。
+
+| 要求 | 说明 |
+|------|------|
+| spec `tts.action` | **`3`** |
+| spec `tts.override_reason` | **必填**（一句业务理由） |
+| TTS 输入 | **仅** `男：`/`女：` 体（无 YAML frontmatter）；或独立 `01-dialogue-volc.md` |
+| 禁止 | 把带 frontmatter 的 `01-script.md` 直接喂 CLI |
+
+参考：`features/content-pipeline/markdown-html-claude-engineer-mid-video/`（对白终稿）
+
+## 与成片技术栈无关
+
+| 成片 | 路径 S/A/B 均适用 |
+|------|----------------|
+| `html-video-from-slides` | `video-input.json` + flip-boundaries |
+| `remotion-pipelines` | `scene-boundaries.md` + `audioConfig.ts`；真源仍是 WAV+SRT |
+
+**Remotion 不等于 action=3。** 选 Remotion 仍默认 action=0，除非走路径 B 并声明理由。
+
+## spec 必填 frontmatter（content-pipeline）
+
+```yaml
+category: content-pipeline
+tts:
+  engine: volc-podcast-tts     # duo 时自动；solo 时路由到 doubao-dialogue-tts
+  mode: duo                    # solo | duo（默认 duo，缺省等价 duo）
+  action: 0                    # duo 专用；solo 时忽略
+  authority: wav_srt
+  override_reason: ""          # action 非 0 时必填非空（duo 专用）
+```
+
+复制完整正文骨架：`features/_template/spec-content-pipeline.md`
+
+## 代理门禁（执行 TTS 前）
+
+1. 读 `spec.md` 的 `tts.mode`（缺省=`duo`）。
+2. 若 `mode=duo`：
+   a. 读 `tts.action`。
+   b. 若为 `0`：确认存在 `00-podcast-source.md` 且 `video-input.json` 中 `podcastTts.action` 为 `0`（或未建 json 则 CLI 显式 `--action 0`）。
+   c. 若为 `3`：确认 `tts.override_reason` 非空，且用户曾在 `review_record.md` 确认。
+3. 若 `mode=solo`：
+   a. 确认存在 `01-script.md` 且非空。
+   b. 忽略 `action` / `override_reason` 字段。
+   c. 使用 `doubao-dialogue-tts --mono`。
+4. **禁止**因「写了双人 `01-script.md`」就自动改 action=3。
+5. **禁止** `mode=solo` 时使用 `volc-podcast-tts`。
+
+## 相关文档
+
+- `skills/volc-podcast-tts/SKILL.md`
+- `skills/html-video-from-slides/references/VIDEO_PIPELINE.md`
+- `features/_template/content-production/README.md`
+- `knowledge/standards/video-voiceover-script-conventions.md`（钩子 + 固定句仍须满足）
+
+<!-- source: knowledge/standards/dev-env-traps.md -->
+# Dev Env Traps
+
+开发环境中容易被误判为代码 bug 的现象及处置。
+
+## Remotion Studio: bugs.remotion.dev 请求失败
+
+**现象**：`npm run dev` 启动 Remotion Studio 后，浏览器控制台报错：
+
+```
+mediabunny.cjs:16047 Uncaught (in promise) AbortError: The user aborted a request.
+inspector.js:7 Fetch request failed: TypeError: Failed to fetch
+```
+
+Network 面板可见：
+
+```
+GET https://bugs.remotion.dev/api/4.0.463 => net::ERR_SOCKS_CONNECTION_FAILED
+```
+
+**原因**：Remotion Studio 启动时自动请求 `bugs.remotion.dev` 检查当前版本是否有已知 bug。当系统配置了 SOCKS 代理（如 `127.0.0.1:13659`）且该代理无法转发 HTTPS 请求到该域名时，fetch 被中止，mediabunny 的 AbortController 将其包装为 `AbortError`。
+
+**影响**：**无功能影响**。仅版本 bug 检查提示缺失，不影响预览、渲染、导出。
+
+**处置**：
+
+1. 忽略即可（推荐）
+2. 或在浏览器中将 `bugs.remotion.dev` 加入代理例外（bypass）
+3. 或临时关闭 SOCKS 代理
+
+**判断依据**：控制台仅有 `bugs.remotion.dev` 的 `ERR_SOCKS_CONNECTION_FAILED`，且 Remotion Studio 界面正常、视频可播放、WAV 的 206 Partial Content 请求正常 → 确认为代理问题而非代码 bug。
+
 <!-- source: knowledge/standards/diagram-conventions.md -->
 # Markdown 文档图表规范
 
@@ -704,6 +868,7 @@ Do not duplicate the same intent in vendor-specific formats. If a tool needs a s
 | 作者 | ✅ | 原作者或组织 |
 | 发布日期 | ✅ | 原文发布日期 |
 | 收录日期 | 建议 | 写入知识库的日期 |
+| SHA256 | 建议 | 源文档内容 hash（用于增量编译检测，`kb-compile` 自动填充） |
 
 示例：
 
@@ -712,6 +877,7 @@ Do not duplicate the same intent in vendor-specific formats. If a tool needs a s
 > 作者：Author Name (Organization)
 > 发布日期：2026-04-15
 > 收录日期：2026-04-17
+> SHA256：a1b2c3d4e5f6
 ```
 
 不标注出处的外部资料不得合入 `knowledge/`。
@@ -803,32 +969,62 @@ This strategy requires:
 - Oracle and test implementation interfaces must be compatible, otherwise mixing is impossible
 - Interaction bugs (requiring multiple files/modules combined to appear) need delta debugging or other additional methods
 
-<!-- source: knowledge/standards/README.md -->
-# Standards
+<!-- source: knowledge/standards/video-voiceover-script-conventions.md -->
+# 口播稿制作规范（钩子 + 固定句）
 
-Tool-neutral engineering conventions and policies for `one-context`.
+> 来源：one-context 内部约定（内容向口播 / 短视频 / 中视频）  
+> 适用：`features/**/production/content/01-script.md` 及同目录讲稿类文件。
 
-## Files
+本规范**只约定两件事**：**一开头用钩子抓住人**；**紧接着用固定一句关注引导（逐字）**。其余版式（如 `# 【页题】` 分块、男女对白、与 `html-video-from-slides` / `volc-podcast-tts` 的配合）由选题与 `skills/` 各 skill 另行约定，**不替代**下文两条。
 
-| File | Scope |
-|------|-------|
-| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
-| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
+---
 
-## What belongs here
+## 1. 开头：钩子
 
-- Coding conventions and repository layout policies
-- Documentation standards and testing expectations
-- Safety, write-boundary, and data-handling policies
-- Schema definitions and interface contracts
+**位置**：放在**全片口播最前**（通常对应封面 / 第一页讲稿块的最前几句）。
 
-## What does NOT belong here
+**目标**：让听众愿意听下去——觉得**和自己有关**或**想知道后文结论**；不靠骂战、不靠装疯卖傻换停留。
 
-- Architecture analysis or source-code walkthroughs → `references/`
-- Diagram samples and visual design guides → `references/`
-- Step-by-step operating procedures → `playbooks/`
+**必须做到**
 
-Add links to new standards in the table above when creating a file.
+- **具体**：一个问题、一个反常现象、一个正在发生的变化，或带前提的对比；避免空泛的「今天我们来聊聊」。
+- **可兑现**：开头抛出的张力，后文要能给清楚回应；不要为勾人而勾人。若使用**明知故问 / 排比否定 / 悬念揭晓**（见下），须在**封面块内或紧随其后的正文开头**，用一两句把「谜底」收成**本期能讲清的范围**（例如「叙事里谁在热路径上被反复点名」），而不是悬一个无法在后文定义的全局排行榜结论。
+- **语气**：不要夸张承诺（如「彻底改变」「99% 不知道」）、不要人身攻击、不要刻意挑动对立。**允许**竞猜感、排行榜式口吻作**开场钩子**——常见骨架如：「你知道……最 X 吗？不是 A，不是 B，居然是 C」——只要满足上条「可兑现」，不把「最香」「第一」等词留到全片结束仍无操作定义即可。
+
+**可选形态（可组合）**
+
+- **悬念排比**：先抛反差选项再揭晓，适合短视频/中视频拉停留；揭晓后若需路标，**仅允许极短一句**（如「今晚我们把它落到……」）且须**仍排在 §2 固定句之前**——时间轴上仍是 **钩子（含可选路标）→ 固定句 → 正文**。
+- **场景一刀**：一句值班/账单/事故类具体画面，再接矛盾句。
+- **反常半句**：直接给反常识判断，下一句马上收窄到可核查范围。
+
+**受众**（写钩子时自问一句即可）：一线研发侧重「省时间、避坑、可落地」；技术管理者侧重「成本、风险、节奏」；泛科技受众侧重「关我什么事、为什么现在值得听」。
+
+---
+
+## 2. 固定一句：紧跟在钩子之后（逐字）
+
+**位置**：**紧接在开头钩子之后**——即全片口播时间轴上，**先**完成 §1 的钩子，**下一段或下一轮对白**即接本固定句；通常仍写在**第一页 / 封面**讲稿块内（钩子 → 固定句 → 再衔接正文）。**不要求**放在片尾；若某 feature 另有片尾致谢，可与本固定句并存，但**不得改写**本句文字。
+
+**要求**：下面这句话必须**原样出现**——**不增不减、不拆句、不改写用词**。需要垫话时，**仅允许在固定句之前**用极短衔接（如「先插播一句」「下面这句我完整念」）；**不得**在句中插入语气词或第二人接话。男女对播时，仍须**同一人一口气念完**整句固定话。
+
+> 如果你想听更多的大厂和业界AI最新资讯，欢迎关注大厂吾师兄，点关注不迷路。
+
+若某平台禁止口播引导关注，在该 feature 的 `spec.md` 或 `05-publish-kit.md` 里声明**替代句或豁免**；**默认仍以本句为准**。
+
+---
+
+## 3. 起草自检
+
+- [ ] 开头是否已用**具体、可兑现**的钩子（含**悬念排比式**亦可），且大致落在全片**最前几秒～二十秒**内？若用了「最 X / 不是…居然…」，后文是否已**尽早**说清本期里「X」指什么？  
+- [ ] 固定句是否**逐字**出现在**钩子之后、正文展开之前**（或仍在封面块内紧邻位置）？
+
+---
+
+## 4. 可选参考（非本规范核心）
+
+- **讲稿分块与 Edge TTS**：`skills/html-video-from-slides/SKILL.md`（如每页 `# 【标题】`）。  
+- **男女对白、播客式 WAV**：`skills/volc-podcast-tts` 等。  
+- **字幕校对**：`skills/srt-proofread/SKILL.md`；固定句写入 `01-script.md` 便于与字幕对齐专名与标点。
 
 <!-- source: meta/repos.yaml -->
 # Sub-repository manifest (single source of truth for humans + tooling).
@@ -863,11 +1059,72 @@ version: 1
 #     category: research
 #     description: Research notes and documentation.
 repos:
-  - url: https://github.com/CarmanMS/hangprofile.git
+  - url: https://github.com/CarmanMS/FunctionCanvas
     category: develop
-    id: hangprofile
-    alias: hang-profile
-    description: CarmanMS/hangprofile (hang profile).
+    description: FunctionCanvas
+  - url: https://github.com/CarmanMS/VideoFactory
+    category: develop
+    description: VideoFactory
+  - url: https://github.com/CarmanMS/paperwork
+    category: research
+    description: paperwork
+  - url: https://github.com/CarmanMS/hangprofile
+    category: develop
+    description: Student learning & growth archive (课内/课外/原始材料/归纳); AI-friendly folder layout.
+  - url: https://github.com/VoltAgent/awesome-design-md
+    category: reference
+    id: awesome-design-md
+    alias: awesome-design
+    description: Curated DESIGN.md design-system snippets for agent-driven UI (reference only).
+  - url: https://github.com/shanraisshan/claude-code-best-practice.git
+    category: reference
+    id: claude-code-best-practice
+    alias: ccbp
+    description: Claude Code workflow demos (slash commands, agents, skills, development-workflows); local reference only, not bundled.
+  - url: https://github.com/Cocoon-AI/architecture-diagram-generator
+    category: reference
+    id: arch-diagram-gen
+    alias: archdiag
+    description: Claude AI skill for generating dark-themed system architecture diagrams (HTML/SVG).
+  - url: https://github.com/sansan0/TrendRadar
+    category: integrations
+    id: trend-radar
+    description: 趋势雷达 — 多平台热点聚合 + MCP AI分析 + 企微/微信/飞书推送（33k+ stars）。
+  - url: https://github.com/heygen-com/hyperframes
+    category: reference
+    id: hyperframes
+    description: HeyGen 开源 HTML→视频合成框架（CLI、Puppeteer+FFmpeg、Agent skills）；与本仓 html-video-from-slides 并行参考，不替换。
+  - url: https://github.com/nexu-io/open-design
+    category: reference
+    id: open-design
+    description: Local-first Claude Design 开源替代 — Next.js Web + 本地 daemon、31 Skills、72 DESIGN.md 体系、沙箱预览与 HTML/PDF/PPTX 导出；复用本机编码 Agent CLI（Apache-2.0）。
+  - url: https://github.com/tinyhumansai/openhuman
+    category: reference
+    id: openhuman
+    description: OpenHuman — 20 分钟了解你、第一天就干活的 AI 超级助手；连接 118+ 服务、自动抓取、构建记忆树、TokenJuice 压缩、潜意识循环、桌面 Mascot（GPL-3.0）。
+  - url: https://github.com/nexu-io/html-anything
+    category: reference
+    id: html-anything
+    description: HTML Anything — 自然语言生成 Web UI 组件，Next.js 驱动的 Design-to-Code 引擎（Apache-2.0）。
+  - url: https://github.com/lewislulu/html-ppt-skill
+    category: reference
+    id: html-ppt-skill
+    alias: html-ppt
+    description: HTML PPT Studio — AgentSkill（36 主题、31 布局、47 动画、演讲者模式）；纯静态 HTML 幻灯；与本仓 html-deck-layout / html-video-from-slides 并行参考（MIT）。
+  - url: https://github.com/wshuyi/remotion-video-skill.git
+    category: reference
+    id: remotion-video-skill
+    alias: rvs
+    description: Claude Code Skill — Remotion 编程式视频生成（TTS、场景架构、字幕动画）；本仓 remotion-pipelines 的上游参考。
+  - url: https://github.com/juliangarnier/anime
+    category: reference
+    id: anime
+    alias: animejs
+    description: Anime.js — 轻量 JavaScript 动画库（CSS/SVG/DOM/JS Object）；MIT，V4 ES modules。
+  - url: https://github.com/greensock/GSAP
+    category: reference
+    id: gsap
+    description: GSAP (GreenSock Animation Platform) — JavaScript 动画库；CSS/SVG/canvas/ScrollTrigger；框架无关，Webflow 赞助后全功能免费商用。
 
 <!-- source: meta/workspaces.yaml -->
 # Task- or theme-oriented workspace definitions.
@@ -913,3 +1170,4 @@ workspaces:
         - features/README.md
         - features/INDEX.md
         - features/_template/
+        - skills/skill-parallel-verify/

@@ -33,6 +33,36 @@ Verification steps are optional — focus on the design and rationale.
 
 ## Knowledge
 
+<!-- source: knowledge/standards/README.md -->
+# Standards
+
+Tool-neutral engineering conventions and policies for `one-context`.
+
+## Files
+
+| File | Scope |
+|------|-------|
+| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
+| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
+| `video-voiceover-script-conventions.md` | 口播稿 — 开场钩子（含悬念/排比否定式）后紧接固定关注句（逐字）；与 `01-script.md` 配合 |
+| `content-pipeline-tts-routing.md` | content-pipeline 立项 — **默认** `volc-podcast-tts` action=0、`00-podcast-source.md`、WAV+SRT 真源；action=3 须 `override_reason` |
+| `dev-env-traps.md` | 开发环境陷阱 — 易被误判为代码 bug 的现象（如 Remotion + SOCKS 代理 AbortError） |
+
+## What belongs here
+
+- Coding conventions and repository layout policies
+- Documentation standards and testing expectations
+- Safety, write-boundary, and data-handling policies
+- Schema definitions and interface contracts
+
+## What does NOT belong here
+
+- Architecture analysis or source-code walkthroughs → `references/`
+- Diagram samples and visual design guides → `references/`
+- Step-by-step operating procedures → `playbooks/`
+
+Add links to new standards in the table above when creating a file.
+
 <!-- source: knowledge/standards/agent-framework.md -->
 # Agent Framework — 智能体框架规范
 
@@ -432,6 +462,140 @@ Each role has different prompts but shares the same coordination protocol.
 - No cross-agent communication mechanism (currently only indirect info exchange via git commits)
 - Agents may choose wrong task priorities (no global view)
 
+<!-- source: knowledge/standards/content-pipeline-tts-routing.md -->
+# content-pipeline 口播 / TTS 路由（立项默认）
+
+> 来源：one-context 内部约定（2026-05-25，workflows 选题复盘）
+
+## 默认策略（新建 feature 必须遵守）
+
+| 项 | 默认值 | 说明 |
+|----|--------|------|
+| 模式 | `duo` | `solo`（单人旁白）或 `duo`（双人播客），立项时选定 |
+| 引擎 | `volc-podcast-tts`（duo）/ `doubao-dialogue-tts`（solo） | 由 mode 自动路由 |
+| **action** | **`0`** | duo 专用；solo 时忽略 |
+| 时间轴真源 | **`wav_srt`** | 成片以 `media/voiceover.wav` + `subtitles/sub.srt` 为准 |
+| 讲稿角色 | **结构参考**（duo）/ **TTS 直接输入**（solo） | duo: `00-podcast-source.md`；solo: `01-script.md` |
+
+**立项时禁止**在未填 `tts.override_reason` 的情况下把 spec 写成 action=3。
+
+## 三条路径
+
+### 路径 S — 单人旁白（`mode: solo`）
+
+适用：需要精确逐字念稿、单人讲解/教程、画面与口播严格对齐。
+
+| 步骤 | 产出 |
+|------|------|
+| 写 `01-script.md` | 逐字稿（纯文本，不带 `男：/女：` 前缀） |
+| 写 `00-structure.md` | Scene 大纲 |
+| TTS | `doubao-dialogue-tts --mono` |
+| 后续 | Whisper → `srt-proofread` → `scene-boundaries` / Remotion `audioConfig` |
+
+### 路径 A — 播客总结（`mode: duo`，**默认**）
+
+适用：素材来自 **微信稿 / 文章 / URL / 结构化摘要**；接受服务端改写口播；画面跟 **SRT** 切 Scene。
+
+| 步骤 | 产出 |
+|------|------|
+| 写 `00-podcast-source.md` | 长文要点 + 钩子 + 固定关注句（给 action=0） |
+| 写 `00-structure.md` | Scene 大纲（口播**预期**话题，非逐字稿） |
+| 可选 `01-script.md` | 仅结构/核对表，标注「非 TTS 输入」 |
+| `timing/video-input.json` | `podcastTts.action: 0`，`scriptPath: content/00-podcast-source.md` |
+| TTS | `volc-podcast-tts --action 0` 或流水线 `podcastTts` |
+| 后续 | Whisper → `srt-proofread` → `scene-boundaries` / Remotion `audioConfig` |
+
+参考：`features/content-pipeline/ai-companies-build-ai-mid-video/`
+
+### 路径 B — 逐字对白（`mode: duo` + `action: 3`，**例外**）
+
+适用：已有人审定稿、法律/品牌要求 **逐字**、或口播与画面已按句锁死。
+
+| 要求 | 说明 |
+|------|------|
+| spec `tts.action` | **`3`** |
+| spec `tts.override_reason` | **必填**（一句业务理由） |
+| TTS 输入 | **仅** `男：`/`女：` 体（无 YAML frontmatter）；或独立 `01-dialogue-volc.md` |
+| 禁止 | 把带 frontmatter 的 `01-script.md` 直接喂 CLI |
+
+参考：`features/content-pipeline/markdown-html-claude-engineer-mid-video/`（对白终稿）
+
+## 与成片技术栈无关
+
+| 成片 | 路径 S/A/B 均适用 |
+|------|----------------|
+| `html-video-from-slides` | `video-input.json` + flip-boundaries |
+| `remotion-pipelines` | `scene-boundaries.md` + `audioConfig.ts`；真源仍是 WAV+SRT |
+
+**Remotion 不等于 action=3。** 选 Remotion 仍默认 action=0，除非走路径 B 并声明理由。
+
+## spec 必填 frontmatter（content-pipeline）
+
+```yaml
+category: content-pipeline
+tts:
+  engine: volc-podcast-tts     # duo 时自动；solo 时路由到 doubao-dialogue-tts
+  mode: duo                    # solo | duo（默认 duo，缺省等价 duo）
+  action: 0                    # duo 专用；solo 时忽略
+  authority: wav_srt
+  override_reason: ""          # action 非 0 时必填非空（duo 专用）
+```
+
+复制完整正文骨架：`features/_template/spec-content-pipeline.md`
+
+## 代理门禁（执行 TTS 前）
+
+1. 读 `spec.md` 的 `tts.mode`（缺省=`duo`）。
+2. 若 `mode=duo`：
+   a. 读 `tts.action`。
+   b. 若为 `0`：确认存在 `00-podcast-source.md` 且 `video-input.json` 中 `podcastTts.action` 为 `0`（或未建 json 则 CLI 显式 `--action 0`）。
+   c. 若为 `3`：确认 `tts.override_reason` 非空，且用户曾在 `review_record.md` 确认。
+3. 若 `mode=solo`：
+   a. 确认存在 `01-script.md` 且非空。
+   b. 忽略 `action` / `override_reason` 字段。
+   c. 使用 `doubao-dialogue-tts --mono`。
+4. **禁止**因「写了双人 `01-script.md`」就自动改 action=3。
+5. **禁止** `mode=solo` 时使用 `volc-podcast-tts`。
+
+## 相关文档
+
+- `skills/volc-podcast-tts/SKILL.md`
+- `skills/html-video-from-slides/references/VIDEO_PIPELINE.md`
+- `features/_template/content-production/README.md`
+- `knowledge/standards/video-voiceover-script-conventions.md`（钩子 + 固定句仍须满足）
+
+<!-- source: knowledge/standards/dev-env-traps.md -->
+# Dev Env Traps
+
+开发环境中容易被误判为代码 bug 的现象及处置。
+
+## Remotion Studio: bugs.remotion.dev 请求失败
+
+**现象**：`npm run dev` 启动 Remotion Studio 后，浏览器控制台报错：
+
+```
+mediabunny.cjs:16047 Uncaught (in promise) AbortError: The user aborted a request.
+inspector.js:7 Fetch request failed: TypeError: Failed to fetch
+```
+
+Network 面板可见：
+
+```
+GET https://bugs.remotion.dev/api/4.0.463 => net::ERR_SOCKS_CONNECTION_FAILED
+```
+
+**原因**：Remotion Studio 启动时自动请求 `bugs.remotion.dev` 检查当前版本是否有已知 bug。当系统配置了 SOCKS 代理（如 `127.0.0.1:13659`）且该代理无法转发 HTTPS 请求到该域名时，fetch 被中止，mediabunny 的 AbortController 将其包装为 `AbortError`。
+
+**影响**：**无功能影响**。仅版本 bug 检查提示缺失，不影响预览、渲染、导出。
+
+**处置**：
+
+1. 忽略即可（推荐）
+2. 或在浏览器中将 `bugs.remotion.dev` 加入代理例外（bypass）
+3. 或临时关闭 SOCKS 代理
+
+**判断依据**：控制台仅有 `bugs.remotion.dev` 的 `ERR_SOCKS_CONNECTION_FAILED`，且 Remotion Studio 界面正常、视频可播放、WAV 的 206 Partial Content 请求正常 → 确认为代理问题而非代码 bug。
+
 <!-- source: knowledge/standards/diagram-conventions.md -->
 # Markdown 文档图表规范
 
@@ -650,6 +814,7 @@ Do not duplicate the same intent in vendor-specific formats. If a tool needs a s
 | 作者 | ✅ | 原作者或组织 |
 | 发布日期 | ✅ | 原文发布日期 |
 | 收录日期 | 建议 | 写入知识库的日期 |
+| SHA256 | 建议 | 源文档内容 hash（用于增量编译检测，`kb-compile` 自动填充） |
 
 示例：
 
@@ -658,6 +823,7 @@ Do not duplicate the same intent in vendor-specific formats. If a tool needs a s
 > 作者：Author Name (Organization)
 > 发布日期：2026-04-15
 > 收录日期：2026-04-17
+> SHA256：a1b2c3d4e5f6
 ```
 
 不标注出处的外部资料不得合入 `knowledge/`。
@@ -749,47 +915,235 @@ This strategy requires:
 - Oracle and test implementation interfaces must be compatible, otherwise mixing is impossible
 - Interaction bugs (requiring multiple files/modules combined to appear) need delta debugging or other additional methods
 
-<!-- source: knowledge/standards/README.md -->
-# Standards
+<!-- source: knowledge/standards/video-voiceover-script-conventions.md -->
+# 口播稿制作规范（钩子 + 固定句）
 
-Tool-neutral engineering conventions and policies for `one-context`.
+> 来源：one-context 内部约定（内容向口播 / 短视频 / 中视频）  
+> 适用：`features/**/production/content/01-script.md` 及同目录讲稿类文件。
 
-## Files
+本规范**只约定两件事**：**一开头用钩子抓住人**；**紧接着用固定一句关注引导（逐字）**。其余版式（如 `# 【页题】` 分块、男女对白、与 `html-video-from-slides` / `volc-podcast-tts` 的配合）由选题与 `skills/` 各 skill 另行约定，**不替代**下文两条。
 
-| File | Scope |
-|------|-------|
-| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
-| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
+---
 
-## What belongs here
+## 1. 开头：钩子
 
-- Coding conventions and repository layout policies
-- Documentation standards and testing expectations
-- Safety, write-boundary, and data-handling policies
-- Schema definitions and interface contracts
+**位置**：放在**全片口播最前**（通常对应封面 / 第一页讲稿块的最前几句）。
 
-## What does NOT belong here
+**目标**：让听众愿意听下去——觉得**和自己有关**或**想知道后文结论**；不靠骂战、不靠装疯卖傻换停留。
 
-- Architecture analysis or source-code walkthroughs → `references/`
-- Diagram samples and visual design guides → `references/`
-- Step-by-step operating procedures → `playbooks/`
+**必须做到**
 
-Add links to new standards in the table above when creating a file.
+- **具体**：一个问题、一个反常现象、一个正在发生的变化，或带前提的对比；避免空泛的「今天我们来聊聊」。
+- **可兑现**：开头抛出的张力，后文要能给清楚回应；不要为勾人而勾人。若使用**明知故问 / 排比否定 / 悬念揭晓**（见下），须在**封面块内或紧随其后的正文开头**，用一两句把「谜底」收成**本期能讲清的范围**（例如「叙事里谁在热路径上被反复点名」），而不是悬一个无法在后文定义的全局排行榜结论。
+- **语气**：不要夸张承诺（如「彻底改变」「99% 不知道」）、不要人身攻击、不要刻意挑动对立。**允许**竞猜感、排行榜式口吻作**开场钩子**——常见骨架如：「你知道……最 X 吗？不是 A，不是 B，居然是 C」——只要满足上条「可兑现」，不把「最香」「第一」等词留到全片结束仍无操作定义即可。
+
+**可选形态（可组合）**
+
+- **悬念排比**：先抛反差选项再揭晓，适合短视频/中视频拉停留；揭晓后若需路标，**仅允许极短一句**（如「今晚我们把它落到……」）且须**仍排在 §2 固定句之前**——时间轴上仍是 **钩子（含可选路标）→ 固定句 → 正文**。
+- **场景一刀**：一句值班/账单/事故类具体画面，再接矛盾句。
+- **反常半句**：直接给反常识判断，下一句马上收窄到可核查范围。
+
+**受众**（写钩子时自问一句即可）：一线研发侧重「省时间、避坑、可落地」；技术管理者侧重「成本、风险、节奏」；泛科技受众侧重「关我什么事、为什么现在值得听」。
+
+---
+
+## 2. 固定一句：紧跟在钩子之后（逐字）
+
+**位置**：**紧接在开头钩子之后**——即全片口播时间轴上，**先**完成 §1 的钩子，**下一段或下一轮对白**即接本固定句；通常仍写在**第一页 / 封面**讲稿块内（钩子 → 固定句 → 再衔接正文）。**不要求**放在片尾；若某 feature 另有片尾致谢，可与本固定句并存，但**不得改写**本句文字。
+
+**要求**：下面这句话必须**原样出现**——**不增不减、不拆句、不改写用词**。需要垫话时，**仅允许在固定句之前**用极短衔接（如「先插播一句」「下面这句我完整念」）；**不得**在句中插入语气词或第二人接话。男女对播时，仍须**同一人一口气念完**整句固定话。
+
+> 如果你想听更多的大厂和业界AI最新资讯，欢迎关注大厂吾师兄，点关注不迷路。
+
+若某平台禁止口播引导关注，在该 feature 的 `spec.md` 或 `05-publish-kit.md` 里声明**替代句或豁免**；**默认仍以本句为准**。
+
+---
+
+## 3. 起草自检
+
+- [ ] 开头是否已用**具体、可兑现**的钩子（含**悬念排比式**亦可），且大致落在全片**最前几秒～二十秒**内？若用了「最 X / 不是…居然…」，后文是否已**尽早**说清本期里「X」指什么？  
+- [ ] 固定句是否**逐字**出现在**钩子之后、正文展开之前**（或仍在封面块内紧邻位置）？
+
+---
+
+## 4. 可选参考（非本规范核心）
+
+- **讲稿分块与 Edge TTS**：`skills/html-video-from-slides/SKILL.md`（如每页 `# 【标题】`）。  
+- **男女对白、播客式 WAV**：`skills/volc-podcast-tts` 等。  
+- **字幕校对**：`skills/srt-proofread/SKILL.md`；固定句写入 `01-script.md` 便于与字幕对齐专名与标点。
+
+<!-- source: knowledge/prompts/grill-me.md -->
+# Grill Me — 决策树追问策略
+
+> 来源：[Matt Pocock — "Grill Me" Skill](https://gist.github.com/mattpocockuk/f4f0f579a415063b7c4f4b07bfc8cd5a)
+> 作者：Matt Pocock
+> 发布日期：2025-06
+> 收录日期：2026-04-29
+
+逐分支遍历设计决策树，通过连续追问将模糊意图收敛为共识。
+
+## 何时使用
+
+- 用户主动要求"grill me"、"追问我"、"压力测试我的方案"
+- Reviewer 进入 duel 模式前，先对方案发起方执行一轮 grill-me 以暴露未决分支
+- Architect 产出 tech_design.md 后、交付 Dev 前的间隙检查
+
+## 核心规则
+
+1. **逐个追问**：每次只问一个问题，等待回答后再问下一个。不要一次列出所有问题。
+2. **提供推荐答案**：每个问题附带你的推荐答案及理由，但明确标注"推荐"而非"结论"——用户可以选择推翻。
+3. **决策树遍历**：将方案视为一棵依赖树，从根节点（最核心约束）开始，沿依赖边向下遍历。每个分支解决后再进入下一个分支，避免跨分支并行讨论导致混乱。
+4. **可探查则探查**：如果某个问题可以通过读取代码库、文档或现有设计来回答，就先自行探查，把发现作为追问的前提而非空白提问。
+5. **识别隐含依赖**：当用户的回答隐含了一个未声明的前置决策时，立即回溯到那个前置节点优先解决。
+
+## 追问流程
+
+```
+1. 定位根节点
+   └─ 方案的最核心约束或目标是什么？
+   └─ 如果存在多个并列根节点，要求用户排序。
+
+2. 遍历当前节点
+   └─ 问："关于 [当前决策点]，你倾向于 [推荐答案 A] 还是 [替代 B]？"
+   └─ 若用户选择与推荐不同，记录偏差但不阻止，继续追问该选择引发的下游影响。
+
+3. 回溯隐含依赖
+   └─ 若回答中暴露未声明假设（如"我们用 PostgreSQL"但未讨论选型），暂停当前分支，
+      回溯到该假设节点重新开始追问。
+
+4. 标记已决 / 未决
+   └─ 每个节点解决后简短记录：✅ 已决：[决策] — [理由]
+   └─ 若节点暂时无法决定，记录：⏸ 待定：[节点] — [阻塞原因]
+
+5. 终止条件
+   └─ 所有叶子节点均已标记为 ✅ 或 ⏸
+   └─ 或用户主动喊停
+```
+
+## 输出格式
+
+每轮追问使用以下模板：
+
+```
+### Q{n}: [决策点标题]
+
+**背景**：为什么这个决策重要，它影响哪些下游分支。
+
+**推荐**：[推荐答案] — [理由]
+
+**你的选择**：（等待用户回答）
+```
+
+全部追问结束后，输出决策摘要：
+
+```markdown
+## Grill 决策摘要
+
+| # | 决策点 | 结论 | 理由 |
+|---|--------|------|------|
+| 1 | ...    | ✅ ... | ... |
+| 2 | ...    | ⏸ ... | 阻塞于：... |
+```
+
+## 与 Reviewer Duel 模式的关系
+
+- Grill Me 是 **追问收敛**，目标是让方案发起方自己厘清思路。
+- Duel 模式是 **对抗质疑**，目标是让方案经受住挑战者的压力测试。
+- 推荐顺序：**先 Grill → 再 Duel**。Grill 清理完低级模糊后，Duel 可以聚焦于真正的设计争议。
 
 <!-- source: features/INDEX.md -->
 # Features index
 
 在新建或归档需求时更新本表。`id` 建议与目录名 `features/<category>/<feature-id>/` 中的 `<feature-id>` 一致（或与 `spec.md` frontmatter 的 `id` 一致）。
 
-| id | title | category | status | path | primary_repo_id |
-| -- | ----- | -------- | ------ | ---- | --------------- |
-| p-operator-space-injective-papers | p 算子空间 injective 文献研究 | research | draft | `features/research/p-operator-space-injective-papers/` | — |
-| operator-space-paper-writing-style | 算子空间论文表述：范本蒸馏 + Skill | research | in_progress | `features/research/operator-space-paper-writing-style/` | — |
-| approximating-local-lifting-property | Approximating Local Lifting Property | research | draft | `features/research/approximating-local-lifting-property/` | — |
-| pdf-math-exam-to-latex-skill-survey | 数学试卷 PDF → LaTeX 能力调研（Skill / 工具 / 开源方案） | research | in_progress | `features/research/pdf-math-exam-to-latex-skill-survey/` | one-context |
-| second-dual-local-properties | 算子空间局部性质与二重对偶（exactness、local reflexivity 等下降无提升律） | research | done | `features/research/second-dual-local-properties/` | — |
-| completely-integral-corrigendum | Completely integral nuclearity 勘误与结构定理 | research | in_progress | `features/research/completely-integral-corrigendum/` | — |
-| local-reflexivity-exactness | Local reflexivity 与 exactness（Effros--Ruan、Pisier 常数） | research | in_progress | `features/research/local-reflexivity-exactness/` | — |
+
+| id                            | title                                                 | category | status | path                                              | primary_repo_id |
+| ----------------------------- | ----------------------------------------------------- | -------- | ------ | ------------------------------------------------- | --------------- |
+| agent-framework               | 智能体框架 — meta/agents.yaml + 适配器扩展 + worktree/deploy 约定 | core     | done   | `features/core/agent-framework/`                  | one-context     |
+| auto-context-compression      | 自动上下文压缩 — 定时扫描 knowledge/features 等，去重与去陈旧            | core     | draft  | `features/core/auto-context-compression/`         | one-context     |
+| agent-collaboration           | 智能体协作增强 — 状态流转、决策手册、条件知识、生成保护                         | core     | draft  | `features/core/agent-collaboration/`              | one-context     |
+| profile-inheritance           | Profile 继承与 Mixin 机制                                  | core     | draft  | `features/core/profile-inheritance/`              | one-context     |
+| claudecode-source-analysis    | Claude Code 源码解析知识整理                                  | knowledge | done   | `features/knowledge/claudecode-source-analysis/`    | one-context     |
+| openclaw-source-analysis      | OpenClaw 源码解析知识整理                                     | knowledge | done   | `features/knowledge/openclaw-source-analysis/`      | one-context     |
+| claude-caveman-mode           | 用穴居人模式让 Claude 省 Token                                | experiments | done   | `features/experiments/claude-caveman-mode/`           | one-context     |
+| math-teacher-ai-platform      | 数学教师 AI 工作台 — Phase 1 可视化资产化与 AI 出题 MVP          | products | draft  | `features/products/math-teacher-ai-platform/`      | FunctionCanvas  |
+| one-context-intro-short-video | one-context 中视频介绍（爆款口播框架）                             | content-pipeline  | archived | `features/content-pipeline/archive/one-context-intro-short-video/` | one-context     |
+| hermes-agent-short-video      | Hermes Agent 短视频口播成片（wav-auto）                          | content-pipeline  | archived | `features/content-pipeline/archive/hermes-agent-short-video/`      | one-context     |
+| anthropic-agent-harness-narration | Anthropic Agent Harness 哲学 — 口播稿                         | content-pipeline  | archived | `features/content-pipeline/archive/anthropic-agent-harness-narration/` | one-context |
+| anthropic-ai-blueprint-dialogue-mid-video | Anthropic AI 公司蓝图对话拆解（中视频） | content-pipeline | archived | `features/content-pipeline/archive/anthropic-ai-blueprint-dialogue-mid-video/` | one-context |
+| anthropic-boris-engineering-future-mid-video | 当顶尖工程师不再写代码：AI 重写软件开发未来（对话口播） | content-pipeline | archived | `features/content-pipeline/archive/anthropic-boris-engineering-future-mid-video/` | one-context |
+| ai-agent-security-2026-revelations-mid-video | 2026 AI Agent 安全启示录（对话口播） | content-pipeline | archived | `features/content-pipeline/archive/ai-agent-security-2026-revelations-mid-video/` | one-context |
+| claude-code-multi-agent-source-mid-video | Claude Code 多 Agent 机制源码解读（中视频口播） | content-pipeline | archived | `features/content-pipeline/archive/claude-code-multi-agent-source-mid-video/` | one-context |
+| openai-enterprise-ai-scaling-five-actions-mid-video | OpenAI 企业 AI 规模化落地五要点（中视频口播） | content-pipeline | archived | `features/content-pipeline/archive/openai-enterprise-ai-scaling-five-actions-mid-video/` | one-context |
+| markdown-html-claude-engineer-mid-video | Markdown 要被淘汰？Claude 工程师弃用真相（阿哲 / 小夏 对话口播） | content-pipeline | archived | `features/content-pipeline/archive/markdown-html-claude-engineer-mid-video/` | one-context |
+| damai-ticket-bot              | 大麦抢票助手 — 浏览器插件 + CLI 集成 one-context skill                 | integrations | draft  | `features/integrations/damai-ticket-bot/`              | one-context     |
+| operator-spaces-paper-analysis | 算子空间论文深度分析 — 发现证明漏洞与改进机会 | research | in_progress | `features/research/operator-spaces-paper-analysis/` | paperwork |
+| pdf-math-exam-to-latex-skill-survey | 数学试卷 PDF → LaTeX 能力调研（Skill / 工具 / 开源） | research | in_progress | `features/research/pdf-math-exam-to-latex-skill-survey/` | one-context |
+| skill-windows-c-drive-cleanup | Windows C 盘空间清理 — 仓库内 Agent Skill                     | core     | done   | `features/core/skill-windows-c-drive-cleanup/`    | one-context     |
+| skill-merge-to-main           | 选择性合并到主干（Agent Skill）                                  | core     | done   | `features/core/skill-merge-to-main/`               | one-context     |
+| skill-script-deck-audit       | 口播稿与幻灯一致性校验（Agent Skill）                              | core     | done   | `features/core/skill-script-deck-audit/`           | one-context     |
+| unified-adapter-rules         | 统一适配器规则源 — 声明式 manifest，消除 PROFILE_RULES 重复          | core     | done   | `features/core/unified-adapter-rules/`            | one-context     |
+| skill-loop-engineering        | Loop Engineering Skill — 引导式构建可循环任务的脚手架            | core     | draft  | `features/core/skill-loop-engineering/`           | one-context     |
+| skill-retrospective-evolution | Skill 跨会话回溯进化 — 从历史会话语料聚合诊断单个 Skill 并产出改进 PR | core     | phase1-done | `features/core/skill-retrospective-evolution/`    | one-context     |
+| ai-mid-mgmt-video             | AI 中视频管理 — 素材与发布工具链                                       | content-pipeline  | archived | `features/content-pipeline/archive/ai-mid-mgmt-video/`             | one-context     |
+| hermes-adapter                | Hermes Adapter — one-context 支持 Hermes Agent CLI                     | core     | draft  | `features/core/hermes-adapter/`                   | one-context     |
+| gsd-integration               | GSD 集成 — one-context 上下文注入 GSD 工作流                              | core     | draft  | `features/core/gsd-integration/`                  | one-context     |
+| trend-radar-integration        | TrendRadar 趋势雷达集成 — 热点情报 + MCP + 微信推送                         | integrations | in_progress | `features/integrations/trend-radar/`      | trend-radar    |
+| short-video-reporting-paradigm | 短视频式汇报范式 — 用内容创作思路重塑职场汇报                             | content-pipeline | archived | `features/content-pipeline/archive/short-video-reporting-paradigm/` | one-context |
+| ai-sme-opportunity             | 放下大厂滤镜：中小厂的 AI 机会（中视频）                                              | content-pipeline | archived | `features/content-pipeline/archive/ai-sme-opportunity/` | one-context |
+| sandbox-agent-era-mid-video    | Agent时代下最被低估的技术——沙箱（中视频口播）                    | content-pipeline | archived | `features/content-pipeline/archive/sandbox-agent-era-mid-video/` | one-context |
+| deepseek-v4-deploy-guide-mid-video | DeepSeek V4 部署与调用指南（中视频）                        | content-pipeline | archived | `features/content-pipeline/archive/deepseek-v4-deploy-guide-mid-video/` | one-context |
+| agent亲和架构底层原理剖析 | Agent 亲和架构底层原理剖析（口播视频） | content-pipeline | archived | `features/content-pipeline/archive/agent亲和架构底层原理剖析/` | one-context |
+| 软件中一切皆Worker | 软件中一切皆 Worker（口播视频） | content-pipeline | archived | `features/content-pipeline/archive/软件中一切皆Worker/` | one-context |
+| claudecode-prompt-caching-mid-video | Prompt Caching Is Everything —— Claude Code 团队最新文章 | content-pipeline | archived | `features/content-pipeline/archive/claudecode-prompt-caching-mid-video/` | one-context |
+| claudecode-sandbox-concurrency-mid-video | Claude Code 沙箱与并发机制解析 | content-pipeline | archived | `features/content-pipeline/archive/claudecode-sandbox-concurrency-mid-video/` | one-context |
+| keycompute-ai-gateway-rust-mid-video | Rust 构建 AI 算力中枢：KeyCompute 架构解析（中视频） | content-pipeline | archived | `features/content-pipeline/archive/keycompute-ai-gateway-rust-mid-video/` | one-context |
+| ai-era-rust-language-mid-video | AI 时代为何 Rust 语言崛起（中视频） | content-pipeline | archived | `features/content-pipeline/archive/ai-era-rust-language-mid-video/` | one-context |
+| claude-code-large-codebase-mid-video | Claude Code 大型代码库最佳实践 —— Anthropic 博客深度解析 | content-pipeline | archived | `features/content-pipeline/archive/claude-code-large-codebase-mid-video/` | one-context |
+| claude-code-workflows-enterprise-mid-video | Claude Code Workflows：企业 AI 落地（Remotion 技术播客） | content-pipeline | archived | `features/content-pipeline/archive/claude-code-workflows-enterprise-mid-video/` | one-context |
+| openhuman-ai-super-assistant-mid-video | OpenHuman爆火口播稿：不用教的AI超级助手来了！ | content-pipeline | archived | `features/content-pipeline/archive/openhuman-ai-super-assistant-mid-video/` | one-context |
+| karpathy-autoresearch-software-dev-mid-video | 像 Karpathy 一样开发软件：AutoResearch 全自动多 Agent 交叉审核系统深度解析 | content-pipeline | archived | `features/content-pipeline/archive/karpathy-autoresearch-software-dev-mid-video/` | one-context |
+| anthropic-founders-playbook-mid-video | Anthropic 创始人手册：AI 原生创业公司从零到 IPO 全过程拆解 | content-pipeline | archived | `features/content-pipeline/archive/anthropic-founders-playbook-mid-video/` | one-context |
+| anthropic-next-gen-claude-eight-tips-mid-video | Anthropic 打造下一代 Claude 的 8 个硬核干货（男女对话中视频） | content-pipeline | archived | `features/content-pipeline/archive/anthropic-next-gen-claude-eight-tips-mid-video/` | one-context |
+| anthropic-cfo-ai-revolution-mid-video | Anthropic CFO 播客：两年 120 倍与 AI 革命三道刹车（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/anthropic-cfo-ai-revolution-mid-video/` | one-context |
+| skillclaw-agent-skill-evolution-mid-video | SkillClaw：Agent Skills 自动进化与跨端共享深度解析（中视频） | content-pipeline | archived | `features/content-pipeline/archive/skillclaw-agent-skill-evolution-mid-video/` | one-context |
+| deepseek-code-harness-mid-video | 模型之外全是决胜局——DeepSeek 造中国版 Claude Code（Harness）中视频 | content-pipeline | draft | `features/content-pipeline/deepseek-code-harness-mid-video/` | one-context |
+| ai-companies-build-ai-mid-video | AI 正在「自己造自己」——巨头用 AI 造 AI（Remotion Pipelines 中视频） | content-pipeline | 开发中 | `features/content-pipeline/ai-companies-build-ai-mid-video/` | one-context |
+| ai-companies-self-evolution-remotion-mid-video | AI 公司用 AI 造下一代 AI — Remotion Pipelines 口播中视频 | content-pipeline | archived | `features/content-pipeline/ai-companies-self-evolution-remotion-mid-video/` | one-context |
+| skill-srt-to-deck | SRT 驱动的动画级幻灯自动生成（srt-to-deck） | core | developing | `features/core/skill-srt-to-deck/` | one-context |
+| skill-remotion-pipelines-anime | Remotion Pipelines × Anime.js 可选动画层 | core | approved | `features/core/skill-remotion-pipelines-anime/` | one-context |
+| skill-remotion-pipelines-gsap-layer | Remotion Pipelines × GSAP 可选动画层 | core | draft | `features/core/skill-remotion-pipelines-gsap-layer/` | one-context |
+| skill-info-radar | 信息雷达 Skill — 多源技术文章追踪 + AI 评估 + content-pipeline 自动转化 | core | draft | `features/core/skill-info-radar/` | one-context |
+| claudecode-skill-auto-evolution | Claude Code 技能自进化机制调研与集成设计 | core | draft | `features/core/claudecode-skill-auto-evolution/` | one-context |
+| pc-switch-emulator-200-controller-mid-video | 电脑 + 200 元手柄畅玩 Switch 游戏（教程中视频） | content-pipeline | draft | `features/content-pipeline/pc-switch-emulator-200-controller-mid-video/` | one-context |
+| pc-switch-emulator-200-controller-setup | 电脑 + 200 元手柄畅玩 Switch — 软件安装与配置任务 | develop | draft | `features/develop/pc-switch-emulator-200-controller-setup/` | one-context |
+| github-info-radar-survey | GitHub 信息雷达开源项目调研 | research | done | `features/research/github-info-radar-survey/` | one-context |
+| skill-eval-driven-dev-survey | Skill 评测驱动研发框架调研（GitHub 开源项目） | research | done | `features/research/skill-eval-driven-dev-survey/` | one-context |
+| skill-eval-runner | Skill 评测驱动研发框架 — onecxt eval CLI + tmp 目录隔离 + LLM rubric（承接 skill-eval-driven-dev-survey 落地） | core | draft | `features/core/skill-eval-runner/` | one-context |
+| skill-self-evolution-survey | Skill 自进化项目调研（GitHub 开源项目） | research | blocked | `features/research/skill-self-evolution-survey/` | one-context |
+| ai-slower-better-code-mid-video | AI 编码慢即是快 —— Nolan Lawson「用 AI 更慢地写更好的代码」深度解析（中视频） | content-pipeline | draft | `features/content-pipeline/ai-slower-better-code-mid-video/` | one-context |
+| agent-long-term-memory-alibaba-cloud-mid-video | Agent长期记忆如何选？阿里云选型指南 | content-pipeline | in_progress | `features/content-pipeline/agent-long-term-memory-alibaba-cloud-mid-video/` | one-context |
+| mcp-server-freelance-moat-mid-video | 月入10万建 MCP Server？自由职业者的风口与护城河 | content-pipeline | archived | `features/content-pipeline/archive/mcp-server-freelance-moat-mid-video/` | one-context |
+| agent-harness-engineering-survey-mid-video | Agent Harness: 权威论文告诉你怎么做（Remotion 中视频） | content-pipeline | archived | `features/content-pipeline/archive/agent-harness-engineering-survey-mid-video/` | one-context |
+| claude-code-daily-driver-mid-video | Claude Code 日常驾驶全指南：Claude.md / Skills / Subagents / MCP 生态（中视频） | content-pipeline | draft | `features/content-pipeline/claude-code-daily-driver-mid-video/` | one-context |
+| postgres-ai-agent-default-db-mid-video | AI 时代 Postgres 怎么成了 Agent 脚手架里的默认数据库（中视频） | content-pipeline | draft | `features/content-pipeline/postgres-ai-agent-default-db-mid-video/` | one-context |
+| ai-era-last-interview-mid-video | 最后的面试：AI时代的面试终结（Steve Yegge · Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/ai-era-last-interview-mid-video/` | one-context |
+| codegraph-claude-code-mid-video | CodeGraph：让 Claude Code 少烧 57% Token（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/codegraph-claude-code-mid-video/` | one-context |
+| llm-ai-friendly-architecture-mid-video | AI Friendly 架构：面向 LLM 的架构设计（Remotion 中视频） | content-pipeline | in_progress | `features/content-pipeline/llm-ai-friendly-architecture-mid-video/` | one-context |
+| google-skillos-self-evolving-agent-mid-video | SkillOS：谷歌自进化智能体技能治理框架（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/google-skillos-self-evolving-agent-mid-video/` | one-context |
+| andrew-ng-fde-ai-engineer-mid-video | 吴恩达谈 FDE：驻场工程师与 AI 工程师的未来（中视频） | content-pipeline | draft | `features/content-pipeline/andrew-ng-fde-ai-engineer-mid-video/` | one-context |
+| fde-on-the-ground-mid-video | 驻场工程师（FDE）到底在干什么？定义、一周工作流与公开案例（中视频） | content-pipeline | draft | `features/content-pipeline/fde-on-the-ground-mid-video/` | one-context |
+| skill-self-evolution-loop | Skill 使用后异步自评估闭环（AI 自学 rubric + markdown 改进建议） | core | draft | `features/core/skill-self-evolution-loop/` | one-context |
+| tencent-super-team-mid-video | 从超级个体到超级团队——腾讯研究院报告深度解读（中视频） | content-pipeline | draft | `features/content-pipeline/tencent-super-team-mid-video/` | one-context |
+| rl-bandit-skill-evolution | 强化学习老虎机算法驱动 Skill 自进化可行性研究 | research | draft | `features/research/rl-bandit-skill-evolution/` | one-context |
+| claude-code-dynamic-workflows-mid-video | Claude Code 动态工作流该怎么用（Thariq · 机器之心 · 中视频） | content-pipeline | draft | `features/content-pipeline/claude-code-dynamic-workflows-mid-video/` | one-context |
+| dingtalk-one-inside-mid-video | 置身钉内：钉钉 ONE 与无招回归（中视频） | content-pipeline | draft | `features/content-pipeline/dingtalk-one-inside-mid-video/` | one-context |
+| openclaw-self-improving-autoskill-mid-video | OpenClaw 双轨自进化：Self-Improving + AutoSkill（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/openclaw-self-improving-autoskill-mid-video/` | one-context |
+| agent-arena-373k-ranking-mid-video | 37万次真实会话 Agent 榜单：GPT-5.5 第一 Claude 最稳（Remotion 中视频） | content-pipeline | in_progress | `features/content-pipeline/agent-arena-373k-ranking-mid-video/` | one-context |
+| claude-code-loop-engineering-mid-video | Loop Engineering：Claude Code 之父与龙虾创始人力捧的新范式（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/claude-code-loop-engineering-mid-video/` | one-context |
+| claude-fable-5-mythos-mid-video | Claude Fable 5 发布：Mythos 级模型首秀 + 安全争议 + 用户实测（中视频） | content-pipeline | draft | `features/content-pipeline/claude-fable-5-mythos-mid-video/` | one-context |
+| skill-html-video-complement | html-video 互补层 — 风格化片头/片尾 + 零侵入集成 | core | draft | `features/core/skill-html-video-complement/` | one-context |
+
 
 **Columns**
 
@@ -846,7 +1200,13 @@ features/
     └── tmp/                        # 构建中间物 ❌ 不跟踪
 ```
 
-新建内容型 feature 时，复制 `features/_template/content-production/` 目录结构。详见 `features/_template/content-production/README.md`。
+新建内容型 feature 时：
+
+1. 以 **`features/_template/spec-content-pipeline.md`** 写 `spec.md`（**默认** `tts.action: 0`）
+2. 复制 **`features/_template/content-production/`** 目录结构（含 `00-podcast-source.md`、`video-input.example.json`）
+3. 阅读 **`knowledge/standards/content-pipeline-tts-routing.md`**
+
+详见 `features/_template/content-production/README.md`。
 
 - **`<category>`**：按主题或产品线划分；跨类需求选一个 **主类别** 落目录，在 `spec.md` 里链接其他相关需求目录即可。
 - **`<feature-id>`**：建议稳定、简短；可与 `INDEX.md` 中的 `id` 列一致。

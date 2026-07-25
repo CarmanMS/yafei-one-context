@@ -28,7 +28,7 @@ from one_context.adapters._rules import (
 )
 from one_context.adapters._shared_rules import GENERATED_HEADER_MD, PROFILE_RULES
 from one_context.agents import resolve_agent_knowledge
-from one_context.skills import SkillMeta, strip_frontmatter
+from one_context.skills import SkillMeta, resolve_skill_body
 
 _ADAPTER_NAME = "hermes"
 
@@ -242,13 +242,7 @@ class HermesAdapter(AdapterBase):
         files: list[GeneratedFile] = []
 
         for skill in skills:
-            # Read and inline the SKILL.md body (strip frontmatter)
-            skill_path = root / skill.source_path
-            if skill_path.is_file():
-                full_text = skill_path.read_text(encoding="utf-8")
-                body = strip_frontmatter(full_text)
-            else:
-                body = skill.body
+            body = resolve_skill_body(root, skill)
 
             parts = [
                 GENERATED_HEADER_MD,

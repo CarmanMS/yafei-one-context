@@ -57,9 +57,15 @@ Include verification steps (e.g. test commands) after making changes.
 1. 打开 `features/INDEX.md`，新增一行：`id`、标题、`category`、`status`（如 `draft`）、`path`、`primary_repo_id`（可选）。
 2. 创建目录 `features/<category>/<feature-id>/`，名称与索引一致。
 3. 复制 `features/_template/*.md` 到该目录。
-4. 编辑 `spec.md`：填写 YAML frontmatter，并 **必须** 完成「实现落点」一节（`repos.yaml` 的仓库 id、分支或 PR）。
-5. 随进度补充 `tech_design.md`、`test_report.md`、`mr_report.md`、`deliver.md`；不需要时可暂不创建非 `spec` 文件，但索引与 spec 应保持同步。
-6. 需求结束或搁置时，更新 `INDEX.md` 的 `status`，必要时在 `spec.md` 中注明归档原因。
+4. **`category: content-pipeline` 时额外**：
+   - 复制 `features/_template/content-production/` → `<feature-id>/production/`
+   - 用 **`features/_template/spec-content-pipeline.md`** 作 `spec.md` 骨架（含 `tts.action: 0` 默认）
+   - 复制 `production/timing/video-input.example.json` → `video-input.json`
+   - 创建 `review_record.md`（自 `features/_template/review_record.md`），立项时勾选 TTS 路径 A
+   - 阅读 **`knowledge/standards/content-pipeline-tts-routing.md`**
+5. 编辑 `spec.md`：填写 YAML frontmatter，并 **必须** 完成「实现落点」一节（`repos.yaml` 的仓库 id、分支或 PR）。
+6. 随进度补充 `tech_design.md`、`test_report.md`、`mr_report.md`、`deliver.md`；不需要时可暂不创建非 `spec` 文件，但索引与 spec 应保持同步。
+7. 需求结束或搁置时，更新 `INDEX.md` 的 `status`，必要时在 `spec.md` 中注明归档原因。
 
 ## 常见错误
 
@@ -73,6 +79,7 @@ Include verification steps (e.g. test commands) after making changes.
 - [ ] `INDEX.md` 与目录路径一致
 - [ ] 敏感信息未写入 `test_report.md` / `mr_report.md`
 - [ ] feature 目录名与 `INDEX.md` 中的 `id` 一致
+- [ ] **content-pipeline**：`tts.action` 默认为 `0`；`00-podcast-source.md` 存在；若 `tts.action: 3` 则 `override_reason` + `review_record` 已确认
 
 <!-- source: knowledge/playbooks/multi-agent-parallel-development.md -->
 
@@ -328,6 +335,8 @@ git revert <merge-commit>
 
 适用于需要把 PDF、Office、图片、音频等批量转为 **Markdown**（供 LLM、RAG、笔记或版本管理）的场景。项目常被称为「MakeItDown」，**正式名称为 MarkItDown**。
 
+**前置阅读（可选）**：`knowledge/references/microsoft-markitdown.md`（项目定位与索引）。
+
 **权威文档**（选项最全、随版本更新）：[microsoft/markitdown README](https://github.com/microsoft/markitdown/blob/main/README.md)。
 
 ---
@@ -567,8 +576,69 @@ version: 1
 #     category: research
 #     description: Research notes and documentation.
 repos:
-  - url: https://github.com/CarmanMS/hangprofile.git
+  - url: https://github.com/CarmanMS/FunctionCanvas
     category: develop
-    id: hangprofile
-    alias: hang-profile
-    description: CarmanMS/hangprofile (hang profile).
+    description: FunctionCanvas
+  - url: https://github.com/CarmanMS/VideoFactory
+    category: develop
+    description: VideoFactory
+  - url: https://github.com/CarmanMS/paperwork
+    category: research
+    description: paperwork
+  - url: https://github.com/CarmanMS/hangprofile
+    category: develop
+    description: Student learning & growth archive (课内/课外/原始材料/归纳); AI-friendly folder layout.
+  - url: https://github.com/VoltAgent/awesome-design-md
+    category: reference
+    id: awesome-design-md
+    alias: awesome-design
+    description: Curated DESIGN.md design-system snippets for agent-driven UI (reference only).
+  - url: https://github.com/shanraisshan/claude-code-best-practice.git
+    category: reference
+    id: claude-code-best-practice
+    alias: ccbp
+    description: Claude Code workflow demos (slash commands, agents, skills, development-workflows); local reference only, not bundled.
+  - url: https://github.com/Cocoon-AI/architecture-diagram-generator
+    category: reference
+    id: arch-diagram-gen
+    alias: archdiag
+    description: Claude AI skill for generating dark-themed system architecture diagrams (HTML/SVG).
+  - url: https://github.com/sansan0/TrendRadar
+    category: integrations
+    id: trend-radar
+    description: 趋势雷达 — 多平台热点聚合 + MCP AI分析 + 企微/微信/飞书推送（33k+ stars）。
+  - url: https://github.com/heygen-com/hyperframes
+    category: reference
+    id: hyperframes
+    description: HeyGen 开源 HTML→视频合成框架（CLI、Puppeteer+FFmpeg、Agent skills）；与本仓 html-video-from-slides 并行参考，不替换。
+  - url: https://github.com/nexu-io/open-design
+    category: reference
+    id: open-design
+    description: Local-first Claude Design 开源替代 — Next.js Web + 本地 daemon、31 Skills、72 DESIGN.md 体系、沙箱预览与 HTML/PDF/PPTX 导出；复用本机编码 Agent CLI（Apache-2.0）。
+  - url: https://github.com/tinyhumansai/openhuman
+    category: reference
+    id: openhuman
+    description: OpenHuman — 20 分钟了解你、第一天就干活的 AI 超级助手；连接 118+ 服务、自动抓取、构建记忆树、TokenJuice 压缩、潜意识循环、桌面 Mascot（GPL-3.0）。
+  - url: https://github.com/nexu-io/html-anything
+    category: reference
+    id: html-anything
+    description: HTML Anything — 自然语言生成 Web UI 组件，Next.js 驱动的 Design-to-Code 引擎（Apache-2.0）。
+  - url: https://github.com/lewislulu/html-ppt-skill
+    category: reference
+    id: html-ppt-skill
+    alias: html-ppt
+    description: HTML PPT Studio — AgentSkill（36 主题、31 布局、47 动画、演讲者模式）；纯静态 HTML 幻灯；与本仓 html-deck-layout / html-video-from-slides 并行参考（MIT）。
+  - url: https://github.com/wshuyi/remotion-video-skill.git
+    category: reference
+    id: remotion-video-skill
+    alias: rvs
+    description: Claude Code Skill — Remotion 编程式视频生成（TTS、场景架构、字幕动画）；本仓 remotion-pipelines 的上游参考。
+  - url: https://github.com/juliangarnier/anime
+    category: reference
+    id: anime
+    alias: animejs
+    description: Anime.js — 轻量 JavaScript 动画库（CSS/SVG/DOM/JS Object）；MIT，V4 ES modules。
+  - url: https://github.com/greensock/GSAP
+    category: reference
+    id: gsap
+    description: GSAP (GreenSock Animation Platform) — JavaScript 动画库；CSS/SVG/canvas/ScrollTrigger；框架无关，Webflow 赞助后全功能免费商用。

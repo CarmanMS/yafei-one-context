@@ -1,0 +1,27 @@
+{
+  "wavFile": "media/voiceover.wav",
+  "srtFile": "subtitles/sub.srt",
+  "outputFile": "final_remotion_sub.mp4",
+  "burnSubtitles": true,
+  "whisperModel": "small",
+  "noSpeechThreshold": 0.85,
+  "vadFilter": false,
+  "fillSrtGaps": true,
+  "wrapSubtitles": true,
+  "subtitle": {
+    "fontSize": 42,
+    "charsPerLine": 28,
+    "barHeight": 80
+  },
+  "podcastTts": {
+    "enabled": true,
+    "scriptPath": "content/00-podcast-source.md",
+    "action": 0,
+    "interSpeakerSilenceMs": 80,
+    "timeoutSec": 900,
+    "speechRate": 0,
+    "mergeSameSpeakerLines": true,
+    "forceRegenerate": false
+  },
+  "_workflow_note": "默认 action=0；成片以 WAV+Whisper SRT 为准；01-script.md 仅结构参考。偏离须改 spec.md tts.action 与 tts.override_reason。"
+}

@@ -47,7 +47,13 @@ features/
     └── tmp/                        # 构建中间物 ❌ 不跟踪
 ```
 
-新建内容型 feature 时，复制 `features/_template/content-production/` 目录结构。详见 `features/_template/content-production/README.md`。
+新建内容型 feature 时：
+
+1. 以 **`features/_template/spec-content-pipeline.md`** 写 `spec.md`（**默认** `tts.action: 0`）
+2. 复制 **`features/_template/content-production/`** 目录结构（含 `00-podcast-source.md`、`video-input.example.json`）
+3. 阅读 **`knowledge/standards/content-pipeline-tts-routing.md`**
+
+详见 `features/_template/content-production/README.md`。
 
 - **`<category>`**：按主题或产品线划分；跨类需求选一个 **主类别** 落目录，在 `spec.md` 里链接其他相关需求目录即可。
 - **`<feature-id>`**：建议稳定、简短；可与 `INDEX.md` 中的 `id` 列一致。

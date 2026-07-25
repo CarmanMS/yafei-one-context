@@ -1,0 +1,3 @@
+# cc 评测时落盘的中间产出，禁止入库（防止下次评测被污染）
+production/info-radar/*
+!production/info-radar/.gitkeep

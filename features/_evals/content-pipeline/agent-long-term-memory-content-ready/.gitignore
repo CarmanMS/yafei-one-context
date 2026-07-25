@@ -1,0 +1,3 @@
+# cc 评测时应生成的产物路径，禁止 commit
+/production/cover-prompt.md
+/production/cover/

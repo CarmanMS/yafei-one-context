@@ -10,7 +10,7 @@ from one_context.adapters import AdapterBase, GeneratedFile, register
 from one_context.adapters._rules import FieldRule, match_rules
 from one_context.adapters._shared_rules import GENERATED_NOTICE_JSON, PROFILE_RULES
 from one_context.agents import resolve_agent_knowledge
-from one_context.skills import SkillMeta
+from one_context.skills import SkillMeta, resolve_skill_body
 
 
 def _collect_instructions(profiles: list[dict[str, Any]]) -> list[str]:
@@ -175,21 +175,13 @@ class OpenClawAdapter(AdapterBase):
         The full SKILL.md body (stripped of frontmatter) is inlined as
         ``content`` so consumers do not need to read the source file.
         """
-        from one_context.skills import strip_frontmatter
-
         self._skills = list(skills)
         files: list[GeneratedFile] = []
 
         for skill in skills:
             fm = skill.frontmatter
 
-            # Read and inline the SKILL.md body
-            skill_path = root / skill.source_path
-            if skill_path.is_file():
-                full_text = skill_path.read_text(encoding="utf-8")
-                body = strip_frontmatter(full_text).strip()
-            else:
-                body = skill.body.strip() if skill.body else ""
+            body = resolve_skill_body(root, skill).strip()
 
             config: dict[str, Any] = {
                 "_generated": GENERATED_NOTICE_JSON,

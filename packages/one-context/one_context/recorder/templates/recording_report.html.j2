@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>录制报告 — {{ overview.skill }}/{{ overview.scenario }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body {
+      background: #09090b;
+      color: #d4d4d8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+    .md h1, .md h2, .md h3 { font-weight: 600; margin: 16px 0 8px; color: #f4f4f5; }
+    .md h1 { font-size: 22px; }
+    .md h2 { font-size: 18px; }
+    .md h3 { font-size: 15px; }
+    .md p, .md li { font-size: 13.5px; line-height: 1.65; color: #d4d4d8; }
+    .md ul { list-style: disc; padding-left: 20px; margin: 8px 0; }
+    .md ol { list-style: decimal; padding-left: 20px; margin: 8px 0; }
+    .md code {
+      background: #18181b; color: #fbbf24;
+      padding: 1px 5px; border-radius: 4px; font-size: 12px;
+      font-family: "SF Mono", Menlo, monospace;
+    }
+    .md pre {
+      background: #0c0c0e; border: 1px solid #27272a;
+      padding: 12px; border-radius: 6px;
+      overflow-x: auto; font-size: 12px; margin: 8px 0;
+    }
+    .md pre code { background: transparent; color: #d4d4d8; padding: 0; }
+    .md strong { color: #f4f4f5; font-weight: 600; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-variant-numeric: tabular-nums;
+      background: #18181b; color: #a1a1aa; border: 1px solid #27272a;
+    }
+    .pill-good { color: #34d399; border-color: #064e3b; }
+    .pill-warn { color: #fbbf24; border-color: #78350f; }
+    .pill-bad  { color: #fb7185; border-color: #881337; }
+    .tab-btn {
+      padding: 10px 16px; font-size: 13px; color: #71717a;
+      border-bottom: 2px solid transparent; transition: all 0.15s;
+      cursor: pointer; white-space: nowrap;
+    }
+    .tab-btn:hover { color: #d4d4d8; }
+    .tab-btn-active { color: #f4f4f5; border-bottom-color: #10b981; }
+    .row { border-bottom: 1px solid #18181b; }
+    .row:hover { background: rgba(24, 24, 27, 0.5); }
+  </style>
+</head>
+<body x-data="recordingReport()" x-cloak class="min-h-screen">
+  <!-- header -->
+  <header class="border-b border-zinc-800 px-8 py-5">
+    <div class="flex items-baseline justify-between gap-4 flex-wrap">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-semibold text-zinc-100">录制报告</h1>
+          <span class="pill {% if mode == 'committed' %}pill-good{% else %}pill-warn{% endif %}">
+            {% if mode == 'committed' %}已落地{% else %}staging（finalize 后 / commit 前）{% endif %}
+          </span>
+          {% if overview.draft_degraded %}
+          <span class="pill pill-bad">draft LLM 降级</span>
+          {% endif %}
+          {% if overview.has_llm_error %}
+          <span class="pill pill-bad">llm_error</span>
+          {% endif %}
+          {% if overview.warnings_count > 0 %}
+          <span class="pill pill-warn">{{ overview.warnings_count }} warnings</span>
+          {% endif %}
+        </div>
+        <div class="mt-1 text-sm text-zinc-500">
+          {{ overview.skill }}/{{ overview.scenario }}
+          {% if overview.session_id %}· session <code class="text-zinc-400">{{ overview.session_id[:8] }}</code>{% endif %}
+          {% if overview.started_at %}· started {{ overview.started_at }}{% endif %}
+        </div>
+      </div>
+      <div class="flex items-center gap-4 text-sm">
+        <div class="text-right">
+          <div class="text-3xl font-semibold text-zinc-100 tabular-nums">{{ overview.round_count }}</div>
+          <div class="text-xs text-zinc-500 uppercase tracking-wider">rounds</div>
+        </div>
+        <div class="text-right">
+          <div class="text-3xl font-semibold text-zinc-100 tabular-nums">{{ overview.artifact_count }}</div>
+          <div class="text-xs text-zinc-500 uppercase tracking-wider">artifacts</div>
+        </div>
+        <div class="text-right">
+          <div class="text-3xl font-semibold {% if overview.warnings_count %}text-amber-400{% else %}text-zinc-100{% endif %} tabular-nums">{{ overview.warnings_count }}</div>
+          <div class="text-xs text-zinc-500 uppercase tracking-wider">warnings</div>
+        </div>
+        <div class="text-right">
+          <div class="text-3xl font-semibold {% if overview.last_commit_outcome %}text-rose-400{% else %}text-zinc-100{% endif %} tabular-nums">
+            {% if overview.last_commit_outcome %}!{% else %}0{% endif %}
+          </div>
+          <div class="text-xs text-zinc-500 uppercase tracking-wider">last commit fail</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- tab strip -->
+  <nav class="flex items-center border-b border-zinc-800 px-6 overflow-x-auto" role="tablist">
+    <template x-for="t in tabs" :key="t.id">
+      <button @click="tab = t.id"
+              :class="tab === t.id ? 'tab-btn tab-btn-active' : 'tab-btn'">
+        <span x-text="t.icon"></span>
+        <span x-text="t.label" class="ml-1"></span>
+        <span class="ml-2 text-xs text-zinc-600" x-text="t.badge"></span>
+      </button>
+    </template>
+  </nav>
+
+  <!-- ── Overview ────────────────────────────────────────────── -->
+  <section x-show="tab === 'overview'" class="p-8 max-w-5xl space-y-5">
+    <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+      <div><span class="text-zinc-500">skill</span> · <code class="text-zinc-200">{{ overview.skill }}</code></div>
+      <div><span class="text-zinc-500">scenario</span> · <code class="text-zinc-200">{{ overview.scenario }}</code></div>
+      <div><span class="text-zinc-500">session_id</span> · <code class="text-zinc-400 text-xs">{{ overview.session_id or '—' }}</code></div>
+      <div><span class="text-zinc-500">cc_session_id</span> · <code class="text-zinc-400 text-xs">{{ overview.cc_session_id }}</code></div>
+      <div><span class="text-zinc-500">started_at</span> · {{ overview.started_at or '—' }}</div>
+      <div><span class="text-zinc-500">status</span> · <code class="text-zinc-200">{{ overview.status }}</code></div>
+      <div><span class="text-zinc-500">rounds</span> · {{ overview.round_count }}</div>
+      <div><span class="text-zinc-500">artifacts</span> · {{ overview.artifact_count }}</div>
+      <div><span class="text-zinc-500">draft 是否降级</span> · {% if overview.draft_degraded %}<span class="text-rose-400">是 (LLM 失败)</span>{% else %}否{% endif %}</div>
+      <div><span class="text-zinc-500">warnings</span> · {{ overview.warnings_count }}</div>
+    </div>
+    {% if mode == 'committed' and commit_result %}
+    <div class="mt-4 p-4 border border-emerald-900 bg-emerald-950/30 rounded">
+      <h3 class="text-sm font-semibold text-emerald-300 mb-2">commit_finalize 已成功</h3>
+      <div class="text-xs text-zinc-400 space-y-1">
+        <div>scenario_dir · <code>{{ commit_result.scenario_dir }}</code></div>
+        <div>scenario_yaml · <code>{{ commit_result.scenario_yaml_path }}</code></div>
+        {% if commit_result.backup_path %}<div>backup · <code>{{ commit_result.backup_path }}</code></div>{% endif %}
+        <div>files_written · {{ commit_result.files_written|length }} 个</div>
+      </div>
+    </div>
+    {% endif %}
+    {% if overview.last_commit_outcome %}
+    <div class="mt-4 p-4 border border-rose-900 bg-rose-950/30 rounded">
+      <h3 class="text-sm font-semibold text-rose-300 mb-2">上次 commit_finalize 未成功</h3>
+      <div class="text-xs text-zinc-300">
+        <div>outcome · <code>{{ overview.last_commit_outcome.outcome }}</code></div>
+        {% if overview.last_commit_outcome.error_class %}<div>error_class · <code>{{ overview.last_commit_outcome.error_class }}</code></div>{% endif %}
+        {% if overview.last_commit_outcome.message %}<div class="mt-2 whitespace-pre-wrap">{{ overview.last_commit_outcome.message }}</div>{% endif %}
+        <div class="mt-2 text-zinc-500">详情见 Diagnostics tab。</div>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- ── Live ────────────────────────────────────────────── -->
+  <section x-show="tab === 'live'" x-cloak class="p-8 space-y-6">
+    <!-- heartbeat bar -->
+    <div class="p-4 border rounded flex items-center gap-4 flex-wrap"
+         :class="status.status === 'recording' ? 'border-emerald-700 bg-emerald-950/30' : 'border-zinc-800 bg-zinc-950'">
+      <span x-show="status.status === 'recording'" class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span x-show="status.status !== 'recording'" class="inline-block w-2 h-2 rounded-full bg-zinc-500"></span>
+      <span class="text-sm font-medium">
+        <span x-show="status.status === 'recording'" class="text-emerald-300">录制中</span>
+        <span x-show="status.status === 'finalizing'" class="text-amber-300">finalize 中</span>
+        <span x-show="status.status === 'committed'" class="text-zinc-300">✓ 录制已结束 (committed)</span>
+        <span x-show="status.status === 'aborted'" class="text-rose-300">× 录制已中止</span>
+        <span x-show="!status.status" class="text-zinc-500">等待数据…</span>
+      </span>
+      <span class="text-xs text-zinc-500">· <span class="text-zinc-300 tabular-nums" x-text="status.round_count || 0"></span> rounds</span>
+      <span class="text-xs text-zinc-500" x-show="status.last_activity_seconds !== null && status.last_activity_seconds !== undefined">
+        · 最后活动 <span class="text-zinc-300 tabular-nums" x-text="formatAge(status.last_activity_seconds)"></span>
+      </span>
+      <span class="text-xs text-zinc-500" x-show="status.current_tool">
+        · 当前: <code class="text-zinc-300" x-text="status.current_tool"></code>
+      </span>
+      <span class="ml-auto text-xs text-zinc-600" x-show="pollingError" x-cloak>
+        ⚠ daemon 已退出，数据定格于 <span x-text="lastPollAt"></span>
+      </span>
+      <span class="ml-auto text-xs text-zinc-600" x-show="!pollingError && is_live">
+        每 1.5s 自动刷新
+      </span>
+    </div>
+
+    <!-- timeline lanes (SVG, lane per tool_name) -->
+    <div>
+      <h3 class="text-sm font-semibold text-zinc-100 mb-3">时间轴 · <span x-text="liveRounds.length"></span> rounds</h3>
+      <div x-show="liveRounds.length === 0" class="text-xs text-zinc-500 p-3 border border-zinc-800 rounded">
+        还没有 round。等 cc 调一次外部工具…
+      </div>
+      <div x-show="liveRounds.length > 0" class="overflow-x-auto">
+        <svg :width="lanesSvg.width" :height="lanesSvg.height" class="block min-w-full">
+          <template x-for="(lane, idx) in lanesSvg.lanes" :key="lane.name">
+            <g>
+              <text :x="0" :y="lane.y + 14" font-size="11" fill="#a1a1aa"
+                    font-family="-apple-system, system-ui, sans-serif" x-text="lane.name"></text>
+              <line :x1="lanesSvg.labelWidth" :x2="lanesSvg.width"
+                    :y1="lane.y + 10" :y2="lane.y + 10"
+                    stroke="#27272a" stroke-width="1" />
+              <template x-for="r in lane.rounds" :key="r.round_id">
+                <rect :x="r.x" :y="lane.y + 4" :width="r.width" :height="12"
+                      :fill="r.fill" rx="2" class="cursor-pointer"
+                      @mouseenter="hoverRound = r" @mouseleave="hoverRound = null">
+                  <title x-text="r.round_id + ' · ' + r.args_summary"></title>
+                </rect>
+              </template>
+            </g>
+          </template>
+        </svg>
+        <div x-show="hoverRound" x-cloak class="mt-2 p-2 bg-zinc-950 border border-zinc-800 rounded text-xs">
+          <code class="text-emerald-400" x-text="hoverRound?.round_id"></code>
+          · <span x-text="hoverRound?.tool_name"></span>
+          · <span class="text-zinc-400" x-text="hoverRound?.args_summary"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- newest-first stream -->
+    <div>
+      <h3 class="text-sm font-semibold text-zinc-100 mb-3">倒序流</h3>
+      <div x-show="liveRounds.length === 0" class="text-xs text-zinc-500 p-3 border border-zinc-800 rounded">
+        无 round。
+      </div>
+      <ul class="space-y-1.5">
+        <template x-for="r in liveRoundsReversed" :key="r.round_id">
+          <li class="flex items-start gap-3 p-2.5 row rounded">
+            <span class="inline-block w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                  :class="r.seq === liveRounds.length && status.status === 'recording' ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'"></span>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm">
+                <code class="text-emerald-400" x-text="r.round_id"></code>
+                · <span class="text-zinc-200" x-text="r.tool_name"></span>
+                <span x-show="r.is_failure" class="text-rose-400 text-xs ml-1">· failure</span>
+                <span class="pill ml-2" :class="r.boundary_type === 'mcp_call' ? 'pill-warn' : ''" x-text="r.boundary_type"></span>
+              </div>
+              <div class="text-xs text-zinc-500 font-mono mt-0.5 truncate" x-text="r.args_summary"></div>
+            </div>
+            <span class="text-xs text-zinc-600 tabular-nums" x-text="'#' + r.seq"></span>
+          </li>
+        </template>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── Draft ────────────────────────────────────────────── -->
+  <section x-show="tab === 'draft'" x-cloak class="p-8 grid grid-cols-12 gap-6">
+    <div class="col-span-12 lg:col-span-7">
+      {% if not draft_md %}
+      <div class="p-6 border border-zinc-800 rounded text-zinc-500 text-sm">
+        无 draft（commit_finalize 已删除，或 finalize 未跑完）。
+      </div>
+      {% else %}
+      <div class="md p-6 border border-zinc-800 rounded bg-zinc-950" x-html="renderedDraft"></div>
+      {% endif %}
+    </div>
+    <div class="col-span-12 lg:col-span-5">
+      <div class="sticky top-4 space-y-4">
+        <div class="p-5 border border-zinc-800 rounded bg-zinc-950">
+          <h3 class="text-sm font-semibold text-zinc-100 mb-2">勾选保留的 D/F</h3>
+          <p class="text-xs text-zinc-500 mb-3">默认全选；取消勾选 = 删除。下方按钮生成 commit_finalize 用的反馈 md，复制到剪贴板。</p>
+          {% if overview.draft_degraded or not draft_dimensions %}
+          <div class="text-xs text-amber-400 p-3 bg-amber-950/40 border border-amber-900 rounded">
+            LLM 起草失败或未识别到 D/F 段落，请直接在 textarea 里手写反馈。
+          </div>
+          {% else %}
+          <div class="space-y-1.5 max-h-72 overflow-y-auto">
+            <template x-for="d in dims" :key="d.id">
+              <label class="flex items-start gap-2 text-xs text-zinc-300 cursor-pointer">
+                <input type="checkbox" x-model="d.keep" class="mt-0.5" />
+                <span><code class="text-emerald-400" x-text="d.id"></code> <span x-text="d.name"></span></span>
+              </label>
+            </template>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="p-5 border border-zinc-800 rounded bg-zinc-950">
+          <h3 class="text-sm font-semibold text-zinc-100 mb-2">附加反馈（自由文本）</h3>
+          <p class="text-xs text-zinc-500 mb-2">改阈值、补反例 F-NN、指定 query / target_path 在这里写。会拼到上面勾选结果下面。</p>
+          <textarea x-model="extraFeedback" rows="6"
+            class="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-xs text-zinc-200 font-mono"
+            placeholder="示例：\npass_threshold 改 0.8\ntarget_path: skills/info-radar/evals/live-scan\nquery: 帮我抓今天的 AI 新闻"></textarea>
+        </div>
+
+        <div class="flex gap-2">
+          <button @click="copyFeedback()"
+            class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded font-medium">
+            复制反馈模板到剪贴板
+          </button>
+        </div>
+        <div x-show="copyHint" x-cloak class="text-xs text-emerald-400" x-text="copyHint"></div>
+
+        <details class="text-xs">
+          <summary class="text-zinc-500 cursor-pointer hover:text-zinc-300">预览反馈 md</summary>
+          <pre class="mt-2 p-3 bg-zinc-950 border border-zinc-800 rounded text-zinc-300 whitespace-pre-wrap" x-text="buildFeedbackMd()"></pre>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Rounds ────────────────────────────────────────────── -->
+  <section x-show="tab === 'rounds'" x-cloak class="p-8">
+    {% if not rounds %}
+    <div class="p-6 border border-zinc-800 rounded text-zinc-500 text-sm">无 mock_rounds（可能是纯推理 skill）。</div>
+    {% else %}
+    <table class="w-full text-sm">
+      <thead class="text-xs text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
+        <tr>
+          <th class="text-left py-2 w-10">#</th>
+          <th class="text-left py-2">round_id / tool</th>
+          <th class="text-left py-2 w-24">boundary</th>
+          <th class="text-left py-2">args 摘要</th>
+          <th class="text-right py-2 w-20">size</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rounds %}
+        <tr class="row cursor-pointer" @click="toggleRound({{ loop.index0 }})">
+          <td class="py-2 text-zinc-500 tabular-nums">{{ loop.index }}</td>
+          <td class="py-2">
+            <div class="text-zinc-200 font-medium">{{ r.tool_name }}</div>
+            <div class="text-xs text-zinc-500"><code>{{ r.round_id }}</code></div>
+          </td>
+          <td class="py-2">
+            <span class="pill {% if r.boundary_type == 'mcp_call' %}pill-warn{% endif %}">{{ r.boundary_type }}</span>
+          </td>
+          <td class="py-2 text-xs text-zinc-400 font-mono truncate max-w-md">{{ r.args_summary }}</td>
+          <td class="py-2 text-right text-xs text-zinc-500 tabular-nums">{{ r.size_human }}</td>
+        </tr>
+        <tr x-show="expandedRound === {{ loop.index0 }}" x-cloak>
+          <td colspan="5" class="px-6 py-3 bg-zinc-950 border-l-2 border-emerald-700">
+            {% if r.truncated %}
+            <div class="text-xs text-amber-400 mb-2">⚠ 预览截断到 64KB；完整 yaml 在 mock_rounds/{{ r.file_name }}</div>
+            {% endif %}
+            <pre class="text-xs text-zinc-300 whitespace-pre-wrap font-mono overflow-x-auto">{{ r.preview }}</pre>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+
+  <!-- ── Baseline ────────────────────────────────────────────── -->
+  <section x-show="tab === 'baseline'" x-cloak class="p-8 grid grid-cols-12 gap-6">
+    <div class="col-span-12 lg:col-span-5 space-y-4">
+      <div>
+        <h3 class="text-sm font-semibold text-zinc-100 mb-2">artifacts ({{ baseline_artifacts|length }})</h3>
+        {% if baseline_artifacts %}
+        <ul class="space-y-1 text-xs">
+          {% for a in baseline_artifacts %}
+          <li class="flex justify-between gap-4 row py-1.5 px-2">
+            <code class="text-zinc-300 truncate">{{ a.path }}</code>
+            <span class="text-zinc-600 tabular-nums">{{ a.size_human }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-xs text-zinc-500 p-3 border border-zinc-800 rounded">workspace/ 为空 — 纯推理 skill 或忘了 workspace_mirror_from。</div>
+        {% endif %}
+      </div>
+      <div>
+        <h3 class="text-sm font-semibold text-zinc-100 mb-2">baseline/meta.json</h3>
+        <table class="w-full text-xs">
+          {% for k, v in baseline_meta.items() %}
+          <tr class="row">
+            <td class="py-1 pr-3 text-zinc-500 align-top">{{ k }}</td>
+            <td class="py-1 text-zinc-300 font-mono break-all">{{ v }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+    <div class="col-span-12 lg:col-span-7">
+      <h3 class="text-sm font-semibold text-zinc-100 mb-2">baseline/final_text.md</h3>
+      {% if baseline_final_text %}
+      <div class="md p-5 border border-zinc-800 rounded bg-zinc-950" x-html="renderedFinalText"></div>
+      {% else %}
+      <div class="text-xs text-zinc-500 p-3 border border-zinc-800 rounded">空 — 可能 cc transcript 找不到。</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ── Diagnostics ────────────────────────────────────────────── -->
+  <section x-show="tab === 'diagnostics'" x-cloak class="p-8 max-w-5xl space-y-6">
+    {% if overview.last_commit_outcome %}
+    <div class="p-5 border border-rose-900 bg-rose-950/30 rounded">
+      <h3 class="text-sm font-semibold text-rose-300 mb-2">上次 commit_finalize 结果</h3>
+      <div class="text-xs space-y-1">
+        <div><span class="text-zinc-500">outcome</span> · <code>{{ overview.last_commit_outcome.outcome }}</code></div>
+        {% if overview.last_commit_outcome.error_class %}<div><span class="text-zinc-500">error_class</span> · <code>{{ overview.last_commit_outcome.error_class }}</code></div>{% endif %}
+        {% if overview.last_commit_outcome.ts %}<div><span class="text-zinc-500">timestamp</span> · {{ overview.last_commit_outcome.ts }}</div>{% endif %}
+        {% if overview.last_commit_outcome.message %}<div class="mt-2 p-2 bg-zinc-950 rounded text-zinc-300 whitespace-pre-wrap">{{ overview.last_commit_outcome.message }}</div>{% endif %}
+      </div>
+      {% if overview.last_commit_outcome.ambiguous_intents %}
+      <div class="mt-3">
+        <div class="text-xs text-zinc-500 mb-1">ambiguous_intents</div>
+        <ul class="text-xs text-zinc-300 list-disc pl-5 space-y-1">
+          {% for q in overview.last_commit_outcome.ambiguous_intents %}<li>{{ q }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% if overview.last_commit_outcome.questions %}
+      <div class="mt-3">
+        <div class="text-xs text-zinc-500 mb-1">questions for user</div>
+        <ul class="text-xs text-zinc-300 list-disc pl-5 space-y-1">
+          {% for q in overview.last_commit_outcome.questions %}<li>{{ q }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if warnings %}
+    <div class="p-5 border border-amber-900 bg-amber-950/20 rounded">
+      <h3 class="text-sm font-semibold text-amber-300 mb-2">warnings.txt ({{ warnings|length }})</h3>
+      <ul class="text-xs text-zinc-300 space-y-1 font-mono">
+        {% for w in warnings %}<li>· {{ w }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if llm_error %}
+    <div class="p-5 border border-rose-900 bg-rose-950/30 rounded">
+      <h3 class="text-sm font-semibold text-rose-300 mb-2">llm_error.txt</h3>
+      <pre class="text-xs text-zinc-300 whitespace-pre-wrap">{{ llm_error }}</pre>
+    </div>
+    {% endif %}
+
+    {% if not warnings and not llm_error and not overview.last_commit_outcome %}
+    <div class="p-6 border border-emerald-900 bg-emerald-950/20 rounded text-sm text-emerald-300">
+      ✓ 没有 warnings / llm_error / commit 失败记录。
+    </div>
+    {% endif %}
+  </section>
+
+  <script>
+    const RUN_DATA = {
+      draftMd: {{ draft_md|tojson }},
+      finalText: {{ baseline_final_text|tojson }},
+      dimensions: {{ draft_dimensions|tojson }},
+      liveRoundsInitial: {{ live_rounds|tojson }},
+      liveStatusInitial: {{ live_status|tojson }},
+      isLive: {{ is_live|tojson }},
+      tabState: {{ tab_state|tojson }},
+    };
+
+    function recordingReport() {
+      return {
+        tab: RUN_DATA.isLive ? 'live' : 'overview',
+        is_live: RUN_DATA.isLive,
+        tabs: [
+          { id: 'overview',    label: 'Overview',     icon: '📋', badge: '' },
+          { id: 'live',        label: 'Live',         icon: '📡', badge: '' },
+          { id: 'draft',       label: 'Draft',        icon: '⚖️', badge: '{{ draft_dimensions|length }}' },
+          { id: 'rounds',      label: 'Rounds',       icon: '🔭', badge: '{{ rounds|length }}' },
+          { id: 'baseline',    label: 'Baseline',     icon: '📦', badge: '{{ baseline_artifacts|length }}' },
+          { id: 'diagnostics', label: 'Diagnostics',  icon: '🩺', badge: '{{ warnings|length + (1 if llm_error else 0) + (1 if overview.last_commit_outcome else 0) }}' },
+        ],
+        dims: (RUN_DATA.dimensions || []).map(d => ({ ...d, keep: true })),
+        extraFeedback: '',
+        copyHint: '',
+        expandedRound: null,
+        renderedDraft: '',
+        renderedFinalText: '',
+        // ── Live state ──
+        liveRounds: RUN_DATA.liveRoundsInitial || [],
+        status: RUN_DATA.liveStatusInitial || {},
+        hoverRound: null,
+        pollingError: false,
+        pollingErrors: 0,
+        lastPollAt: '',
+        pollTimer: null,
+        init() {
+          if (window.marked) {
+            if (RUN_DATA.draftMd)   this.renderedDraft     = window.marked.parse(RUN_DATA.draftMd);
+            if (RUN_DATA.finalText) this.renderedFinalText = window.marked.parse(RUN_DATA.finalText);
+          }
+          if (this.is_live) {
+            this.poll();
+            this.pollTimer = setInterval(() => this.poll(), 1500);
+          }
+        },
+        toggleRound(i) { this.expandedRound = (this.expandedRound === i) ? null : i; },
+        get liveRoundsReversed() { return [...this.liveRounds].reverse(); },
+        get lanesSvg() {
+          const labelWidth = 140;
+          const laneHeight = 22;
+          const totalRounds = Math.max(1, this.liveRounds.length);
+          const trackWidth = Math.max(400, totalRounds * 20);
+          const slotWidth = trackWidth / totalRounds;
+          const byTool = new Map();
+          this.liveRounds.forEach(r => {
+            if (!byTool.has(r.tool_name)) byTool.set(r.tool_name, []);
+            byTool.get(r.tool_name).push(r);
+          });
+          const lanes = [];
+          let i = 0;
+          for (const [name, rounds] of byTool) {
+            lanes.push({
+              name,
+              y: i * laneHeight,
+              rounds: rounds.map(r => ({
+                ...r,
+                x: labelWidth + (r.seq - 1) * slotWidth + 1,
+                width: Math.max(4, slotWidth - 2),
+                fill: r.is_failure ? '#be123c' :
+                      (r.boundary_type === 'mcp_call' ? '#d97706' : '#047857'),
+              })),
+            });
+            i++;
+          }
+          return {
+            labelWidth,
+            width: labelWidth + trackWidth + 4,
+            height: Math.max(laneHeight, lanes.length * laneHeight),
+            lanes,
+          };
+        },
+        formatAge(seconds) {
+          if (seconds == null) return '—';
+          if (seconds < 1) return '刚刚';
+          if (seconds < 60) return Math.round(seconds) + 's 前';
+          if (seconds < 3600) return Math.round(seconds / 60) + 'm 前';
+          return Math.round(seconds / 3600) + 'h 前';
+        },
+        async poll() {
+          try {
+            const [rRes, sRes] = await Promise.all([
+              fetch('/api/rounds.json', { cache: 'no-cache' }),
+              fetch('/api/status.json', { cache: 'no-cache' }),
+            ]);
+            if (!rRes.ok || !sRes.ok) throw new Error('non-2xx');
+            this.liveRounds = await rRes.json();
+            this.status = await sRes.json();
+            this.pollingError = false;
+            this.pollingErrors = 0;
+            this.lastPollAt = new Date().toLocaleTimeString();
+          } catch (e) {
+            this.pollingErrors++;
+            if (this.pollingErrors >= 3) {
+              this.pollingError = true;
+              if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
+            }
+          }
+        },
+        buildFeedbackMd() {
+          const lines = [];
+          if (this.dims.length) {
+            const keep = this.dims.filter(d => d.keep).map(d => d.id);
+            const drop = this.dims.filter(d => !d.keep).map(d => d.id);
+            if (drop.length === 0) {
+              lines.push('全部保留');
+            } else {
+              if (keep.length) lines.push('保留: ' + keep.join(', '));
+              if (drop.length) lines.push('删除: ' + drop.join(', '));
+            }
+          }
+          const extra = (this.extraFeedback || '').trim();
+          if (extra) { lines.push(''); lines.push(extra); }
+          return lines.join('\n');
+        },
+        async copyFeedback() {
+          const md = this.buildFeedbackMd();
+          try {
+            await navigator.clipboard.writeText(md);
+            this.copyHint = '✓ 已复制 ' + md.length + ' 字符';
+          } catch (e) {
+            this.copyHint = '复制失败，请手动选中预览框文本';
+          }
+          setTimeout(() => { this.copyHint = ''; }, 3000);
+        },
+      };
+    }
+  </script>
+</body>
+</html>

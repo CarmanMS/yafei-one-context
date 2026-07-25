@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths]
+"C:\\Users\\wucha\\.docker"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Exclusions\Paths]
+"C:\\Users\\wucha\\.docker"=dword:00000000
+"C:\\Program Files\\Docker"=dword:00000000

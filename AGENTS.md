@@ -8,11 +8,11 @@ This file provides guidance for AI coding tools (Cursor, Claude Code, Codex, etc
 - **`meta/repos.yaml`**: repository registry (URL, local path, `id` / `alias`, description)
 - **`meta/workspaces.yaml`**: task- or theme-oriented workspace definitions
 - **`meta/profiles.yaml`**: shared AI/runtime profiles
-- **`knowledge/`**: canonical standards, playbooks, prompts; layout in `knowledge/README.md`
+- **`knowledge/`**: personal Obsidian vault (科研/教学/家庭), git submodule; layout in `knowledge/README.md`. **NOT an agent-guidance layer anymore** (restructured 2026-07-25; old standards/playbooks/prompts live in submodule git history `267c959`)
 - **`skills/`**: cross-tool executable helpers (e.g. HTML slides → MP4); see `skills/README.md`
 - **`features/`**: umbrella-level feature specs; see `features/README.md` and `features/INDEX.md`
 - **`repos/reference/`**: upstream reference repos (declared in `meta/repos.yaml` with `category: reference`, not committed); same sync model as other `repos/` categories
-- **`docs/`**: architecture docs and contributor templates — start at `docs/README.md`
+- **`docs/`**: architecture docs and contributor templates
 
 ## Skill routing (mandatory)
 
@@ -20,11 +20,16 @@ When the user’s request matches a workflow below, **do not** answer with ad‑
 
 | User intent (examples) | Authoritative entry |
 |------------------------|---------------------|
-| Clean C: / free disk space / 清理 C 盘 / 腾空间 / Docker·npm·WSL eating C: | `skills/windows-c-drive-cleanup/SKILL.md` — phase 1: `survey-c-drive-report.ps1` (read-only); after user **explicitly approves** named cleanup switches: `invoke-c-drive-cleanup.ps1 -ChatAuthorizationNote '…' -DryRun` then without `-DryRun`; optional `survey-disk-hints.ps1` |
-| HTML slides + narration → MP4 / 生成视频 / 口播视频 | `skills/html-video-from-slides/SKILL.md` |
+| HTML slides + narration → MP4 / 生成视频 / 口播视频 | `skills/html-video-from-slides/SKILL.md` — **WAV 真源五步**见同目录 `references/WAV-FIRST-WORKFLOW.md` |
 | 幻灯空白多、字/图太小、presentation 版式、`fill-deck`、全屏 HTML 幻灯排版 | `skills/html-deck-layout/SKILL.md` |
 | Selective merge to `main` (docs/framework/skills vs business assets) | `skills/merge-to-main/SKILL.md` |
-| Edit/create Word (.docx) / 改 Word / Markdown→docx / 试卷改题 / 修订批注 | `skills/docx-mcp/SKILL.md` — MCP `user-docx-mcp`; 含 **WPS 公式 OLE** 的数学卷用 `lib/inline_omml.py` 或 `lib/rewrite_inline_omml.py`；teaches：`references/teaches-exams.md` |
+| 火山播客 / podcasttts / 双人播客 WebSocket v3 / 长文本/URL → 播客音频 | `skills/volc-podcast-tts/SKILL.md` |
+| `/gitsync`, git sync, pull remote, sync with origin, 同步远程, 拉取不丢本地 | `skills/gitsync/SKILL.md` |
+| 口播稿与幻灯一致性、讲稿校对 presentation、script deck audit、口播要点是否在画面上 | `skills/script-deck-audit/SKILL.md` — `node skills/script-deck-audit/cli.js audit --project <production>` |
+| PPT 样式循环矫正、幻灯空白太多、纯文字无图、元素重叠、fill-deck 矫正 | `skills/ppt-style-loop-correct/SKILL.md` — `node skills/ppt-style-loop-correct/cli.js audit-dom --project <production>` |
+| 新建 content-pipeline / 中视频 spec / 口播立项 | `features/_template/spec-content-pipeline.md` — **默认 action=0**，勿因双人讲稿自动选 action=3 <!-- TODO(skill重构): 原 knowledge/standards/content-pipeline-tts-routing.md 已随 knowledge 重构删除，规范待迁入 skills/ --> |
+| AI 生图封面 / cover-prompt / 写 `production/cover-prompt.md` | `skills/cover-prompt/SKILL.md` — **Step 0 默认极简**（2 行标题）；信息密度须用户明确授权；勿把 Remotion Scene/00-structure 密度搬进缩略图 |
+| 封面 Lottie / cover.html 动画主视觉 / 代替 SVG 图形 | `skills/html-lottie-cover/SKILL.md` — `decoLottie` + `vendor/`；截图 `node cli.js cover --project <production>` |
 
 Until the matching `SKILL.md` has been read, treat generic snippets (e.g. only `Get-PSDrive`) as **insufficient** for those intents.
 
@@ -32,7 +37,7 @@ Until the matching `SKILL.md` has been read, treat generic snippets (e.g. only `
 
 Cross-repository or product-level requirement documents live in **`features/`**. Before creating, editing, or implementing such requirements, read **`features/README.md`**; index table at **`features/INDEX.md`**. When linking code to features, use the repository **`id`** from `meta/repos.yaml` (do not guess paths).
 
-Playbook: `knowledge/playbooks/add-umbrella-feature.md`.
+<!-- TODO(skill重构): 原 playbook knowledge/playbooks/add-umbrella-feature.md 已随 knowledge 重构删除（可从子仓历史 267c959 找回），待迁入 skills/ 或 docs/ -->
 
 ## Default output style (minimal / 文言极简)
 

@@ -42,11 +42,14 @@ Include verification steps (e.g. test commands) after making changes.
 
 Read these files for context:
 
+@knowledge/standards/README.md
 @knowledge/standards/agent-framework.md
 @knowledge/standards/agent-friendly-testing.md
 @knowledge/standards/agent-team-coordination.md
+@knowledge/standards/content-pipeline-tts-routing.md
+@knowledge/standards/dev-env-traps.md
 @knowledge/standards/diagram-conventions.md
 @knowledge/standards/one-context-conventions.md
 @knowledge/standards/oracle-parallel-debugging.md
-@knowledge/standards/README.md
+@knowledge/standards/video-voiceover-script-conventions.md
 @meta/repos.yaml

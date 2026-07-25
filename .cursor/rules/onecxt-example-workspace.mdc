@@ -30,6 +30,37 @@ Include verification steps (e.g. test commands) after making changes.
 
 ## Project Knowledge
 
+<!-- source: knowledge/standards/README.md -->
+
+# Standards
+
+Tool-neutral engineering conventions and policies for `one-context`.
+
+## Files
+
+| File | Scope |
+|------|-------|
+| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
+| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
+| `video-voiceover-script-conventions.md` | 口播稿 — 开场钩子（含悬念/排比否定式）后紧接固定关注句（逐字）；与 `01-script.md` 配合 |
+| `content-pipeline-tts-routing.md` | content-pipeline 立项 — **默认** `volc-podcast-tts` action=0、`00-podcast-source.md`、WAV+SRT 真源；action=3 须 `override_reason` |
+| `dev-env-traps.md` | 开发环境陷阱 — 易被误判为代码 bug 的现象（如 Remotion + SOCKS 代理 AbortError） |
+
+## What belongs here
+
+- Coding conventions and repository layout policies
+- Documentation standards and testing expectations
+- Safety, write-boundary, and data-handling policies
+- Schema definitions and interface contracts
+
+## What does NOT belong here
+
+- Architecture analysis or source-code walkthroughs → `references/`
+- Diagram samples and visual design guides → `references/`
+- Step-by-step operating procedures → `playbooks/`
+
+Add links to new standards in the table above when creating a file.
+
 <!-- source: knowledge/standards/agent-framework.md -->
 
 # Agent Framework — 智能体框架规范
@@ -432,6 +463,142 @@ Each role has different prompts but shares the same coordination protocol.
 - No cross-agent communication mechanism (currently only indirect info exchange via git commits)
 - Agents may choose wrong task priorities (no global view)
 
+<!-- source: knowledge/standards/content-pipeline-tts-routing.md -->
+
+# content-pipeline 口播 / TTS 路由（立项默认）
+
+> 来源：one-context 内部约定（2026-05-25，workflows 选题复盘）
+
+## 默认策略（新建 feature 必须遵守）
+
+| 项 | 默认值 | 说明 |
+|----|--------|------|
+| 模式 | `duo` | `solo`（单人旁白）或 `duo`（双人播客），立项时选定 |
+| 引擎 | `volc-podcast-tts`（duo）/ `doubao-dialogue-tts`（solo） | 由 mode 自动路由 |
+| **action** | **`0`** | duo 专用；solo 时忽略 |
+| 时间轴真源 | **`wav_srt`** | 成片以 `media/voiceover.wav` + `subtitles/sub.srt` 为准 |
+| 讲稿角色 | **结构参考**（duo）/ **TTS 直接输入**（solo） | duo: `00-podcast-source.md`；solo: `01-script.md` |
+
+**立项时禁止**在未填 `tts.override_reason` 的情况下把 spec 写成 action=3。
+
+## 三条路径
+
+### 路径 S — 单人旁白（`mode: solo`）
+
+适用：需要精确逐字念稿、单人讲解/教程、画面与口播严格对齐。
+
+| 步骤 | 产出 |
+|------|------|
+| 写 `01-script.md` | 逐字稿（纯文本，不带 `男：/女：` 前缀） |
+| 写 `00-structure.md` | Scene 大纲 |
+| TTS | `doubao-dialogue-tts --mono` |
+| 后续 | Whisper → `srt-proofread` → `scene-boundaries` / Remotion `audioConfig` |
+
+### 路径 A — 播客总结（`mode: duo`，**默认**）
+
+适用：素材来自 **微信稿 / 文章 / URL / 结构化摘要**；接受服务端改写口播；画面跟 **SRT** 切 Scene。
+
+| 步骤 | 产出 |
+|------|------|
+| 写 `00-podcast-source.md` | 长文要点 + 钩子 + 固定关注句（给 action=0） |
+| 写 `00-structure.md` | Scene 大纲（口播**预期**话题，非逐字稿） |
+| 可选 `01-script.md` | 仅结构/核对表，标注「非 TTS 输入」 |
+| `timing/video-input.json` | `podcastTts.action: 0`，`scriptPath: content/00-podcast-source.md` |
+| TTS | `volc-podcast-tts --action 0` 或流水线 `podcastTts` |
+| 后续 | Whisper → `srt-proofread` → `scene-boundaries` / Remotion `audioConfig` |
+
+参考：`features/content-pipeline/ai-companies-build-ai-mid-video/`
+
+### 路径 B — 逐字对白（`mode: duo` + `action: 3`，**例外**）
+
+适用：已有人审定稿、法律/品牌要求 **逐字**、或口播与画面已按句锁死。
+
+| 要求 | 说明 |
+|------|------|
+| spec `tts.action` | **`3`** |
+| spec `tts.override_reason` | **必填**（一句业务理由） |
+| TTS 输入 | **仅** `男：`/`女：` 体（无 YAML frontmatter）；或独立 `01-dialogue-volc.md` |
+| 禁止 | 把带 frontmatter 的 `01-script.md` 直接喂 CLI |
+
+参考：`features/content-pipeline/markdown-html-claude-engineer-mid-video/`（对白终稿）
+
+## 与成片技术栈无关
+
+| 成片 | 路径 S/A/B 均适用 |
+|------|----------------|
+| `html-video-from-slides` | `video-input.json` + flip-boundaries |
+| `remotion-pipelines` | `scene-boundaries.md` + `audioConfig.ts`；真源仍是 WAV+SRT |
+
+**Remotion 不等于 action=3。** 选 Remotion 仍默认 action=0，除非走路径 B 并声明理由。
+
+## spec 必填 frontmatter（content-pipeline）
+
+```yaml
+category: content-pipeline
+tts:
+  engine: volc-podcast-tts     # duo 时自动；solo 时路由到 doubao-dialogue-tts
+  mode: duo                    # solo | duo（默认 duo，缺省等价 duo）
+  action: 0                    # duo 专用；solo 时忽略
+  authority: wav_srt
+  override_reason: ""          # action 非 0 时必填非空（duo 专用）
+```
+
+复制完整正文骨架：`features/_template/spec-content-pipeline.md`
+
+## 代理门禁（执行 TTS 前）
+
+1. 读 `spec.md` 的 `tts.mode`（缺省=`duo`）。
+2. 若 `mode=duo`：
+   a. 读 `tts.action`。
+   b. 若为 `0`：确认存在 `00-podcast-source.md` 且 `video-input.json` 中 `podcastTts.action` 为 `0`（或未建 json 则 CLI 显式 `--action 0`）。
+   c. 若为 `3`：确认 `tts.override_reason` 非空，且用户曾在 `review_record.md` 确认。
+3. 若 `mode=solo`：
+   a. 确认存在 `01-script.md` 且非空。
+   b. 忽略 `action` / `override_reason` 字段。
+   c. 使用 `doubao-dialogue-tts --mono`。
+4. **禁止**因「写了双人 `01-script.md`」就自动改 action=3。
+5. **禁止** `mode=solo` 时使用 `volc-podcast-tts`。
+
+## 相关文档
+
+- `skills/volc-podcast-tts/SKILL.md`
+- `skills/html-video-from-slides/references/VIDEO_PIPELINE.md`
+- `features/_template/content-production/README.md`
+- `knowledge/standards/video-voiceover-script-conventions.md`（钩子 + 固定句仍须满足）
+
+<!-- source: knowledge/standards/dev-env-traps.md -->
+
+# Dev Env Traps
+
+开发环境中容易被误判为代码 bug 的现象及处置。
+
+## Remotion Studio: bugs.remotion.dev 请求失败
+
+**现象**：`npm run dev` 启动 Remotion Studio 后，浏览器控制台报错：
+
+```
+mediabunny.cjs:16047 Uncaught (in promise) AbortError: The user aborted a request.
+inspector.js:7 Fetch request failed: TypeError: Failed to fetch
+```
+
+Network 面板可见：
+
+```
+GET https://bugs.remotion.dev/api/4.0.463 => net::ERR_SOCKS_CONNECTION_FAILED
+```
+
+**原因**：Remotion Studio 启动时自动请求 `bugs.remotion.dev` 检查当前版本是否有已知 bug。当系统配置了 SOCKS 代理（如 `127.0.0.1:13659`）且该代理无法转发 HTTPS 请求到该域名时，fetch 被中止，mediabunny 的 AbortController 将其包装为 `AbortError`。
+
+**影响**：**无功能影响**。仅版本 bug 检查提示缺失，不影响预览、渲染、导出。
+
+**处置**：
+
+1. 忽略即可（推荐）
+2. 或在浏览器中将 `bugs.remotion.dev` 加入代理例外（bypass）
+3. 或临时关闭 SOCKS 代理
+
+**判断依据**：控制台仅有 `bugs.remotion.dev` 的 `ERR_SOCKS_CONNECTION_FAILED`，且 Remotion Studio 界面正常、视频可播放、WAV 的 206 Partial Content 请求正常 → 确认为代理问题而非代码 bug。
+
 <!-- source: knowledge/standards/diagram-conventions.md -->
 
 # Markdown 文档图表规范
@@ -652,6 +819,7 @@ Do not duplicate the same intent in vendor-specific formats. If a tool needs a s
 | 作者 | ✅ | 原作者或组织 |
 | 发布日期 | ✅ | 原文发布日期 |
 | 收录日期 | 建议 | 写入知识库的日期 |
+| SHA256 | 建议 | 源文档内容 hash（用于增量编译检测，`kb-compile` 自动填充） |
 
 示例：
 
@@ -660,6 +828,7 @@ Do not duplicate the same intent in vendor-specific formats. If a tool needs a s
 > 作者：Author Name (Organization)
 > 发布日期：2026-04-15
 > 收录日期：2026-04-17
+> SHA256：a1b2c3d4e5f6
 ```
 
 不标注出处的外部资料不得合入 `knowledge/`。
@@ -752,33 +921,85 @@ This strategy requires:
 - Oracle and test implementation interfaces must be compatible, otherwise mixing is impossible
 - Interaction bugs (requiring multiple files/modules combined to appear) need delta debugging or other additional methods
 
-<!-- source: knowledge/standards/README.md -->
+<!-- source: knowledge/standards/video-voiceover-script-conventions.md -->
 
-# Standards
+# 口播稿制作规范（钩子 + 固定句）
 
-Tool-neutral engineering conventions and policies for `one-context`.
+> 来源：one-context 内部约定（内容向口播 / 短视频 / 中视频）  
+> 适用：`features/**/production/content/01-script.md` 及同目录讲稿类文件。
 
-## Files
+本规范**只约定两件事**：**一开头用钩子抓住人**；**紧接着用固定一句关注引导（逐字）**。其余版式（如 `# 【页题】` 分块、男女对白、与 `html-video-from-slides` / `volc-podcast-tts` 的配合）由选题与 `skills/` 各 skill 另行约定，**不替代**下文两条。
 
-| File | Scope |
-|------|-------|
-| `agent-framework.md` | 智能体定义规范 — Agent schema, role enum, adapter contract |
-| `one-context-conventions.md` | 项目约定 — Canonical sources, adapter model, validation |
+---
 
-## What belongs here
+## 1. 开头：钩子
 
-- Coding conventions and repository layout policies
-- Documentation standards and testing expectations
-- Safety, write-boundary, and data-handling policies
-- Schema definitions and interface contracts
+**位置**：放在**全片口播最前**（通常对应封面 / 第一页讲稿块的最前几句）。
 
-## What does NOT belong here
+**目标**：让听众愿意听下去——觉得**和自己有关**或**想知道后文结论**；不靠骂战、不靠装疯卖傻换停留。
 
-- Architecture analysis or source-code walkthroughs → `references/`
-- Diagram samples and visual design guides → `references/`
-- Step-by-step operating procedures → `playbooks/`
+**必须做到**
 
-Add links to new standards in the table above when creating a file.
+- **具体**：一个问题、一个反常现象、一个正在发生的变化，或带前提的对比；避免空泛的「今天我们来聊聊」。
+- **可兑现**：开头抛出的张力，后文要能给清楚回应；不要为勾人而勾人。若使用**明知故问 / 排比否定 / 悬念揭晓**（见下），须在**封面块内或紧随其后的正文开头**，用一两句把「谜底」收成**本期能讲清的范围**（例如「叙事里谁在热路径上被反复点名」），而不是悬一个无法在后文定义的全局排行榜结论。
+- **语气**：不要夸张承诺（如「彻底改变」「99% 不知道」）、不要人身攻击、不要刻意挑动对立。**允许**竞猜感、排行榜式口吻作**开场钩子**——常见骨架如：「你知道……最 X 吗？不是 A，不是 B，居然是 C」——只要满足上条「可兑现」，不把「最香」「第一」等词留到全片结束仍无操作定义即可。
+
+**可选形态（可组合）**
+
+- **悬念排比**：先抛反差选项再揭晓，适合短视频/中视频拉停留；揭晓后若需路标，**仅允许极短一句**（如「今晚我们把它落到……」）且须**仍排在 §2 固定句之前**——时间轴上仍是 **钩子（含可选路标）→ 固定句 → 正文**。
+- **场景一刀**：一句值班/账单/事故类具体画面，再接矛盾句。
+- **反常半句**：直接给反常识判断，下一句马上收窄到可核查范围。
+
+**受众**（写钩子时自问一句即可）：一线研发侧重「省时间、避坑、可落地」；技术管理者侧重「成本、风险、节奏」；泛科技受众侧重「关我什么事、为什么现在值得听」。
+
+---
+
+## 2. 固定一句：紧跟在钩子之后（逐字）
+
+**位置**：**紧接在开头钩子之后**——即全片口播时间轴上，**先**完成 §1 的钩子，**下一段或下一轮对白**即接本固定句；通常仍写在**第一页 / 封面**讲稿块内（钩子 → 固定句 → 再衔接正文）。**不要求**放在片尾；若某 feature 另有片尾致谢，可与本固定句并存，但**不得改写**本句文字。
+
+**要求**：下面这句话必须**原样出现**——**不增不减、不拆句、不改写用词**。需要垫话时，**仅允许在固定句之前**用极短衔接（如「先插播一句」「下面这句我完整念」）；**不得**在句中插入语气词或第二人接话。男女对播时，仍须**同一人一口气念完**整句固定话。
+
+> 如果你想听更多的大厂和业界AI最新资讯，欢迎关注大厂吾师兄，点关注不迷路。
+
+若某平台禁止口播引导关注，在该 feature 的 `spec.md` 或 `05-publish-kit.md` 里声明**替代句或豁免**；**默认仍以本句为准**。
+
+---
+
+## 3. 起草自检
+
+- [ ] 开头是否已用**具体、可兑现**的钩子（含**悬念排比式**亦可），且大致落在全片**最前几秒～二十秒**内？若用了「最 X / 不是…居然…」，后文是否已**尽早**说清本期里「X」指什么？  
+- [ ] 固定句是否**逐字**出现在**钩子之后、正文展开之前**（或仍在封面块内紧邻位置）？
+
+---
+
+## 4. 可选参考（非本规范核心）
+
+- **讲稿分块与 Edge TTS**：`skills/html-video-from-slides/SKILL.md`（如每页 `# 【标题】`）。  
+- **男女对白、播客式 WAV**：`skills/volc-podcast-tts` 等。  
+- **字幕校对**：`skills/srt-proofread/SKILL.md`；固定句写入 `01-script.md` 便于与字幕对齐专名与标点。
+
+<!-- source: knowledge/playbooks/README.md -->
+
+# Playbooks
+
+Step-by-step operating procedures for common tasks.
+
+## Available
+
+| Playbook | Purpose |
+|----------|---------|
+| `add-umbrella-feature.md` | 新增伞仓级需求到 `features/` — 索引、目录、spec、进度跟踪全流程 |
+| `use-microsoft-markitdown.md` | 使用 Microsoft MarkItDown：环境、安装、CLI、Python、MCP、Docker、排障 |
+
+## Planned (not yet written)
+
+- Onboarding a new repository
+- Preparing a release workspace
+- Reviewing a cross-repo change
+- Generating AI-ready context for a task
+
+When adding a playbook, update the Available table above.
 
 <!-- source: knowledge/playbooks/add-umbrella-feature.md -->
 
@@ -796,9 +1017,15 @@ Add links to new standards in the table above when creating a file.
 1. 打开 `features/INDEX.md`，新增一行：`id`、标题、`category`、`status`（如 `draft`）、`path`、`primary_repo_id`（可选）。
 2. 创建目录 `features/<category>/<feature-id>/`，名称与索引一致。
 3. 复制 `features/_template/*.md` 到该目录。
-4. 编辑 `spec.md`：填写 YAML frontmatter，并 **必须** 完成「实现落点」一节（`repos.yaml` 的仓库 id、分支或 PR）。
-5. 随进度补充 `tech_design.md`、`test_report.md`、`mr_report.md`、`deliver.md`；不需要时可暂不创建非 `spec` 文件，但索引与 spec 应保持同步。
-6. 需求结束或搁置时，更新 `INDEX.md` 的 `status`，必要时在 `spec.md` 中注明归档原因。
+4. **`category: content-pipeline` 时额外**：
+   - 复制 `features/_template/content-production/` → `<feature-id>/production/`
+   - 用 **`features/_template/spec-content-pipeline.md`** 作 `spec.md` 骨架（含 `tts.action: 0` 默认）
+   - 复制 `production/timing/video-input.example.json` → `video-input.json`
+   - 创建 `review_record.md`（自 `features/_template/review_record.md`），立项时勾选 TTS 路径 A
+   - 阅读 **`knowledge/standards/content-pipeline-tts-routing.md`**
+5. 编辑 `spec.md`：填写 YAML frontmatter，并 **必须** 完成「实现落点」一节（`repos.yaml` 的仓库 id、分支或 PR）。
+6. 随进度补充 `tech_design.md`、`test_report.md`、`mr_report.md`、`deliver.md`；不需要时可暂不创建非 `spec` 文件，但索引与 spec 应保持同步。
+7. 需求结束或搁置时，更新 `INDEX.md` 的 `status`，必要时在 `spec.md` 中注明归档原因。
 
 ## 常见错误
 
@@ -812,6 +1039,7 @@ Add links to new standards in the table above when creating a file.
 - [ ] `INDEX.md` 与目录路径一致
 - [ ] 敏感信息未写入 `test_report.md` / `mr_report.md`
 - [ ] feature 目录名与 `INDEX.md` 中的 `id` 一致
+- [ ] **content-pipeline**：`tts.action` 默认为 `0`；`00-podcast-source.md` 存在；若 `tts.action: 3` 则 `override_reason` + `review_record` 已确认
 
 <!-- source: knowledge/playbooks/multi-agent-parallel-development.md -->
 
@@ -949,28 +1177,6 @@ Add links to new standards in the table above when creating a file.
 - [ ] 核心失败路径有对应测试
 - [ ] 测试不依赖网络 / 外部服务
 
-<!-- source: knowledge/playbooks/README.md -->
-
-# Playbooks
-
-Step-by-step operating procedures for common tasks.
-
-## Available
-
-| Playbook | Purpose |
-|----------|---------|
-| `add-umbrella-feature.md` | 新增伞仓级需求到 `features/` — 索引、目录、spec、进度跟踪全流程 |
-| `use-microsoft-markitdown.md` | 使用 Microsoft MarkItDown：环境、安装、CLI、Python、MCP、Docker、排障 |
-
-## Planned (not yet written)
-
-- Onboarding a new repository
-- Preparing a release workspace
-- Reviewing a cross-repo change
-- Generating AI-ready context for a task
-
-When adding a playbook, update the Available table above.
-
 <!-- source: knowledge/playbooks/sre-release-process.md -->
 
 # Playbook: SRE 发布流程
@@ -1066,6 +1272,8 @@ git revert <merge-commit>
 # Playbook: 使用 Microsoft MarkItDown 将文件转为 Markdown
 
 适用于需要把 PDF、Office、图片、音频等批量转为 **Markdown**（供 LLM、RAG、笔记或版本管理）的场景。项目常被称为「MakeItDown」，**正式名称为 MarkItDown**。
+
+**前置阅读（可选）**：`knowledge/references/microsoft-markitdown.md`（项目定位与索引）。
 
 **权威文档**（选项最全、随版本更新）：[microsoft/markitdown README](https://github.com/microsoft/markitdown/blob/main/README.md)。
 
@@ -1301,9 +1509,12 @@ agents:
     knowledge:
       - knowledge/playbooks/add-umbrella-feature.md
       - knowledge/standards/one-context-conventions.md
+      - knowledge/standards/content-pipeline-tts-routing.md
       - features/README.md
       - features/_template/
+      - features/_template/spec-content-pipeline.md
       - features/_template/content-production/
+      - features/_template/review_record.md
     owns:
       - "features/**/spec.md"
       - "features/INDEX.md"
@@ -1319,6 +1530,15 @@ agents:
         Use category: content-pipeline. Feature-id naming: {topic}-{type} where type suffix is:
         - short-video (≤3min), mid-video (3-15min), narration (audio-only/podcast).
         Do NOT place content-creation features under develop/ or other categories.
+      - For content-pipeline specs you MUST use features/_template/spec-content-pipeline.md
+        (not the generic spec.md alone). At project init, ask the user to choose tts.mode:
+        - mode: duo (default) — dual-speaker podcast via volc-podcast-tts action=0,
+          input is production/content/00-podcast-source.md; timeline truth is WAV+SRT (wav_srt).
+        - mode: solo — single-speaker narration via doubao-dialogue-tts --mono,
+          input is production/content/01-script.md (verbatim script, plain text).
+        action=3 (verbatim dialogue) requires non-empty tts.override_reason AND user
+        confirmation in review_record.md. Read knowledge/standards/content-pipeline-tts-routing.md.
+        Do NOT default to action=3 because you wrote a dual-speaker 01-script.md.
 
   - id: architect
     name: "Architect Agent"
@@ -1415,6 +1635,7 @@ agents:
     description: "多智能体协作评审技术方案，支持双 Agent 对弈和多角色委员会两种模式。"
     knowledge:
       - knowledge/standards/
+      - knowledge/prompts/grill-me.md
       - features/INDEX.md
       - features/README.md
       - features/_template/tech_design.md
@@ -1450,6 +1671,28 @@ agents:
       - Keep language tool-neutral — do not add Cursor/Claude-specific syntax into knowledge/ files.
       - When retiring an outdated standard, move it to a knowledge/archive/ section rather than deleting.
       - Do NOT make implementation changes; only update files under knowledge/ and docs/.
+
+  - id: ai-infra
+    name: "AI-Infra 专家"
+    role: architect
+    profile: repo-architecture
+    description: "LLM 推理性能与引擎架构专家：大规模调度、量化与稀疏、多模态与异构算力、算子与 ISA 级优化。"
+    knowledge:
+      - docs/ai-infra/specialist-jd.md
+      - docs/architecture.md
+    owns:
+      - "docs/ai-infra/**"
+    instructions: |
+      你是本工作区中的「AI-Infra 专家」智能体。行为与能力边界以已加载知识中的
+      docs/ai-infra/specialist-jd.md（工作职责与任职资格原文）为准。
+
+      工作方式：
+      - 优先从可量化指标出发（延迟、吞吐、尾延迟、显存/成本等），并结合生产约束（SLO、故障隔离、可观测性）作答。
+      - 方案层面要点名具体机制（如 PagedAttention、连续批处理、KV Cache 布局、量化路径、MoE 路由、集合通信等）并说明取舍。
+      - 推理与优化讨论默认落在内核/框架层（vLLM、TensorRT-LLM、LightLLM、CUDA/Triton 或国产栈等价物），避免空泛建议。
+      - 涉及异构或国产加速器时，需显式说明移植风险、通信栈（如 NCCL/HCCL）与算子覆盖缺口。
+      - 你负责推理架构与性能工程方面的顾问角色；除非用户明确要求，不替代 PM/Dev/QA/SRE 的标准分工。可在
+        docs/ai-infra/ 下维护由本智能体负责的长期 infra 笔记。
 
 <!-- source: features/README.md -->
 
@@ -1502,7 +1745,13 @@ features/
     └── tmp/                        # 构建中间物 ❌ 不跟踪
 ```
 
-新建内容型 feature 时，复制 `features/_template/content-production/` 目录结构。详见 `features/_template/content-production/README.md`。
+新建内容型 feature 时：
+
+1. 以 **`features/_template/spec-content-pipeline.md`** 写 `spec.md`（**默认** `tts.action: 0`）
+2. 复制 **`features/_template/content-production/`** 目录结构（含 `00-podcast-source.md`、`video-input.example.json`）
+3. 阅读 **`knowledge/standards/content-pipeline-tts-routing.md`**
+
+详见 `features/_template/content-production/README.md`。
 
 - **`<category>`**：按主题或产品线划分；跨类需求选一个 **主类别** 落目录，在 `spec.md` 里链接其他相关需求目录即可。
 - **`<feature-id>`**：建议稳定、简短；可与 `INDEX.md` 中的 `id` 列一致。
@@ -1550,50 +1799,107 @@ features/
 
 在新建或归档需求时更新本表。`id` 建议与目录名 `features/<category>/<feature-id>/` 中的 `<feature-id>` 一致（或与 `spec.md` frontmatter 的 `id` 一致）。
 
-| id | title | category | status | path | primary_repo_id |
-| -- | ----- | -------- | ------ | ---- | --------------- |
-| p-operator-space-injective-papers | p 算子空间 injective 文献研究 | research | draft | `features/research/p-operator-space-injective-papers/` | — |
-| operator-space-paper-writing-style | 算子空间论文表述：范本蒸馏 + Skill | research | in_progress | `features/research/operator-space-paper-writing-style/` | — |
-| approximating-local-lifting-property | Approximating Local Lifting Property | research | draft | `features/research/approximating-local-lifting-property/` | — |
-| pdf-math-exam-to-latex-skill-survey | 数学试卷 PDF → LaTeX 能力调研（Skill / 工具 / 开源方案） | research | in_progress | `features/research/pdf-math-exam-to-latex-skill-survey/` | one-context |
-| second-dual-local-properties | 算子空间局部性质与二重对偶（exactness、local reflexivity 等下降无提升律） | research | done | `features/research/second-dual-local-properties/` | — |
-| completely-integral-corrigendum | Completely integral nuclearity 勘误与结构定理 | research | in_progress | `features/research/completely-integral-corrigendum/` | — |
-| local-reflexivity-exactness | Local reflexivity 与 exactness（Effros--Ruan、Pisier 常数） | research | in_progress | `features/research/local-reflexivity-exactness/` | — |
+
+| id                            | title                                                 | category | status | path                                              | primary_repo_id |
+| ----------------------------- | ----------------------------------------------------- | -------- | ------ | ------------------------------------------------- | --------------- |
+| agent-framework               | 智能体框架 — meta/agents.yaml + 适配器扩展 + worktree/deploy 约定 | core     | done   | `features/core/agent-framework/`                  | one-context     |
+| auto-context-compression      | 自动上下文压缩 — 定时扫描 knowledge/features 等，去重与去陈旧            | core     | draft  | `features/core/auto-context-compression/`         | one-context     |
+| agent-collaboration           | 智能体协作增强 — 状态流转、决策手册、条件知识、生成保护                         | core     | draft  | `features/core/agent-collaboration/`              | one-context     |
+| profile-inheritance           | Profile 继承与 Mixin 机制                                  | core     | draft  | `features/core/profile-inheritance/`              | one-context     |
+| claudecode-source-analysis    | Claude Code 源码解析知识整理                                  | knowledge | done   | `features/knowledge/claudecode-source-analysis/`    | one-context     |
+| openclaw-source-analysis      | OpenClaw 源码解析知识整理                                     | knowledge | done   | `features/knowledge/openclaw-source-analysis/`      | one-context     |
+| claude-caveman-mode           | 用穴居人模式让 Claude 省 Token                                | experiments | done   | `features/experiments/claude-caveman-mode/`           | one-context     |
+| math-teacher-ai-platform      | 数学教师 AI 工作台 — Phase 1 可视化资产化与 AI 出题 MVP          | products | draft  | `features/products/math-teacher-ai-platform/`      | FunctionCanvas  |
+| one-context-intro-short-video | one-context 中视频介绍（爆款口播框架）                             | content-pipeline  | archived | `features/content-pipeline/archive/one-context-intro-short-video/` | one-context     |
+| hermes-agent-short-video      | Hermes Agent 短视频口播成片（wav-auto）                          | content-pipeline  | archived | `features/content-pipeline/archive/hermes-agent-short-video/`      | one-context     |
+| anthropic-agent-harness-narration | Anthropic Agent Harness 哲学 — 口播稿                         | content-pipeline  | archived | `features/content-pipeline/archive/anthropic-agent-harness-narration/` | one-context |
+| anthropic-ai-blueprint-dialogue-mid-video | Anthropic AI 公司蓝图对话拆解（中视频） | content-pipeline | archived | `features/content-pipeline/archive/anthropic-ai-blueprint-dialogue-mid-video/` | one-context |
+| anthropic-boris-engineering-future-mid-video | 当顶尖工程师不再写代码：AI 重写软件开发未来（对话口播） | content-pipeline | archived | `features/content-pipeline/archive/anthropic-boris-engineering-future-mid-video/` | one-context |
+| ai-agent-security-2026-revelations-mid-video | 2026 AI Agent 安全启示录（对话口播） | content-pipeline | archived | `features/content-pipeline/archive/ai-agent-security-2026-revelations-mid-video/` | one-context |
+| claude-code-multi-agent-source-mid-video | Claude Code 多 Agent 机制源码解读（中视频口播） | content-pipeline | archived | `features/content-pipeline/archive/claude-code-multi-agent-source-mid-video/` | one-context |
+| openai-enterprise-ai-scaling-five-actions-mid-video | OpenAI 企业 AI 规模化落地五要点（中视频口播） | content-pipeline | archived | `features/content-pipeline/archive/openai-enterprise-ai-scaling-five-actions-mid-video/` | one-context |
+| markdown-html-claude-engineer-mid-video | Markdown 要被淘汰？Claude 工程师弃用真相（阿哲 / 小夏 对话口播） | content-pipeline | archived | `features/content-pipeline/archive/markdown-html-claude-engineer-mid-video/` | one-context |
+| damai-ticket-bot              | 大麦抢票助手 — 浏览器插件 + CLI 集成 one-context skill                 | integrations | draft  | `features/integrations/damai-ticket-bot/`              | one-context     |
+| operator-spaces-paper-analysis | 算子空间论文深度分析 — 发现证明漏洞与改进机会 | research | in_progress | `features/research/operator-spaces-paper-analysis/` | paperwork |
+| pdf-math-exam-to-latex-skill-survey | 数学试卷 PDF → LaTeX 能力调研（Skill / 工具 / 开源） | research | in_progress | `features/research/pdf-math-exam-to-latex-skill-survey/` | one-context |
+| skill-windows-c-drive-cleanup | Windows C 盘空间清理 — 仓库内 Agent Skill                     | core     | done   | `features/core/skill-windows-c-drive-cleanup/`    | one-context     |
+| skill-merge-to-main           | 选择性合并到主干（Agent Skill）                                  | core     | done   | `features/core/skill-merge-to-main/`               | one-context     |
+| skill-script-deck-audit       | 口播稿与幻灯一致性校验（Agent Skill）                              | core     | done   | `features/core/skill-script-deck-audit/`           | one-context     |
+| unified-adapter-rules         | 统一适配器规则源 — 声明式 manifest，消除 PROFILE_RULES 重复          | core     | done   | `features/core/unified-adapter-rules/`            | one-context     |
+| skill-loop-engineering        | Loop Engineering Skill — 引导式构建可循环任务的脚手架            | core     | draft  | `features/core/skill-loop-engineering/`           | one-context     |
+| skill-retrospective-evolution | Skill 跨会话回溯进化 — 从历史会话语料聚合诊断单个 Skill 并产出改进 PR | core     | phase1-done | `features/core/skill-retrospective-evolution/`    | one-context     |
+| ai-mid-mgmt-video             | AI 中视频管理 — 素材与发布工具链                                       | content-pipeline  | archived | `features/content-pipeline/archive/ai-mid-mgmt-video/`             | one-context     |
+| hermes-adapter                | Hermes Adapter — one-context 支持 Hermes Agent CLI                     | core     | draft  | `features/core/hermes-adapter/`                   | one-context     |
+| gsd-integration               | GSD 集成 — one-context 上下文注入 GSD 工作流                              | core     | draft  | `features/core/gsd-integration/`                  | one-context     |
+| trend-radar-integration        | TrendRadar 趋势雷达集成 — 热点情报 + MCP + 微信推送                         | integrations | in_progress | `features/integrations/trend-radar/`      | trend-radar    |
+| short-video-reporting-paradigm | 短视频式汇报范式 — 用内容创作思路重塑职场汇报                             | content-pipeline | archived | `features/content-pipeline/archive/short-video-reporting-paradigm/` | one-context |
+| ai-sme-opportunity             | 放下大厂滤镜：中小厂的 AI 机会（中视频）                                              | content-pipeline | archived | `features/content-pipeline/archive/ai-sme-opportunity/` | one-context |
+| sandbox-agent-era-mid-video    | Agent时代下最被低估的技术——沙箱（中视频口播）                    | content-pipeline | archived | `features/content-pipeline/archive/sandbox-agent-era-mid-video/` | one-context |
+| deepseek-v4-deploy-guide-mid-video | DeepSeek V4 部署与调用指南（中视频）                        | content-pipeline | archived | `features/content-pipeline/archive/deepseek-v4-deploy-guide-mid-video/` | one-context |
+| agent亲和架构底层原理剖析 | Agent 亲和架构底层原理剖析（口播视频） | content-pipeline | archived | `features/content-pipeline/archive/agent亲和架构底层原理剖析/` | one-context |
+| 软件中一切皆Worker | 软件中一切皆 Worker（口播视频） | content-pipeline | archived | `features/content-pipeline/archive/软件中一切皆Worker/` | one-context |
+| claudecode-prompt-caching-mid-video | Prompt Caching Is Everything —— Claude Code 团队最新文章 | content-pipeline | archived | `features/content-pipeline/archive/claudecode-prompt-caching-mid-video/` | one-context |
+| claudecode-sandbox-concurrency-mid-video | Claude Code 沙箱与并发机制解析 | content-pipeline | archived | `features/content-pipeline/archive/claudecode-sandbox-concurrency-mid-video/` | one-context |
+| keycompute-ai-gateway-rust-mid-video | Rust 构建 AI 算力中枢：KeyCompute 架构解析（中视频） | content-pipeline | archived | `features/content-pipeline/archive/keycompute-ai-gateway-rust-mid-video/` | one-context |
+| ai-era-rust-language-mid-video | AI 时代为何 Rust 语言崛起（中视频） | content-pipeline | archived | `features/content-pipeline/archive/ai-era-rust-language-mid-video/` | one-context |
+| claude-code-large-codebase-mid-video | Claude Code 大型代码库最佳实践 —— Anthropic 博客深度解析 | content-pipeline | archived | `features/content-pipeline/archive/claude-code-large-codebase-mid-video/` | one-context |
+| claude-code-workflows-enterprise-mid-video | Claude Code Workflows：企业 AI 落地（Remotion 技术播客） | content-pipeline | archived | `features/content-pipeline/archive/claude-code-workflows-enterprise-mid-video/` | one-context |
+| openhuman-ai-super-assistant-mid-video | OpenHuman爆火口播稿：不用教的AI超级助手来了！ | content-pipeline | archived | `features/content-pipeline/archive/openhuman-ai-super-assistant-mid-video/` | one-context |
+| karpathy-autoresearch-software-dev-mid-video | 像 Karpathy 一样开发软件：AutoResearch 全自动多 Agent 交叉审核系统深度解析 | content-pipeline | archived | `features/content-pipeline/archive/karpathy-autoresearch-software-dev-mid-video/` | one-context |
+| anthropic-founders-playbook-mid-video | Anthropic 创始人手册：AI 原生创业公司从零到 IPO 全过程拆解 | content-pipeline | archived | `features/content-pipeline/archive/anthropic-founders-playbook-mid-video/` | one-context |
+| anthropic-next-gen-claude-eight-tips-mid-video | Anthropic 打造下一代 Claude 的 8 个硬核干货（男女对话中视频） | content-pipeline | archived | `features/content-pipeline/archive/anthropic-next-gen-claude-eight-tips-mid-video/` | one-context |
+| anthropic-cfo-ai-revolution-mid-video | Anthropic CFO 播客：两年 120 倍与 AI 革命三道刹车（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/anthropic-cfo-ai-revolution-mid-video/` | one-context |
+| skillclaw-agent-skill-evolution-mid-video | SkillClaw：Agent Skills 自动进化与跨端共享深度解析（中视频） | content-pipeline | archived | `features/content-pipeline/archive/skillclaw-agent-skill-evolution-mid-video/` | one-context |
+| deepseek-code-harness-mid-video | 模型之外全是决胜局——DeepSeek 造中国版 Claude Code（Harness）中视频 | content-pipeline | draft | `features/content-pipeline/deepseek-code-harness-mid-video/` | one-context |
+| ai-companies-build-ai-mid-video | AI 正在「自己造自己」——巨头用 AI 造 AI（Remotion Pipelines 中视频） | content-pipeline | 开发中 | `features/content-pipeline/ai-companies-build-ai-mid-video/` | one-context |
+| ai-companies-self-evolution-remotion-mid-video | AI 公司用 AI 造下一代 AI — Remotion Pipelines 口播中视频 | content-pipeline | archived | `features/content-pipeline/ai-companies-self-evolution-remotion-mid-video/` | one-context |
+| skill-srt-to-deck | SRT 驱动的动画级幻灯自动生成（srt-to-deck） | core | developing | `features/core/skill-srt-to-deck/` | one-context |
+| skill-remotion-pipelines-anime | Remotion Pipelines × Anime.js 可选动画层 | core | approved | `features/core/skill-remotion-pipelines-anime/` | one-context |
+| skill-remotion-pipelines-gsap-layer | Remotion Pipelines × GSAP 可选动画层 | core | draft | `features/core/skill-remotion-pipelines-gsap-layer/` | one-context |
+| skill-info-radar | 信息雷达 Skill — 多源技术文章追踪 + AI 评估 + content-pipeline 自动转化 | core | draft | `features/core/skill-info-radar/` | one-context |
+| claudecode-skill-auto-evolution | Claude Code 技能自进化机制调研与集成设计 | core | draft | `features/core/claudecode-skill-auto-evolution/` | one-context |
+| pc-switch-emulator-200-controller-mid-video | 电脑 + 200 元手柄畅玩 Switch 游戏（教程中视频） | content-pipeline | draft | `features/content-pipeline/pc-switch-emulator-200-controller-mid-video/` | one-context |
+| pc-switch-emulator-200-controller-setup | 电脑 + 200 元手柄畅玩 Switch — 软件安装与配置任务 | develop | draft | `features/develop/pc-switch-emulator-200-controller-setup/` | one-context |
+| github-info-radar-survey | GitHub 信息雷达开源项目调研 | research | done | `features/research/github-info-radar-survey/` | one-context |
+| skill-eval-driven-dev-survey | Skill 评测驱动研发框架调研（GitHub 开源项目） | research | done | `features/research/skill-eval-driven-dev-survey/` | one-context |
+| skill-eval-runner | Skill 评测驱动研发框架 — onecxt eval CLI + tmp 目录隔离 + LLM rubric（承接 skill-eval-driven-dev-survey 落地） | core | draft | `features/core/skill-eval-runner/` | one-context |
+| skill-self-evolution-survey | Skill 自进化项目调研（GitHub 开源项目） | research | blocked | `features/research/skill-self-evolution-survey/` | one-context |
+| ai-slower-better-code-mid-video | AI 编码慢即是快 —— Nolan Lawson「用 AI 更慢地写更好的代码」深度解析（中视频） | content-pipeline | draft | `features/content-pipeline/ai-slower-better-code-mid-video/` | one-context |
+| agent-long-term-memory-alibaba-cloud-mid-video | Agent长期记忆如何选？阿里云选型指南 | content-pipeline | in_progress | `features/content-pipeline/agent-long-term-memory-alibaba-cloud-mid-video/` | one-context |
+| mcp-server-freelance-moat-mid-video | 月入10万建 MCP Server？自由职业者的风口与护城河 | content-pipeline | archived | `features/content-pipeline/archive/mcp-server-freelance-moat-mid-video/` | one-context |
+| agent-harness-engineering-survey-mid-video | Agent Harness: 权威论文告诉你怎么做（Remotion 中视频） | content-pipeline | archived | `features/content-pipeline/archive/agent-harness-engineering-survey-mid-video/` | one-context |
+| claude-code-daily-driver-mid-video | Claude Code 日常驾驶全指南：Claude.md / Skills / Subagents / MCP 生态（中视频） | content-pipeline | draft | `features/content-pipeline/claude-code-daily-driver-mid-video/` | one-context |
+| postgres-ai-agent-default-db-mid-video | AI 时代 Postgres 怎么成了 Agent 脚手架里的默认数据库（中视频） | content-pipeline | draft | `features/content-pipeline/postgres-ai-agent-default-db-mid-video/` | one-context |
+| ai-era-last-interview-mid-video | 最后的面试：AI时代的面试终结（Steve Yegge · Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/ai-era-last-interview-mid-video/` | one-context |
+| codegraph-claude-code-mid-video | CodeGraph：让 Claude Code 少烧 57% Token（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/codegraph-claude-code-mid-video/` | one-context |
+| llm-ai-friendly-architecture-mid-video | AI Friendly 架构：面向 LLM 的架构设计（Remotion 中视频） | content-pipeline | in_progress | `features/content-pipeline/llm-ai-friendly-architecture-mid-video/` | one-context |
+| google-skillos-self-evolving-agent-mid-video | SkillOS：谷歌自进化智能体技能治理框架（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/google-skillos-self-evolving-agent-mid-video/` | one-context |
+| andrew-ng-fde-ai-engineer-mid-video | 吴恩达谈 FDE：驻场工程师与 AI 工程师的未来（中视频） | content-pipeline | draft | `features/content-pipeline/andrew-ng-fde-ai-engineer-mid-video/` | one-context |
+| fde-on-the-ground-mid-video | 驻场工程师（FDE）到底在干什么？定义、一周工作流与公开案例（中视频） | content-pipeline | draft | `features/content-pipeline/fde-on-the-ground-mid-video/` | one-context |
+| skill-self-evolution-loop | Skill 使用后异步自评估闭环（AI 自学 rubric + markdown 改进建议） | core | draft | `features/core/skill-self-evolution-loop/` | one-context |
+| tencent-super-team-mid-video | 从超级个体到超级团队——腾讯研究院报告深度解读（中视频） | content-pipeline | draft | `features/content-pipeline/tencent-super-team-mid-video/` | one-context |
+| rl-bandit-skill-evolution | 强化学习老虎机算法驱动 Skill 自进化可行性研究 | research | draft | `features/research/rl-bandit-skill-evolution/` | one-context |
+| claude-code-dynamic-workflows-mid-video | Claude Code 动态工作流该怎么用（Thariq · 机器之心 · 中视频） | content-pipeline | draft | `features/content-pipeline/claude-code-dynamic-workflows-mid-video/` | one-context |
+| dingtalk-one-inside-mid-video | 置身钉内：钉钉 ONE 与无招回归（中视频） | content-pipeline | draft | `features/content-pipeline/dingtalk-one-inside-mid-video/` | one-context |
+| openclaw-self-improving-autoskill-mid-video | OpenClaw 双轨自进化：Self-Improving + AutoSkill（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/openclaw-self-improving-autoskill-mid-video/` | one-context |
+| agent-arena-373k-ranking-mid-video | 37万次真实会话 Agent 榜单：GPT-5.5 第一 Claude 最稳（Remotion 中视频） | content-pipeline | in_progress | `features/content-pipeline/agent-arena-373k-ranking-mid-video/` | one-context |
+| claude-code-loop-engineering-mid-video | Loop Engineering：Claude Code 之父与龙虾创始人力捧的新范式（Remotion 中视频） | content-pipeline | draft | `features/content-pipeline/claude-code-loop-engineering-mid-video/` | one-context |
+| claude-fable-5-mythos-mid-video | Claude Fable 5 发布：Mythos 级模型首秀 + 安全争议 + 用户实测（中视频） | content-pipeline | draft | `features/content-pipeline/claude-fable-5-mythos-mid-video/` | one-context |
+| skill-html-video-complement | html-video 互补层 — 风格化片头/片尾 + 零侵入集成 | core | draft | `features/core/skill-html-video-complement/` | one-context |
+
 
 **Columns**
 
 - **primary_repo_id**: `meta/repos.yaml` 里条目的 `id`（或主实现仓库）；无则填 `—`。
 - **path**: 相对 one-context 根目录的路径，用反引号包起来便于复制。
 
-<!-- source: features/_template/content-production/production/content/00-structure.md -->
-
-# 话题大纲
-
-<!-- 视频的话题拆分、每段核心要点、预计时长 -->
-
-<!-- source: features/_template/content-production/production/content/01-script.md -->
-
-# 口播讲稿
-
-<!-- 完整口播文字稿，按话题段落组织 -->
-
-<!-- source: features/_template/content-production/production/content/05-publish-kit.md -->
-
-# 发布素材
-
-标题：
-
-简介：
-
-话题：
-
-<!-- 各平台标题、简介、话题标签、置顶评论、章节轴、检查清单 -->
-
 <!-- source: features/_template/content-production/README.md -->
 
 # Content Production — 短视频 Feature 模板
 
-新建短视频 feature 时复制此目录到 `features/content-pipeline/<feature-id>/`，与标准 feature 模板（`spec.md` 等）合用。
+新建短视频 feature 时复制本目录到 `features/content-pipeline/<feature-id>/`，与 **`features/_template/spec-content-pipeline.md`**（勿只用通用 `spec.md`）合用。
+
+**口播默认**：`volc-podcast-tts` **action=0** + `00-podcast-source.md`；规范见 **`knowledge/standards/content-pipeline-tts-routing.md`**。
 
 ## 命名规范
 
@@ -1617,9 +1923,10 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 │
 └── production/
     ├── content/                    # 内容创作资产 ✅ 跟踪
-    │   ├── 00-structure.md         #   话题大纲
-    │   ├── 01-script.md            #   口播讲稿
-    │   └── 05-publish-kit.md       #   发布素材（标题/简介/话题/检查清单）
+    │   ├── 00-podcast-source.md    #   **默认** action=0 TTS 输入（长文要点）
+    │   ├── 00-structure.md         #   话题大纲 / Scene 规划
+    │   ├── 01-script.md            #   结构参考或逐字稿（action=0 时**非** TTS 输入）
+    │   └── 05-publish-kit.md       #   发布素材（标题/简介与话题同节；口播中的 GitHub/官网链接须写入简介正文）
     │
     ├── slides/                     # 幻灯片资产 ✅ 跟踪
     │   └── presentation.html       #   主幻灯（核心资产）
@@ -1629,7 +1936,10 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
     │
     ├── timing/                     # 时间轴与配置 ✅ 跟踪
     │   ├── wav-durations.json      #   精确翻页时长
-    │   └── video-input.json        #   配置 + srtReplacements 积累
+    │   ├── flip-boundaries.md      #   翻页语义契约（页 ↔ 时刻 ↔ SRT 锚；wav 前建议必有）
+    │   ├── flip-checklist.md       #   成片前人审确认单（复制模板后填写）
+    │   ├── video-input.json        #   配置 + srtReplacements（从 video-input.example.json 复制）
+    │   └── video-input.example.json #  模板：podcastTts.action 默认 0
     │
     ├── media/                      # 媒体文件 ❌ 不跟踪
     │   ├── *.wav                   #   原始录音
@@ -1650,6 +1960,8 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | presentation.html | ✅ | 布局+SVG+精炼文字，不可无损重建 |
 | sub.srt（校对后） | ✅ | 校对是人工+推理过程，不可无损重建 |
 | wav-durations.json | ✅ | 精确翻页时长，不可无损重建 |
+| flip-boundaries.md | ✅（强烈建议） | 页↔口播锚点的人审契约；缺则易画面与语义错位 |
+| flip-checklist.md | ✅（建议） | 成片前 3 个试听点 + 翻页表确认；模板见 `production/timing/flip-checklist.md` |
 | video-input.json | ✅ | 含 srtReplacements 积累，不可无损重建 |
 | cover.html | ✅ | 封面设计，不可无损重建 |
 | review_record / issue_checklist | ✅ | 评审产出，放 feature 根目录 |
@@ -1665,6 +1977,34 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | srt-to-deck | `wav-durations.json` | `production/timing/wav-durations.json` |
 | html-deck-layout | `presentation.html` | `production/slides/presentation.html` |
 | html-video-from-slides | `--project` 指向 | `production/`（读取各子目录） |
+
+### 幻灯内容（主题内）
+
+`production/slides/presentation.html` **只呈现本期视频主题**（对齐 `spec.md` / `00-structure.md` / 口播）。**不要**在幻灯里写「如何制作本视频」、skill 名、仓库路径等制片 meta；收口页用真实栏目名，不用占位。生成规范见 **`skills/html-deck-layout/SKILL.md`**、成片路径见 **`skills/html-video-from-slides/SKILL.md`**「幻灯内容边界」。
+
+### 成片构建
+
+| 场景 | 命令 |
+|------|------|
+| 全量（截图 + 切段 + 烧字幕） | `skills/html-video-from-slides/scripts/run-wav-build.ps1 -Project "…/production"` |
+| 仅续跑合并/烧字幕（**且未改 HTML**） | `node skills/html-video-from-slides/scripts/finish-burn.js "…/production"` |
+
+详见 **`skills/html-video-from-slides/references/resume-burn.md`**。改 `presentation.html` 后若 `tmp/part_*.mp4` 早于 HTML，须删 `tmp/` 再全量构建。**`wav` 不重录口播**，只重截图画面（见 skill「变更与重跑决策」）。
+
+交付成片：`timing/wav-durations.json` 的 `outputFile`（常见 `production/final_auto.mp4`），不要只交 `tmp/merged.mp4`。
+
+### 口播选路（立项时锁定 — 见 `content-pipeline-tts-routing.md`）
+
+| 路径 | action | TTS 输入 | 时间轴真源 |
+|------|--------|----------|------------|
+| **A 播客总结（默认）** | **0** | `00-podcast-source.md` | WAV + SRT |
+| B 逐字对白（例外） | 3 | `男：`/`女：` 体（spec 须写 `override_reason`） | 仍建议以 SRT 切 Scene |
+
+| 成片栈 | 做法 |
+|--------|------|
+| Remotion | `scene-boundaries.md` ← SRT；**不**因 Remotion 改用 action=3 |
+| html-video-from-slides | 复制 `video-input.example.json` → `video-input.json`；`podcastTts.action: 0` |
+| Edge 单人念稿 | `node cli.js tts`；`01-script.md` 按 `# 【】` 分页（非火山双人） |
 
 ## 与标准 feature 模板的关系
 
@@ -1685,6 +2025,8 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 |---|--------|---------|
 | 1 | spec.md 存在 | `<feature>/spec.md` 存在 |
 | 2 | spec.md category 正确 | frontmatter `category: content-pipeline` |
+| 2b | TTS 路由已声明 | frontmatter 含 `tts.action`；默认 `0`；若 `3` 则 `tts.override_reason` 非空 |
+| 2c | action=0 输入存在 | `tts.action: 0` 时须有 `production/content/00-podcast-source.md` |
 | 3 | production/ 骨架完整 | 子目录 `content/`, `slides/`, `subtitles/`, `timing/`, `media/`, `tmp/` 均存在 |
 | 4 | 无遗留临时脚本 | `<feature>/` 根目录不得有 `_gen_*.py` / `_fix_*.py` / `_*.py` 等文件 |
 | 5 | 无旧 srt/ 目录 | 不得存在 `<feature>/srt/` 目录（字幕应在 `production/subtitles/`） |
@@ -1698,6 +2040,189 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | 8 | content/ 有讲稿 | `production/content/01-script.md` 存在 |
 | 9 | INDEX.md 一致 | `features/INDEX.md` 中该 feature 的 path 与实际目录一致 |
 | 10 | spec.md 路径自洽 | spec.md 内引用的路径前缀与实际 `features/content-pipeline/<id>/` 一致 |
+| 11 | wav 成片语义契约（建议） | `production/timing/flip-boundaries.md` 存在并与 `wav-durations.json` 同步 |
+| 12 | 幻灯无 meta 制片页 | `slides/presentation.html` 不含「如何制作视频」、skill/CLI 名等与 `spec.md` 主题无关的页面 |
+
+<!-- source: features/_template/content-production/production/content/00-podcast-source.md -->
+
+# 播客合成输入（火山 action=0 · 默认）
+
+> **给 `volc-podcast-tts --action 0` 的长文输入。** 服务端会总结并生成双人播客，**不会**逐字念 `01-script.md`。  
+> 成片以 **WAV + Whisper SRT** 为时间轴真源；`01-script.md` 仅作结构参考与核对表。
+
+## 素材来源
+
+- 原文 URL：
+- 本地存档：
+
+## 节目定位
+
+（一句话：受众、时长目标、本期要回答什么问题）
+
+## 钩子与关注引导
+
+- **钩子**：（具体反常/悬念，须可兑现）
+- **固定关注句**（须逐字，见 `knowledge/standards/video-voiceover-script-conventions.md`）：  
+  「如果你想听更多的大厂和业界AI最新资讯，欢迎关注大厂吾师兄，点关注不迷路。」
+
+## 章节要点
+
+（按话题分段写要点、专名、数字、引用层级；可长，供服务端总结成对白）
+
+### 1 …
+
+### 2 …
+
+## 专名与链接（口播 + 简介须覆盖）
+
+| 类型 | 内容 |
+|------|------|
+| 版本/命令 | |
+| GitHub / YouTube | |
+| 须标「第三方/待核」的断言 | |
+
+<!-- source: features/_template/content-production/production/content/00-structure.md -->
+
+# 话题大纲
+
+<!-- Scene 规划；口播默认 action=0，成片以 WAV+SRT 切镜，本文件为话题/视觉预期而非逐字稿 -->
+
+**口播路由（与 spec 一致）**：默认 `volc-podcast-tts` **action=0** · 真源 **WAV+SRT** · 见 `knowledge/standards/content-pipeline-tts-routing.md`
+
+<!-- source: features/_template/content-production/production/content/01-script.md -->
+
+> **口播总规范**：`knowledge/standards/video-voiceover-script-conventions.md`  
+> **默认 TTS**：`volc-podcast-tts` **action=0** → 实际念稿见 **`00-podcast-source.md`**；**本文件在 action=0 下仅为结构参考/核对表，不要喂给 TTS CLI。**  
+> **仅当 spec 声明 action=3** 时：本文件为 `男：`/`女：` 逐字输入（无 YAML frontmatter）。  
+> **封面块内**（若写在本文件）：先钩子 → 固定关注句（逐字）→ 后文。
+
+# 【封面】
+
+时长：约 40s
+
+（删本行括号说明后写口播。走 Edge `tts` 时页数须与 `presentation.html` 一致；真双人播客 WAV 见 `features/_template/content-production/README.md`「口播选路」。）
+
+---
+
+# 【第二页标题与幻灯一致】
+
+时长：约 40s
+
+（删说明后写口播。）
+
+---
+
+<!-- source: features/_template/content-production/production/content/05-publish-kit.md -->
+
+# 发布素材
+
+标题：
+
+## 简介与话题
+
+（直接按平台「简介」输入框效果写纯文本：不要 **粗体** / - 列表等 Markdown）
+
+（口播/讲稿里提到的 GitHub、官网、文档链接须写在正文末、话题行之前，用完整 https:// 地址，见 skills/html-video-from-slides/SKILL.md「口播链接须写进简介」）
+
+相关链接：
+https://github.com/……
+
+#话题1 #话题2 #话题3
+
+<!-- 简介与话题：正文纯文本 + 末行话题；# 开头、空格分隔、无逗号 -->
+<!-- 还可补充：置顶评论、章节轴、检查清单等 -->
+
+<!-- source: features/_template/content-production/production/cover-prompt.md -->
+
+<!--
+此文件**禁止手写堆词**。请走 `skills/cover-prompt/SKILL.md`：
+- 先选范式（默认极简艺术海报型；要 3-4 callout 才用信息密度型）
+- 走其内置约束表 + 模型选型矩阵 + 中文渲染陷阱
+- 同时输出竖版 3:4（抖音/小红书）与横版 4:3（B站/头图）
+
+机制锚点：
+- remotion-pipelines SKILL Pipeline Step 9a 强制要求本文件
+- 标题、强调色、背景 Avoid 等必须锁死；其余交给模型
+- 平台缩略图 ≠ 片内 SceneCover——禁止把 Scene SVG 搬进 callout
+
+执行后删除本注释，保留下面正式产物。
+-->
+
+# 封面提示词（cover-prompt）
+
+标题：
+
+范式：☐ 极简艺术海报型（默认）  ☐ 信息密度型
+
+## 横版 4:3（B站/头图）
+
+```
+
+```
+
+## 竖版 3:4（抖音/小红书）
+
+```
+
+```
+
+## 锁死项
+
+- 文案行数：
+- 几何中心 + 字号：
+- 强调色（唯一）：
+- 背景意象（A/B/C/D 类）：
+- 硬 Avoid：
+
+<!-- source: features/_template/content-production/production/timing/flip-checklist.md -->
+
+# 成片前翻页确认单（人审）
+
+**用途**：在运行 `node cli.js wav` 之前，用本表做 **≤5 分钟** 定点确认。  
+**真源**：`media/*.wav` + `subtitles/sub.srt` + `slides/presentation.html` 可见字；**不用** `00-structure.md` / `01-script.md` 块边界定翻页。
+
+---
+
+## 路径（开工时勾选 — **默认勾选 A**）
+
+- [x] **A. 播客 / action=0（默认）**：口播以 WAV+SRT 为准；TTS 输入为 `00-podcast-source.md`；`01-script.md` 仅参考  
+- [ ] **B. 逐字口播 / action=3**：须在 `spec.md` 的 `tts.override_reason` 有理由；`男：`/`女：` 体为 TTS 输入  
+- [ ] **C. Edge 分页念稿**：`01-script.md` 的 `# 【】` 块数 = 幻灯页数（非火山双人）
+
+---
+
+## 三条必听时间戳（填秒数后试听 `voiceover.wav`）
+
+| # | 时刻 (s) | 此时口播在讲什么（SRT #） | 画面上应是哪一页 | 通过？ |
+|---|----------|---------------------------|----------------|--------|
+| 1 | ______ | 封面钩子 / 产品名 | s0 封面 | ☐ |
+| 2 | ______ | 第一次专名或数字（如 Trending、星标） | ______ | ☐ |
+| 3 | ______ | 第一次大转场（如竞品对比、产品 UI） | ______ | ☐ |
+
+> OpenHuman 示例：① 0s ② ~33–39s 仍 s0（Trending+星标）③ ~39.6s 进 s1（Manus 对比）
+
+---
+
+## `flip-boundaries.md` 一行一问
+
+对表中 **每一行** 问：**「这一秒听到的核心信息，当前页看得见吗？」**
+
+- [ ] 封面页卖点（Trending、星标、钩子）在口播讲完前 **未提前** 切到内页  
+- [ ] 过渡句（「接下来」「下面聊」）仍算 **上一页**，未在句首翻页  
+- [ ] 最后一页时长闭合到音轨结束（ffprobe 总时长一致）
+
+---
+
+## 代理门禁（全部 ☐ 才可 wav）
+
+- [ ] `timing-check` 无 `FLIP_AT_NEXT_WA_SENTENCE_START` 高危  
+- [ ] `slideDurationsSec` 之和 = WAV 时长（误差 ≤1s）  
+- [ ] 播客路径：**未**用 `01-script` 块对齐翻页  
+
+---
+
+**确认人**：________　**日期**：________  
+**确认后执行**：`skills/html-video-from-slides/scripts/run-wav-build.ps1 -Project "<feature>/production"`
 
 <!-- source: features/_template/deliver.md -->
 
@@ -1730,6 +2255,126 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 ## 决议与待办
 
 - [ ]
+
+<!-- source: features/_template/review_record.md -->
+
+# 评审记录 — {{feature-id}}
+
+## 立项门禁（content-pipeline · 执行 TTS 前必过）
+
+| # | 检查项 | 结果 |
+|---|--------|------|
+| 1 | `spec.md` frontmatter 含 `tts.action` | ☐ |
+| 2 | **默认**：`tts.action` = **0**，且存在 `production/content/00-podcast-source.md` | ☐ |
+| 3 | `production/timing/video-input.json` 中 `podcastTts.action` 与 spec 一致 | ☐ |
+| 4 | 若 `tts.action` ≠ 0：`tts.override_reason` 已填 + **用户本行确认** | ☐ |
+
+**用户确认（action=0 默认可勾「采用默认路径 A」）**：
+
+- [ ] **路径 A（默认）**：action=0，`00-podcast-source.md` 为 TTS 输入，成片以 WAV+SRT 为准  
+- [ ] **路径 B（例外）**：action=3，理由：________________________  
+
+确认人：________　日期：________
+
+---
+
+## 变更记录
+
+（按日期追加）
+
+<!-- source: features/_template/spec-content-pipeline.md -->
+
+---
+id: "<feature-id>"
+title: ""
+status: draft
+category: content-pipeline
+primary_repo_id: one-context
+owner: ""
+updated: ""
+# 口播路由（必填 — 见 knowledge/standards/content-pipeline-tts-routing.md）
+tts:
+  engine: volc-podcast-tts   # duo 时自动；solo 时路由到 doubao-dialogue-tts
+  mode: duo                  # solo（单人旁白）| duo（双人播客，默认）
+  action: 0                  # duo 专用，默认 0；仅逐字对白例外用 3；mode=solo 时忽略
+  authority: wav_srt         # wav_srt（默认）| script_verbatim（仅 action=3）
+  override_reason: ""        # action 不为 0 时必填一句理由，否则立项无效
+# 成片栈（二选一或组合）
+render:
+  stack: remotion-pipelines  # remotion-pipelines | html-video-from-slides
+---
+
+# 概述
+
+<!-- 背景、素材来源（URL/本地稿）、目标时长、受众 -->
+
+**口播（立项锁定）**：
+
+| 项 | duo（默认） | solo |
+|----|-------------|------|
+| TTS | `volc-podcast-tts` action=`0` | `doubao-dialogue-tts --mono` |
+| 输入文件 | `production/content/00-podcast-source.md` | `production/content/01-script.md`（逐字稿） |
+| 时间轴真源 | WAV + Whisper SRT；`01-script.md` 仅参考 | WAV + Whisper SRT |
+| 若 action=3 | 须在 `tts.override_reason` 说明，且 `review_record` 用户确认 | N/A（action 字段忽略） |
+
+# 目标与非目标
+
+## 目标
+
+- [ ] `00-podcast-source.md`（duo/action=0 输入）或 `01-script.md`（solo 输入）+ `00-structure.md`
+- [ ] TTS → `media/voiceover.wav`；duo: `video-input.json` 中 `podcastTts.action: 0`；solo: `doubao-dialogue-tts --mono`
+- [ ] Whisper `sub.srt` → **`srt-proofread`**
+- [ ] `timing/scene-boundaries.md`（话题分组，禁止逐条 SRT 一场景）
+- [ ] 成片 + `05-publish-kit.md`
+- [ ] `production/cover-prompt.md`（**走 `skills/cover-prompt`**，禁手写堆词）
+
+## 非目标
+
+- 未在 `tts.override_reason` 声明时，**不**使用 action=3 逐字念稿。
+- 不把 skill 名、制片 meta 写进观众可见画面。
+
+# 用户与场景
+
+# 验收标准
+
+- [ ] `tts.mode` 与实际使用的 TTS 引擎一致（duo→volc-podcast-tts / solo→doubao-dialogue-tts）。
+- [ ] `tts.action` 与 `production/timing/video-input.json` 的 `podcastTts.action` 一致（仅 duo）。
+- [ ] 口播含钩子 + 固定关注句（`knowledge/standards/video-voiceover-script-conventions.md`）。
+- [ ] Scene/翻页以 **SRT** 对齐，误差 ≤1s。
+- [ ] `production/cover-prompt.md` 走 `skills/cover-prompt` 出双版（横 4:3 + 竖 3:4），不手写堆词。
+
+# 实现落点（必填）
+
+- **仓库 id**：one-context
+- **内容目录**：`features/content-pipeline/<feature-id>/production/`
+- **成片 Skill**：`skills/remotion-pipelines/` 或 `skills/html-video-from-slides/`
+
+# 口播命令速查
+
+## duo 模式（默认 action=0）
+
+```bash
+# 推荐：与 VIDEO_PIPELINE 一致
+# production/timing/video-input.json → podcastTts.enabled + action: 0
+
+# 或直调 CLI（输入为 00-podcast-source.md，不是 01-script.md）
+python skills/volc-podcast-tts/cli.py --action 0 \
+  -i features/content-pipeline/<feature-id>/production/content/00-podcast-source.md \
+  -o features/content-pipeline/<feature-id>/production/media/voiceover.wav --format pcm
+```
+
+## solo 模式
+
+```bash
+# 输入为 01-script.md（逐字稿，纯文本，不带 男：/女： 前缀）
+python skills/doubao-dialogue-tts/cli.py --mono \
+  -i features/content-pipeline/<feature-id>/production/content/01-script.md \
+  -o features/content-pipeline/<feature-id>/production/media/voiceover.wav
+```
+
+# 关联
+
+# 开放问题
 
 <!-- source: features/_template/spec.md -->
 
@@ -1809,3 +2454,896 @@ updated: ""
 ## 说明
 
 勿在此文件存放密钥、token 或未脱敏的敏感客户信息。
+
+<!-- source: skills/skill-parallel-verify/SKILL.md -->
+
+---
+name: skill-parallel-verify
+type: quality-assurance
+description: 并行验证测试 Skill。用于 Skill 交付前的自动化一致性验证——3 个独立测试专家在干净上下文中执行被测 Skill，测试主管判定输出是否语义等价，不一致时自动驱动修复循环。与 skill-creator（开发阶段迭代+人工评审）互补，本 Skill 侧重交付前的自动化质量关卡。触发关键词：验证skill一致性、并行测试skill、skill交付验证。
+triggers:
+  - 验证skill
+  - 测试skill
+  - skill一致性
+  - 并行验证
+  - parallel verify
+  - skill交付验证
+author: 水猿
+version: 1.1.0
+tags:
+  - skill
+  - testing
+  - quality
+openclaw:
+  requires:
+    bins: []
+  install: []
+---
+
+# Skill Parallel Verify
+
+通过多角色并行测试机制，验证 Skill 的产出质量和一致性。核心思路：让 3 个独立的测试专家分别在干净上下文中执行同一个 Skill，然后由测试主管判定结果是否语义等价且符合验收标准。不一致时自动驱动修复循环。
+
+---
+
+## 触发条件
+
+当用户提到以下场景时使用：
+- "验证一下这个 skill" / "测试一下 skill 质量"
+- "做一下 skill 的一致性测试"
+- "并行验证 skill"
+- "我想确保这个 skill 每次运行结果都差不多"
+- 用户提供 test-case 文件要求测试
+
+---
+
+## 使用方法
+
+1. 准备 test-case YAML 文件（格式见下方）
+2. 调用：告诉 Claude "用 skill-parallel-verify 验证 `path/to/test-case.yaml`"
+3. 等待验证完成，查看最终报告
+
+---
+
+## Test Case 文件格式
+
+详细格式参考 `references/test-case-format.md`，模板见 `assets/test-case-template.yaml`。
+
+简要格式：
+
+```yaml
+skill_path: "skills/xxx/skill-name/SKILL.md"  # 被测 Skill 路径（必填）
+test_name: "测试名称"                                    # 测试名称（必填）
+acceptance_criteria: "验收标准描述"                       # 验收标准（可选）
+
+test_cases:
+  - id: tc-1
+    prompt: "用户输入的提示词"
+    description: "测试目的描述"  # 可选
+```
+
+---
+
+## 执行流程
+
+### Step 1: 解析与校验
+
+**操作**：读取并校验 test-case YAML 文件
+- 验证 skill_path 指向的 SKILL.md 存在
+- 验证 test_cases 非空
+- 验证必填字段完整
+
+**门控条件**：校验通过，否则报错退出
+
+### Step 2: 备份原始 Skill
+
+**操作**：将被测 Skill 文件备份到同目录的 `backups/` 下
+- 备份路径：`{skill所在目录}/backups/SKILL.md.bak`
+- 只备份一次，已有备份则跳过
+- 备份位置仅存放原始版本
+
+**门控条件**：备份完成
+
+### Step 3: 创建工作目录（或断点恢复）
+
+**操作**：确定工作目录路径并检查是否已有 `verification.json`
+
+**工作目录命名规则**：`tmp/verify-{skill-name}-{YYYYMMDD}/`
+- `{skill-name}`：从 skill_path 提取，如 `skills/html-deck-layout/SKILL.md` → `html-deck-layout`
+- `{YYYYMMDD}`：当天日期
+- 示例：`tmp/verify-html-deck-layout-20260419/`
+
+**如果是新启动**：
+- 创建 `tmp/verify-{skill-name}-{YYYYMMDD}/` 目录和 `verification.json` 状态文件
+- 初始化 verification.json（含 test_case_content 快照）
+
+> ⚠️ 工作目录说明：`tmp/` 是运行时产物目录，已在 `.gitignore` 中排除，不会被提交到 Git。
+
+**如果是断点恢复**（verification.json 存在且 status = "running"）：
+- 读取 verification.json，根据 last_checkpoint 判断断点位置
+- 从断点继续：跳过已完成的测试专家，继续未完成的部分
+- 向用户确认："检测到未完成的验证任务（{test_name}，第{N}轮），是否从断点恢复？"
+
+### Step 4: 启动测试专家（伪并行）
+
+**操作**：顺序启动 3 个 skill-tester subagent，每个在独立的干净上下文中：
+1. 读取被测 SKILL.md 的完整内容
+2. 按照用户提供的 prompt 执行被测 Skill
+3. 如实记录完整输出
+
+每个测试专家的 prompt 模板：
+
+```
+你是 skill 测试专家 {N}，你的任务是在干净的环境中独立测试一个 Skill。
+
+## 被测 Skill
+请先读取被测 Skill 文件：{skill_path}
+
+## 测试提示词
+{prompt}
+
+## 验收标准
+{acceptance_criteria}
+
+## 你的任务
+1. 读取被测 Skill 的完整内容
+2. 严格按照 Skill 的指令执行用户的测试提示词
+3. 记录你的完整输出结果
+
+## 重要约束
+- 你必须在独立上下文中执行，不要假设任何外部信息
+- 严格按照 Skill 的流程执行，不要自行添加或跳过步骤
+- 如实记录输出，不要根据"预期结果"调整你的输出
+- 输出你的完整执行结果
+```
+
+将每个测试专家的输出保存到 `.skill-parallel-verify/round-{N}/tester-{i}/output.md`
+
+### Step 5: 测试主管判定
+
+**操作**：使用 subagent 执行测试主管判定，评估 3 个测试专家的输出是否语义等价
+
+测试主管判定 prompt 模板：
+
+```
+你是测试主管，负责判定 3 个测试专家的输出是否语义等价。
+
+## 被测 Skill 路径
+{skill_path}
+
+## 验收标准
+{acceptance_criteria}
+
+## 3 个测试专家的输出
+{tester_results}
+
+## 判定规则（4 维度结构化判定）
+
+按以下 4 个维度逐一判定，每个维度给出 pass/fail：
+
+1. **功能完整性**：是否所有输出都完成了需求的核心功能？有任何输出缺少核心功能则 fail
+2. **输出类型一致**：输出的类型/格式是否相同（如都是 PPT、都是 markdown）？类型不同则 fail
+3. **关键属性匹配**：输出的关键属性是否一致（如风格、主题、约束条件）？关键属性不匹配则 fail
+4. **质量水平相当**：输出的质量水平是否在同一层级（如详细程度、专业度）？差异显著则 fail
+
+判定逻辑：
+- **verdict = "pass" 的充要条件**：semantic_equivalent = true 且 matches_acceptance = true（即四个维度全部 pass 且所有输出均符合验收标准）
+- 前三个维度（功能完整性、输出类型、关键属性）任一 fail → semantic_equivalent = false → verdict = "fail"
+- 前三个维度都 pass，但质量水平差异显著 → semantic_equivalent = false（标记为"轻微不一致"）→ verdict = "fail"
+- 四个维度全部 pass 但不符合验收标准 → matches_acceptance = false → verdict = "fail"
+
+判定示例：
+- 需求"商务风格PPT"：3 个都是商务风格 + 都有3页以上 → pass
+- 需求"商务风格PPT"：2 个商务风格 + 1 个科技风格 → fail（关键属性不匹配）
+- 需求"生成 API 文档"：3 个都生成了 API 文档，但 1 个缺少错误码 → fail（功能完整性缺失）
+
+## 验收标准检查
+每个输出是否都满足验收标准（独立于语义等价判定）
+
+## 输出格式（必须严格遵守）
+```json
+{
+  "semantic_equivalent": true/false,
+  "matches_acceptance": true/false,
+  "equivalence_dimensions": {
+    "functional_completeness": "pass/fail",
+    "output_type_consistency": "pass/fail",
+    "key_attribute_matching": "pass/fail",
+    "quality_level": "pass/fail"
+  },
+  "inconsistencies": "如果不一致，描述具体的差异",
+  "verdict": "pass/fail",
+  "failed_testers": ["tester-3"],
+  "failure_details": "每个失败测试专家的具体问题"
+}
+```
+```
+
+**门控条件**：
+- verdict = "pass" → 跳到 Step 7（生成通过报告）
+- verdict = "fail" → 继续 Step 6
+
+### Step 6: Skill 专家修复
+
+**操作**：启动 skill-expert subagent，分析不一致原因并修复被测 Skill
+
+Skill 专家修复 prompt 模板：
+
+```
+你是 Skill 专家，负责修复被测 Skill 存在的问题。
+
+## 被测 Skill 文件
+{skill_path}
+（请先 Read 该文件了解当前内容）
+
+## 测试主管的判定
+- 语义等价: {semantic_equivalent}
+- 符合验收标准: {matches_acceptance}
+- 不一致详情: {inconsistencies}
+- 失败的测试专家: {failed_testers}
+- 失败详情: {failure_details}
+
+## 失败测试专家的输出
+{failed_tester_outputs}
+
+## 成功测试专家的输出（作为参照）
+{succeeded_tester_outputs}
+
+## 你的任务
+1. 分析失败的测试专家与成功的测试专家的差异
+2. 定位 Skill 中导致不一致的根因
+3. 修改 Skill 文件，使所有测试专家都能产生一致且符合验收标准的输出
+4. 修改应最小化，只修改导致问题的部分
+
+## 重要约束
+- 原始 Skill 备份已保存在 backups/ 目录，你可以放心修改
+- 修改范围应最小化，不要大范围重写
+- 请直接修改 Skill 文件并说明修改了什么
+```
+
+修复完成后，更新 verification.json，回到 **Step 4** 重新测试。
+
+**轮次上限**：最多 10 轮，超过后跳到 Step 7 生成失败报告。
+
+### Step 7: 生成 HTML 报告
+
+**操作**：生成一份自包含的 HTML 报告文件，用户可在浏览器中打开，3 个测试专家的输出直接内联渲染在页面中，HTML 用 iframe 预览，文本用代码块展示，可选 2 面板对比视图，差异一目了然。
+
+**报告保存路径**：`.skill-parallel-verify/report.html`
+
+**设计原则**：
+- **Tab 切换**：3 个测试专家输出用 T1/T2/T3 标签页切换查看，非垂直堆叠
+- **文件引用**：HTML 类型输出用 `iframe src` 引用相对路径文件（`round-{N}/tester-{i}/output.html`），禁止用 `srcdoc`（大文件转义易出错且 display:none 时 iframe 不加载）。用 `data-src` + 懒加载：首次切换到该 tab 时才赋值 `iframe.src`
+- **缩放预览**：1920×1080 等 fixed-size 输出用 CSS `transform: scale()` 缩放适配容器宽度
+- **对比优先**：支持双面板并排对比，可选不同测试专家
+- **一眼判定**：暗色主题 + 渐变 + 动画，核心状态无需阅读文字即可感知
+- **完整展示**：测试专家输出不截断，方便人工逐条确认
+
+**HTML 报告模板**：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill 并行验证测试报告 - {test_name}</title>
+<style>
+/* ===== 设计令牌 ===== */
+:root {
+  --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-card: #1e293b;
+  --bg-card-hover: #334155; --bg-output: #0f172a; --bg-overlay: rgba(15,23,42,0.95);
+  --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+  --border: #334155; --border-focus: #475569;
+  --pass: #22c55e; --pass-bg: rgba(34,197,94,0.12); --pass-glow: rgba(34,197,94,0.3);
+  --fail: #ef4444; --fail-bg: rgba(239,68,68,0.12); --fail-glow: rgba(239,68,68,0.3);
+  --warn: #f59e0b; --warn-bg: rgba(245,158,11,0.12);
+  --accent: #6366f1; --accent-bg: rgba(99,102,241,0.12); --accent-glow: rgba(99,102,241,0.25);
+  --gradient-hero: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  --gradient-pass: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+  --gradient-fail: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  --radius: 10px; --radius-lg: 16px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3); --shadow-glow: 0 0 30px var(--accent-glow);
+  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "JetBrains Mono", "Cascadia Code", monospace;
+}
+/* ===== 重置 & 基础 ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-sans);background:var(--bg-primary);color:var(--text-primary);line-height:1.6;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+code{font-family:var(--font-mono);background:var(--bg-primary);padding:2px 6px;border-radius:4px;font-size:0.85em}
+pre{font-family:var(--font-mono);white-space:pre-wrap;word-wrap:break-word}
+
+/* ===== Hero 区域 ===== */
+.hero{background:var(--gradient-hero);padding:48px 32px 40px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.hero-content{position:relative;max-width:1400px;margin:0 auto}
+.hero h1{font-size:2rem;font-weight:800;letter-spacing:-0.02em;color:#fff;margin-bottom:4px}
+.hero .subtitle{color:rgba(255,255,255,0.7);font-size:1rem;margin-bottom:24px}
+
+/* 状态指示器 */
+.status-indicator{display:inline-flex;align-items:center;gap:12px;padding:10px 24px;border-radius:999px;font-weight:700;font-size:1.25rem;letter-spacing:0.05em;backdrop-filter:blur(12px)}
+.status-indicator.passed{background:rgba(34,197,94,0.2);border:1.5px solid rgba(34,197,94,0.5);color:#86efac;box-shadow:0 0 40px rgba(34,197,94,0.2)}
+.status-indicator.failed{background:rgba(239,68,68,0.2);border:1.5px solid rgba(239,68,68,0.5);color:#fca5a5;box-shadow:0 0 40px rgba(239,68,68,0.2)}
+.status-dot{width:12px;height:12px;border-radius:50%;animation:pulse 2s ease-in-out infinite}
+.status-indicator.passed .status-dot{background:var(--pass);box-shadow:0 0 12px var(--pass)}
+.status-indicator.failed .status-dot{background:var(--fail);box-shadow:0 0 12px var(--fail)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)}}
+
+/* ===== 指标卡片 ===== */
+.metrics{max-width:1400px;margin:-28px auto 0;padding:0 32px;position:relative;z-index:1}
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.metric-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;transition:transform var(--transition),box-shadow var(--transition)}
+.metric-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.metric-label{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:4px}
+.metric-value{font-size:1.4rem;font-weight:800;color:var(--text-primary)}
+
+/* ===== 容器 ===== */
+.container{max-width:1400px;margin:0 auto;padding:0 32px}
+
+/* ===== 轮次导航标签 ===== */
+.round-tabs{display:flex;gap:8px;margin:24px 0 16px;flex-wrap:wrap}
+.round-tab{padding:8px 20px;border-radius:999px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);transition:all var(--transition);user-select:none}
+.round-tab:hover{border-color:var(--accent);color:var(--text-primary)}
+.round-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 16px var(--accent-glow)}
+.round-tab .tab-verdict{margin-left:8px;font-size:0.75rem;padding:2px 8px;border-radius:999px}
+.round-tab .tab-verdict.pass{background:var(--pass-bg);color:var(--pass)}
+.round-tab .tab-verdict.fail{background:var(--fail-bg);color:var(--fail)}
+
+/* ===== 轮次面板 ===== */
+.round-panel{display:none;animation:fadeIn 0.3s ease}
+.round-panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== 4 维度判定区域 ===== */
+.verdict-section{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px}
+.verdict-section h3{font-size:1rem;margin-bottom:16px;color:var(--text-primary);display:flex;align-items:center;gap:8px}
+.verdict-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+@media(max-width:900px){.verdict-grid{grid-template-columns:1fr}}
+
+/* 维度进度条 */
+.dim-bars{display:flex;flex-direction:column;gap:14px}
+.dim-bar-item{display:flex;flex-direction:column;gap:4px}
+.dim-bar-label{display:flex;justify-content:space-between;align-items:center;font-size:0.85rem}
+.dim-bar-label span:first-child{color:var(--text-secondary)}
+.dim-bar-label .dim-status{font-weight:700;font-size:0.8rem;padding:2px 8px;border-radius:4px}
+.dim-bar-label .dim-status.pass{background:var(--pass-bg);color:var(--pass)}
+.dim-bar-label .dim-status.fail{background:var(--fail-bg);color:var(--fail)}
+.dim-bar-track{height:8px;background:var(--bg-primary);border-radius:4px;overflow:hidden}
+.dim-bar-fill{height:100%;border-radius:4px;transition:width 0.8s cubic-bezier(0.25,0.46,0.45,0.94)}
+.dim-bar-fill.pass{background:var(--gradient-pass)}
+.dim-bar-fill.fail{background:var(--gradient-fail)}
+
+/* 不一致 & 修复信息 */
+.verdict-details{display:flex;flex-direction:column;gap:16px}
+.verdict-info-card{background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.verdict-info-card h4{font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:8px}
+.verdict-info-card p{font-size:0.9rem;color:var(--text-secondary);line-height:1.7;white-space:pre-wrap}
+
+/* ===== 输出区域（Tab 切换） ===== */
+.output-header-section{display:flex;align-items:center;justify-content:space-between;margin:24px 0 16px;flex-wrap:wrap;gap:12px}
+.output-header-section h3{font-size:1rem;color:var(--text-primary)}
+.gallery-btn{padding:6px 14px;border-radius:6px;font-size:0.8rem;font-weight:600;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer;transition:all var(--transition)}
+.gallery-btn:hover{border-color:var(--accent);color:var(--text-primary);background:var(--accent-bg)}
+
+/* 测试专家 Tab 切换 */
+.tester-tabs{display:flex;gap:6px;margin-bottom:16px}
+.tester-tab{padding:10px 24px;border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);transition:all var(--transition);user-select:none;display:flex;align-items:center;gap:10px}
+.tester-tab:hover{border-color:var(--accent);color:var(--text-primary)}
+.tester-tab.active{background:var(--accent-bg);border-color:var(--accent);color:var(--text-primary);box-shadow:0 0 20px var(--accent-glow)}
+.tester-tab .tid{background:var(--accent);color:#fff;padding:2px 10px;border-radius:6px;font-size:0.8rem}
+.tester-tab .tstatus{font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px}
+.tester-tab .tstatus.pass{background:var(--pass-bg);color:var(--pass)}
+.tester-tab .tstatus.fail{background:var(--fail-bg);color:var(--fail)}
+
+.tester-panel{display:none;animation:fadeIn 0.25s ease}
+.tester-panel.active{display:block}
+
+/* iframe 缩放预览 */
+.preview-frame-wrapper{position:relative;width:100%;background:#000;border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--border)}
+.preview-frame-scaler{width:1920px;height:1080px;transform-origin:top left;pointer-events:auto}
+.preview-frame-scaler iframe{width:1920px;height:1080px;border:none;background:#fff}
+/* TEXT 类型输出 */
+.text-output{min-height:200px;max-height:600px;overflow:auto;background:var(--bg-primary);padding:16px}
+.text-output pre{margin:0;background:var(--bg-output);color:var(--text-secondary);font-family:var(--font-mono);font-size:0.85rem;line-height:1.7;word-wrap:break-word;white-space:pre-wrap}
+
+/* ===== 对比模式 Overlay ===== */
+.compare-overlay{display:none;position:fixed;inset:0;background:var(--bg-overlay);z-index:1000;backdrop-filter:blur(8px)}
+.compare-overlay.active{display:flex;flex-direction:column}
+
+.compare-overlay-toolbar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);background:var(--bg-primary)}
+.compare-overlay-title{font-weight:700;font-size:1rem;color:var(--text-primary)}
+.compare-overlay-actions{display:flex;gap:8px}
+.preview-btn{padding:8px 16px;border-radius:6px;font-size:0.85rem;font-weight:600;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer;transition:all var(--transition)}
+.preview-btn:hover{border-color:var(--accent);color:var(--text-primary);background:var(--accent-bg)}
+.preview-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.preview-btn.primary:hover{opacity:0.9}
+
+.compare-overlay-content{flex:1;display:flex;overflow:hidden}
+
+/* ===== 双面板对比视图 ===== */
+.compare-view{display:none;flex-direction:column;height:calc(100vh - 73px)}
+.compare-view.active{display:flex}
+.compare-toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg-primary)}
+.compare-panels{display:flex;flex:1;overflow:hidden}
+.compare-panel{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.compare-panel:last-child{border-right:none}
+
+.compare-panel-header{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-secondary);display:flex;align-items:center;gap:8px}
+.compare-panel-selector{flex:1;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);font-size:0.85rem;cursor:pointer}
+.compare-panel-status{font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px}
+.compare-panel-status.pass{background:var(--pass-bg);color:var(--pass)}
+.compare-panel-status.fail{background:var(--fail-bg);color:var(--fail)}
+
+.compare-panel-content{flex:1;overflow:auto;padding:16px;background:var(--bg-primary)}
+.compare-panel-content pre{margin:0;padding:16px;background:var(--bg-output);color:var(--text-secondary);font-family:var(--font-mono);font-size:0.85rem;line-height:1.7;border-radius:var(--radius);white-space:pre-wrap;word-wrap:break-word}
+.compare-panel-content iframe{width:100%;min-height:100%;border:none;background:#fff;border-radius:var(--radius)}
+
+/* 同步滚动开关 */
+.sync-scroll-toggle{display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text-secondary);cursor:pointer;user-select:none}
+.sync-scroll-toggle input{accent-color:var(--accent);width:14px;height:14px}
+
+/* ===== 时间线 ===== */
+.timeline-section{margin-top:32px}
+.timeline-section h3{font-size:1rem;margin-bottom:16px;color:var(--text-primary)}
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:"";position:absolute;left:9px;top:4px;bottom:4px;width:2px;background:var(--border);border-radius:1px}
+.tl-item{position:relative;margin-bottom:20px}
+.tl-item::before{content:"";position:absolute;left:-23px;top:6px;width:12px;height:12px;border-radius:50%;border:2.5px solid var(--pass);background:var(--bg-primary);z-index:1}
+.tl-item.fail::before{border-color:var(--fail)}
+.tl-item .tl-time{font-size:0.75rem;color:var(--text-muted);margin-bottom:2px}
+.tl-item .tl-title{font-weight:700;font-size:0.95rem;margin-bottom:4px}
+.tl-item .tl-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tl-dim{font-size:0.7rem;padding:2px 8px;border-radius:4px;font-weight:600}
+.tl-dim.pass{background:var(--pass-bg);color:var(--pass)}
+.tl-dim.fail{background:var(--fail-bg);color:var(--fail)}
+.tl-fix{margin-top:8px;font-size:0.85rem;color:var(--text-secondary);padding:8px 12px;background:var(--accent-bg);border-radius:6px;border-left:3px solid var(--accent)}
+
+/* ===== 页脚 ===== */
+.footer{margin-top:48px;padding:20px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:0.8rem;color:var(--text-muted)}
+.footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- ===== Hero ===== -->
+<section class="hero">
+  <div class="hero-content">
+    <h1>Skill 并行验证测试报告</h1>
+    <p class="subtitle">{test_name}</p>
+    <div class="status-indicator {passed/failed}">
+      <span class="status-dot"></span>
+      {PASSED/FAILED}
+    </div>
+  </div>
+</section>
+
+<!-- ===== 指标卡片 ===== -->
+<section class="metrics">
+  <div class="metrics-grid">
+    <div class="metric-card"><div class="metric-label">被测 Skill</div><div class="metric-value" style="font-size:0.85rem;word-break:break-all">{skill_path}</div></div>
+    <div class="metric-card"><div class="metric-label">验证结果</div><div class="metric-value" style="color:{var(--pass)/var(--fail)}">{PASSED/FAILED}</div></div>
+    <div class="metric-card"><div class="metric-label">通过轮次</div><div class="metric-value">{pass_round}</div></div>
+    <div class="metric-card"><div class="metric-label">总轮次</div><div class="metric-value">{total_rounds}</div></div>
+    <div class="metric-card"><div class="metric-label">备份位置</div><div class="metric-value" style="font-size:0.75rem;word-break:break-all">{backup_path}</div></div>
+  </div>
+</section>
+
+<div class="container">
+
+<!-- ===== 轮次导航 ===== -->
+<h2 style="font-size:1rem;margin:28px 0 0;color:var(--text-primary)">轮次详情</h2>
+<div class="round-tabs">
+  <!-- 每轮一个标签 -->
+  <div class="round-tab {active}" onclick="switchRound({N})" data-round="{N}">
+    第 {N} 轮
+    <span class="tab-verdict {pass/fail}">{pass/fail}</span>
+  </div>
+</div>
+
+<!-- ===== 各轮面板 ===== -->
+<!-- 每轮一个 round-panel -->
+<div class="round-panel {active}" id="round-{N}">
+
+  <!-- 4 维度判定 -->
+  <div class="verdict-section">
+    <h3>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
+      测试主管判定
+    </h3>
+    <div class="verdict-grid">
+      <!-- 左：维度进度条 -->
+      <div class="dim-bars">
+        <div class="dim-bar-item">
+          <div class="dim-bar-label"><span>功能完整性</span><span class="dim-status {pass/fail}">{PASS/FAIL}</span></div>
+          <div class="dim-bar-track"><div class="dim-bar-fill {pass/fail}" style="width:{100/0}%"></div></div>
+        </div>
+        <div class="dim-bar-item">
+          <div class="dim-bar-label"><span>输出类型一致</span><span class="dim-status {pass/fail}">{PASS/FAIL}</span></div>
+          <div class="dim-bar-track"><div class="dim-bar-fill {pass/fail}" style="width:{100/0}%"></div></div>
+        </div>
+        <div class="dim-bar-item">
+          <div class="dim-bar-label"><span>关键属性匹配</span><span class="dim-status {pass/fail}">{PASS/FAIL}</span></div>
+          <div class="dim-bar-track"><div class="dim-bar-fill {pass/fail}" style="width:{100/0}%"></div></div>
+        </div>
+        <div class="dim-bar-item">
+          <div class="dim-bar-label"><span>质量水平相当</span><span class="dim-status {pass/fail}">{PASS/FAIL}</span></div>
+          <div class="dim-bar-track"><div class="dim-bar-fill {pass/fail}" style="width:{100/0}%"></div></div>
+        </div>
+      </div>
+      <!-- 右：不一致详情 + 修复说明 -->
+      <div class="verdict-details">
+        <div class="verdict-info-card">
+          <h4>不一致详情</h4>
+          <p>{inconsistencies}</p>
+        </div>
+        <!-- 若有修复 -->
+        <div class="verdict-info-card">
+          <h4>修复说明</h4>
+          <p>{fix_description}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 测试专家输出区域（Tab 切换） -->
+  <div class="output-header-section">
+    <h3>测试专家输出</h3>
+    <button class="gallery-btn" onclick="enterCompareMode({N})">对比模式</button>
+  </div>
+
+  <!-- T1/T2/T3 切换 Tabs -->
+  <div class="tester-tabs">
+    <div class="tester-tab active" onclick="switchTester(1)" data-tester="1">
+      <span class="tid">T1</span> 测试专家 1 <span class="tstatus {pass/fail}">{status}</span>
+    </div>
+    <div class="tester-tab" onclick="switchTester(2)" data-tester="2">
+      <span class="tid">T2</span> 测试专家 2 <span class="tstatus {pass/fail}">{status}</span>
+    </div>
+    <div class="tester-tab" onclick="switchTester(3)" data-tester="3">
+      <span class="tid">T3</span> 测试专家 3 <span class="tstatus {pass/fail}">{status}</span>
+    </div>
+  </div>
+
+  <!-- T1 预览 -->
+  <div class="tester-panel active" id="tester-panel-1">
+    <!-- HTML 类型：<iframe data-src="round-{N}/tester-1/output.html" src="round-{N}/tester-1/output.html">（首 tab 直接加载） -->
+    <!-- TEXT 类型：<div class="text-output"><pre>{content}</pre></div> -->
+  </div>
+
+  <!-- T2 预览 -->
+  <div class="tester-panel" id="tester-panel-2">
+    <!-- HTML 类型：<iframe data-src="round-{N}/tester-2/output.html">（懒加载，切换时设 src） -->
+    <!-- TEXT 类型：<div class="text-output"><pre>{content}</pre></div> -->
+  </div>
+
+  <!-- T3 预览 -->
+  <div class="tester-panel" id="tester-panel-3">
+    <!-- HTML 类型：<iframe data-src="round-{N}/tester-3/output.html">（懒加载，切换时设 src） -->
+    <!-- TEXT 类型：<div class="text-output"><pre>{content}</pre></div> -->
+  </div>
+
+</div>
+
+<!-- ===== 对比模式 Overlay ===== -->
+<div class="compare-overlay" id="compare-overlay">
+  <div class="compare-overlay-toolbar">
+    <span class="compare-overlay-title">对比视图</span>
+    <div class="compare-overlay-actions">
+      <label class="sync-scroll-toggle">
+        <input type="checkbox" id="sync-scroll-checkbox" checked>
+        同步滚动
+      </label>
+      <button class="preview-btn" onclick="closeCompare()">关闭</button>
+    </div>
+  </div>
+
+  <!-- 对比视图 -->
+  <div class="compare-view" id="compare-view">
+    <div class="compare-toolbar">
+      <span style="font-size:0.85rem;color:var(--text-muted)">对比两台测试专家的输出</span>
+    </div>
+    <div class="compare-panels">
+      <div class="compare-panel">
+        <div class="compare-panel-header">
+          <select class="compare-panel-selector" id="compare-left-selector" onchange="updateComparePanel('left', this.value)">
+            <option value="1">测试专家 1</option>
+            <option value="2">测试专家 2</option>
+            <option value="3">测试专家 3</option>
+          </select>
+          <span class="compare-panel-status" id="compare-left-status">{status}</span>
+        </div>
+        <div class="compare-panel-content" id="compare-left-content" data-sync-scroll="compare">
+          <!-- 内容动态填充 -->
+        </div>
+      </div>
+      <div class="compare-panel">
+        <div class="compare-panel-header">
+          <select class="compare-panel-selector" id="compare-right-selector" onchange="updateComparePanel('right', this.value)">
+            <option value="1">测试专家 1</option>
+            <option value="2" selected>测试专家 2</option>
+            <option value="3">测试专家 3</option>
+          </select>
+          <span class="compare-panel-status" id="compare-right-status">{status}</span>
+        </div>
+        <div class="compare-panel-content" id="compare-right-content" data-sync-scroll="compare">
+          <!-- 内容动态填充 -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 测试过程时间线 ===== -->
+<div class="timeline-section">
+  <h3>测试过程</h3>
+  <div class="timeline">
+    <!-- 每轮一个时间线节点 -->
+    <div class="tl-item {pass/fail}">
+      <div class="tl-time">{started_at} - {completed_at}</div>
+      <div class="tl-title">第 {N} 轮</div>
+      <div class="tl-tags">
+        <span class="tl-dim {pass/fail}">功能完整性:{pass/fail}</span>
+        <span class="tl-dim {pass/fail}">输出类型:{pass/fail}</span>
+        <span class="tl-dim {pass/fail}">关键属性:{pass/fail}</span>
+        <span class="tl-dim {pass/fail}">质量水平:{pass/fail}</span>
+      </div>
+      <!-- 若 fail -->
+      <div class="tl-fix">修复：{修复说明}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 页脚 ===== -->
+<div class="footer">
+  <span>报告生成时间：{generated_at} | skill-parallel-verify v1.1.0</span>
+  <span>备份：<code>{backup_path}</code></span>
+</div>
+
+</div><!-- /.container -->
+
+<!-- ===== 交互脚本 ===== -->
+<script>
+// 测试专家文件路径映射
+const testerSrc = {
+  1: 'round-{N}/tester-1/output.html',
+  2: 'round-{N}/tester-2/output.html',
+  3: 'round-{N}/tester-3/output.html'
+};
+
+// 轮次切换
+function switchRound(n) {
+  document.querySelectorAll('.round-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.round-panel').forEach(p => p.classList.remove('active'));
+  const tab = document.querySelector('.round-tab[data-round="'+n+'"]');
+  if (tab) tab.classList.add('active');
+  const panel = document.getElementById('round-'+n);
+  if (panel) panel.classList.add('active');
+}
+
+// 测试专家 Tab 切换（懒加载 iframe）
+function switchTester(n) {
+  document.querySelectorAll('.tester-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tester-panel').forEach(p => p.classList.remove('active'));
+  const tab = document.querySelector('.tester-tab[data-tester="'+n+'"]');
+  if (tab) tab.classList.add('active');
+  const panel = document.getElementById('tester-panel-'+n);
+  if (panel) panel.classList.add('active');
+  // 懒加载：首次激活时设置 iframe src
+  const iframe = panel ? panel.querySelector('iframe') : null;
+  if (iframe && !iframe.src && iframe.dataset.src) {
+    iframe.src = iframe.dataset.src;
+  }
+  rescaleIframes();
+}
+
+// iframe 缩放适配容器宽度（适用于 1920x1080 fixed-size 输出）
+function rescaleIframes() {
+  [1,2,3].forEach(n => {
+    const scaler = document.getElementById('scaler-'+n);
+    if (!scaler) return;
+    const wrapper = scaler.parentElement;
+    const w = wrapper.clientWidth;
+    if (!w) return;
+    const scale = w / 1920;
+    scaler.style.transform = 'scale(' + scale + ')';
+    wrapper.style.height = (1080 * scale) + 'px';
+  });
+}
+
+// 进入对比模式
+function enterCompareMode(round) {
+  isCompareMode = true;
+  document.getElementById('compare-left-selector').value = '1';
+  document.getElementById('compare-right-selector').value = '2';
+  updateComparePanel('left', '1');
+  updateComparePanel('right', '2');
+  document.getElementById('compare-overlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+// 关闭对比模式
+function closeCompare() {
+  isCompareMode = false;
+  document.getElementById('compare-overlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// 更新对比面板
+function updateComparePanel(side, testerId) {
+  const container = document.getElementById('compare-'+side+'-content');
+  const src = testerSrc[testerId];
+  if (!src) return;
+  const w = container.clientWidth || 700;
+  const scale = w / 1920;
+  container.innerHTML =
+    '<div class="preview-frame-wrapper" style="flex:1">' +
+    '<div class="preview-frame-scaler" style="transform:scale('+scale+')">' +
+    '<iframe src="'+src+'" style="width:1920px;height:1080px;border:none"></iframe>' +
+    '</div></div>';
+  const wrapper = container.querySelector('.preview-frame-wrapper');
+  if (wrapper) wrapper.style.height = (1080 * scale) + 'px';
+  const statusEl = document.getElementById('compare-'+side+'-status');
+  // status 在生成时填充
+}
+
+let isCompareMode = false;
+
+// ESC 关闭对比
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && isCompareMode) closeCompare();
+});
+
+// 窗口 resize 重算缩放
+window.addEventListener('resize', function() {
+  rescaleIframes();
+  if (isCompareMode) {
+    var leftId = document.getElementById('compare-left-selector').value;
+    var rightId = document.getElementById('compare-right-selector').value;
+    updateComparePanel('left', leftId);
+    updateComparePanel('right', rightId);
+  }
+});
+
+// 页面加载时缩放首 tab 的 iframe
+window.addEventListener('load', function() {
+  rescaleIframes();
+});
+</script>
+
+</body>
+</html>
+```
+
+**HTML 生成规则**：
+1. 所有 CSS/JS 内联，零外部依赖，单文件可在浏览器打开
+2. **直接内联渲染**：3 个测试专家输出直接在页面中渲染，HTML 用 iframe srcdoc，文本用 pre 代码块
+3. **2 面板对比**：点击"对比"按钮进入全屏对比视图，选择两个测试专家并排对比
+4. **4 维度进度条**：可视化展示判定结果，pass 全绿 / fail 红色渐变
+5. 每轮测试专家输出**完整展示**，不截断摘要
+6. 最后一轮默认激活（tab active），其余轮次通过标签切换
+7. 失败测试专家的输出区域边框高亮为红色
+8. 暗色主题，渐变 + 动画，核心状态无需阅读文字即可感知
+9. 替换所有 `{占位符}` 为实际数据，移除注释占位行
+10. `round-tab` 的 `onclick` 参数和 `data-round` 属性需用实际轮次数字替换
+
+**同时生成 markdown 报告**：在 `verification.json` 同目录下生成 `final-report.md`（简版），供 Git 提交和 Dima 同步使用。
+
+---
+
+## Quick Reference
+
+| 步骤 | 操作 | 门控条件 |
+|------|------|---------|
+| 1 | 解析与校验 test-case YAML | 校验通过 |
+| 2 | 备份原始 Skill 到 backups/ | 备份完成 |
+| 3 | 创建工作目录（或断点恢复） | 就绪 |
+| 4 | 顺序启动 3 个测试专家 | 3 份输出收集完成（成功数 >= 2） |
+| 5 | 测试主管判定（4 维度框架） | 判定结果为 pass/fail |
+| 6 | Skill 专家修复（fail 时） | 修复完成，回到步骤 4 |
+| 7 | 生成 HTML 报告 + markdown 简报 | 报告输出完毕 |
+
+---
+
+## 错误处理
+
+| 错误 | 处理策略 |
+|------|---------|
+| test-case 文件不存在 | 报错退出，提示用户检查文件路径 |
+| skill_path 指向的 SKILL.md 不存在 | 报错退出，提示用户检查被测 Skill 路径 |
+| test-case YAML 格式错误 | 报错退出，提示具体格式错误 |
+| 测试专家 subagent 超时/崩溃 | 标记为 timeout/crash，使用已有成功结果继续判定；成功数 < 2 则本轮 fail |
+| 测试专家输出为空 | 标记为 empty_output，视为不一致，进入修复循环 |
+| 测试主管 subagent 失败 | 重试一次，仍失败则在主会话中内联判定 |
+| Skill 专家 subagent 失败 | 重试一次，仍失败则标记 fix_failed，进入下轮测试 |
+| 连续 3 轮 fix_failed | 提前中止，生成失败报告（备注：Skill 专家持续失败） |
+| 修复超过 10 轮 | 生成失败报告，提示用户可从 backups/ 恢复 |
+| 中断后恢复 | 检测 verification.json 断点，从断点继续（见 Step 3） |
+
+<!-- source: skills/skill-parallel-verify/references/test-case-format.md -->
+
+# Test Case 文件格式说明
+
+## 概述
+
+Test Case 文件是 YAML 格式，用于定义 skill-parallel-verify 的测试参数。
+
+## 字段定义
+
+### 必填字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `skill_path` | string | 被测 Skill 的 SKILL.md 文件路径（相对项目根目录） |
+| `test_name` | string | 测试名称，用于报告标题 |
+| `test_cases` | array | 测试用例列表，至少包含 1 个用例 |
+
+### 可选字段
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `acceptance_criteria` | string | 使用 prompt 本身 | 验收标准描述，测试主管据此判定输出是否合格 |
+| `description` | string | 空 | 测试目的的整体描述 |
+
+### test_cases 数组元素字段
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | string | 是 | 测试用例唯一标识（如 tc-1） |
+| `prompt` | string | 是 | 模拟用户调用被测 Skill 的输入提示词 |
+| `description` | string | 否 | 测试用例的目的描述 |
+
+## 当前限制
+
+- 当前版本仅使用 `test_cases[0]`（第一个测试用例）执行并行验证
+- 多测试用例支持将在后续版本实现
+
+## 格式规范
+
+```yaml
+# skill-parallel-verify test-case format v1
+
+# ===== 必填字段 =====
+skill_path: ".claude/skills/xxx/skill-name/SKILL.md"
+test_name: "测试名称"
+
+# ===== 可选字段 =====
+acceptance_criteria: "验收标准描述"
+description: "测试目的的整体描述"
+
+# ===== 测试用例 =====
+test_cases:
+  - id: tc-1
+    prompt: "用户输入的提示词"
+    description: "测试目的描述"
+```
+
+## 示例
+
+### 示例 1：html-ppt Skill 商务风格测试
+
+```yaml
+skill_path: ".claude/skills/code-scaffolding-templates/html-ppt/SKILL.md"
+test_name: "html-ppt Skill 商务风格测试"
+acceptance_criteria: "生成的 PPT 应为商务风格，包含标题页和至少 3 页内容"
+
+test_cases:
+  - id: tc-1
+    prompt: "帮我做一个商务风格的PPT，主题是2026年Q1季度营收汇报"
+    description: "测试商务风格PPT生成能力"
+```
+
+### 示例 2：知识库导入 Skill 测试
+
+```yaml
+skill_path: ".claude/skills/runbooks/kb-lint/SKILL.md"
+test_name: "kb-lint Skill 检查能力测试"
+acceptance_criteria: "能正确识别知识库文档中的格式问题，输出结构化的检查报告"
+
+test_cases:
+  - id: tc-1
+    prompt: "检查 knowledge/external/opencli/ 目录下的文档格式"
+    description: "测试知识库文档格式检查能力"
+```

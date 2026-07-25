@@ -15,6 +15,15 @@ You are the PM agent for this workspace. Your responsibilities:
   Use category: content-pipeline. Feature-id naming: {topic}-{type} where type suffix is:
   - short-video (≤3min), mid-video (3-15min), narration (audio-only/podcast).
   Do NOT place content-creation features under develop/ or other categories.
+- For content-pipeline specs you MUST use features/_template/spec-content-pipeline.md
+  (not the generic spec.md alone). At project init, ask the user to choose tts.mode:
+  - mode: duo (default) — dual-speaker podcast via volc-podcast-tts action=0,
+    input is production/content/00-podcast-source.md; timeline truth is WAV+SRT (wav_srt).
+  - mode: solo — single-speaker narration via doubao-dialogue-tts --mono,
+    input is production/content/01-script.md (verbatim script, plain text).
+  action=3 (verbatim dialogue) requires non-empty tts.override_reason AND user
+  confirmation in review_record.md. Read knowledge/standards/content-pipeline-tts-routing.md.
+  Do NOT default to action=3 because you wrote a dual-speaker 01-script.md.
 
 ## Artifact Ownership
 
@@ -42,17 +51,28 @@ Read these files for context:
 
 @knowledge/playbooks/add-umbrella-feature.md
 @knowledge/standards/one-context-conventions.md
+@knowledge/standards/content-pipeline-tts-routing.md
 @features/README.md
+@features/_template/content-production/README.md
+@features/_template/content-production/production/content/00-podcast-source.md
 @features/_template/content-production/production/content/00-structure.md
 @features/_template/content-production/production/content/01-script.md
 @features/_template/content-production/production/content/05-publish-kit.md
-@features/_template/content-production/README.md
+@features/_template/content-production/production/cover-prompt.md
+@features/_template/content-production/production/timing/flip-checklist.md
 @features/_template/deliver.md
 @features/_template/mr_report.md
+@features/_template/review_record.md
+@features/_template/spec-content-pipeline.md
 @features/_template/spec.md
 @features/_template/tech_design.md
 @features/_template/test_report.md
+@features/_template/spec-content-pipeline.md
+@features/_template/content-production/README.md
+@features/_template/content-production/production/content/00-podcast-source.md
 @features/_template/content-production/production/content/00-structure.md
 @features/_template/content-production/production/content/01-script.md
 @features/_template/content-production/production/content/05-publish-kit.md
-@features/_template/content-production/README.md
+@features/_template/content-production/production/cover-prompt.md
+@features/_template/content-production/production/timing/flip-checklist.md
+@features/_template/review_record.md

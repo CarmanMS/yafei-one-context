@@ -15,6 +15,99 @@ from typing import Any
 import yaml
 
 
+# ---------------------------------------------------------------------------
+# Runtime install / uninstall helpers for Claude Code Skill tool
+# ---------------------------------------------------------------------------
+
+@dataclass
+class InstallResult:
+    """Outcome of a batch skill install operation."""
+
+    installed: list[str]
+    skipped: list[str]
+    errors: list[str]
+
+
+@dataclass
+class UninstallResult:
+    """Outcome of a batch skill uninstall operation."""
+
+    removed: list[str]
+    skipped: list[str]
+
+
+def _claude_skills_home() -> Path:
+    """Return the Claude Code runtime skills directory."""
+    return Path.home() / ".claude" / "skills"
+
+
+def install_skills(root: Path, names: list[str]) -> InstallResult:
+    """Copy project ``skills/<name>/SKILL.md`` into ``~/.claude/skills/<name>/``.
+
+    Only copies when the target does not already exist; existing files are
+    reported as *skipped* so callers can decide whether to force overwrite.
+    """
+    installed: list[str] = []
+    skipped: list[str] = []
+    errors: list[str] = []
+    dest_root = _claude_skills_home()
+
+    for name in names:
+        src = root / "skills" / name / "SKILL.md"
+        if not src.is_file():
+            errors.append(f"{name}: not found in skills/{name}/SKILL.md")
+            continue
+
+        dest_dir = dest_root / name
+        dest = dest_dir / "SKILL.md"
+        if dest.is_file():
+            skipped.append(name)
+            continue
+
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+        installed.append(name)
+
+    return InstallResult(installed=installed, skipped=skipped, errors=errors)
+
+
+def uninstall_skills(names: list[str]) -> UninstallResult:
+    """Remove ``~/.claude/skills/<name>/`` directories.
+
+    Directories that do not exist are reported as *skipped*.
+    """
+    import shutil
+
+    removed: list[str] = []
+    skipped: list[str] = []
+    dest_root = _claude_skills_home()
+
+    for name in names:
+        dest_dir = dest_root / name
+        if not dest_dir.exists():
+            skipped.append(name)
+            continue
+
+        shutil.rmtree(dest_dir)
+        removed.append(name)
+
+    return UninstallResult(removed=removed, skipped=skipped)
+
+
+def list_skills_install_status(root: Path) -> dict[str, Any]:
+    """Return project skills and their Claude Code runtime installation status."""
+    project = [s.dir_name for s in discover_skills(root)]
+    dest_root = _claude_skills_home()
+    installed = sorted(
+        d.name for d in dest_root.iterdir() if d.is_dir()
+    ) if dest_root.is_dir() else []
+    return {"project": project, "installed": installed}
+
+
+# ---------------------------------------------------------------------------
+# SkillMeta & parsing
+# ---------------------------------------------------------------------------
+
 @dataclass(frozen=True)
 class SkillMeta:
     """Parsed representation of a single ``SKILL.md``.
@@ -144,3 +237,30 @@ def strip_frontmatter(text: str) -> str:
     if end == -1:
         return text
     return text[end + 3 :].strip()
+
+
+def resolve_skill_body(root: Path, skill: SkillMeta) -> str:
+    """Return the body of a skill, reading from disk when possible.
+
+    Adapters that need to *inline* skill content should use this helper
+    instead of manually reading ``skills/<name>/SKILL.md`` and stripping
+    frontmatter.  It centralises the fallback logic (disk → cached meta)
+    and guarantees identical behaviour across all adapters.
+
+    Parameters
+    ----------
+    root:
+        Project root (containing ``skills/``).
+    skill:
+        Parsed metadata from ``discover_skills``.
+
+    Returns
+    -------
+    str
+        Frontmatter-stripped SKILL.md body.
+    """
+    skill_path = root / skill.source_path
+    if skill_path.is_file():
+        return strip_frontmatter(skill_path.read_text(encoding="utf-8"))
+    # Fallback to the already-parsed body stored in SkillMeta
+    return skill.body

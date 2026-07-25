@@ -21,6 +21,15 @@ You are the PM agent for this workspace. Your responsibilities:
   Use category: content-pipeline. Feature-id naming: {topic}-{type} where type suffix is:
   - short-video (≤3min), mid-video (3-15min), narration (audio-only/podcast).
   Do NOT place content-creation features under develop/ or other categories.
+- For content-pipeline specs you MUST use features/_template/spec-content-pipeline.md
+  (not the generic spec.md alone). At project init, ask the user to choose tts.mode:
+  - mode: duo (default) — dual-speaker podcast via volc-podcast-tts action=0,
+    input is production/content/00-podcast-source.md; timeline truth is WAV+SRT (wav_srt).
+  - mode: solo — single-speaker narration via doubao-dialogue-tts --mono,
+    input is production/content/01-script.md (verbatim script, plain text).
+  action=3 (verbatim dialogue) requires non-empty tts.override_reason AND user
+  confirmation in review_record.md. Read knowledge/standards/content-pipeline-tts-routing.md.
+  Do NOT default to action=3 because you wrote a dual-speaker 01-script.md.
 
 ## Artifact Ownership
 
@@ -60,9 +69,15 @@ Verification steps are optional — focus on the design and rationale.
 1. 打开 `features/INDEX.md`，新增一行：`id`、标题、`category`、`status`（如 `draft`）、`path`、`primary_repo_id`（可选）。
 2. 创建目录 `features/<category>/<feature-id>/`，名称与索引一致。
 3. 复制 `features/_template/*.md` 到该目录。
-4. 编辑 `spec.md`：填写 YAML frontmatter，并 **必须** 完成「实现落点」一节（`repos.yaml` 的仓库 id、分支或 PR）。
-5. 随进度补充 `tech_design.md`、`test_report.md`、`mr_report.md`、`deliver.md`；不需要时可暂不创建非 `spec` 文件，但索引与 spec 应保持同步。
-6. 需求结束或搁置时，更新 `INDEX.md` 的 `status`，必要时在 `spec.md` 中注明归档原因。
+4. **`category: content-pipeline` 时额外**：
+   - 复制 `features/_template/content-production/` → `<feature-id>/production/`
+   - 用 **`features/_template/spec-content-pipeline.md`** 作 `spec.md` 骨架（含 `tts.action: 0` 默认）
+   - 复制 `production/timing/video-input.example.json` → `video-input.json`
+   - 创建 `review_record.md`（自 `features/_template/review_record.md`），立项时勾选 TTS 路径 A
+   - 阅读 **`knowledge/standards/content-pipeline-tts-routing.md`**
+5. 编辑 `spec.md`：填写 YAML frontmatter，并 **必须** 完成「实现落点」一节（`repos.yaml` 的仓库 id、分支或 PR）。
+6. 随进度补充 `tech_design.md`、`test_report.md`、`mr_report.md`、`deliver.md`；不需要时可暂不创建非 `spec` 文件，但索引与 spec 应保持同步。
+7. 需求结束或搁置时，更新 `INDEX.md` 的 `status`，必要时在 `spec.md` 中注明归档原因。
 
 ## 常见错误
 
@@ -76,6 +91,7 @@ Verification steps are optional — focus on the design and rationale.
 - [ ] `INDEX.md` 与目录路径一致
 - [ ] 敏感信息未写入 `test_report.md` / `mr_report.md`
 - [ ] feature 目录名与 `INDEX.md` 中的 `id` 一致
+- [ ] **content-pipeline**：`tts.action` 默认为 `0`；`00-podcast-source.md` 存在；若 `tts.action: 3` 则 `override_reason` + `review_record` 已确认
 
 <!-- source: knowledge/standards/one-context-conventions.md -->
 
@@ -112,6 +128,7 @@ Do not duplicate the same intent in vendor-specific formats. If a tool needs a s
 | 作者 | ✅ | 原作者或组织 |
 | 发布日期 | ✅ | 原文发布日期 |
 | 收录日期 | 建议 | 写入知识库的日期 |
+| SHA256 | 建议 | 源文档内容 hash（用于增量编译检测，`kb-compile` 自动填充） |
 
 示例：
 
@@ -120,6 +137,7 @@ Do not duplicate the same intent in vendor-specific formats. If a tool needs a s
 > 作者：Author Name (Organization)
 > 发布日期：2026-04-15
 > 收录日期：2026-04-17
+> SHA256：a1b2c3d4e5f6
 ```
 
 不标注出处的外部资料不得合入 `knowledge/`。
@@ -137,6 +155,109 @@ python -m one_context doctor
 ```
 
 On some systems the `onecxt` script is not on `PATH`; `python -m one_context` is the portable form.
+
+<!-- source: knowledge/standards/content-pipeline-tts-routing.md -->
+
+# content-pipeline 口播 / TTS 路由（立项默认）
+
+> 来源：one-context 内部约定（2026-05-25，workflows 选题复盘）
+
+## 默认策略（新建 feature 必须遵守）
+
+| 项 | 默认值 | 说明 |
+|----|--------|------|
+| 模式 | `duo` | `solo`（单人旁白）或 `duo`（双人播客），立项时选定 |
+| 引擎 | `volc-podcast-tts`（duo）/ `doubao-dialogue-tts`（solo） | 由 mode 自动路由 |
+| **action** | **`0`** | duo 专用；solo 时忽略 |
+| 时间轴真源 | **`wav_srt`** | 成片以 `media/voiceover.wav` + `subtitles/sub.srt` 为准 |
+| 讲稿角色 | **结构参考**（duo）/ **TTS 直接输入**（solo） | duo: `00-podcast-source.md`；solo: `01-script.md` |
+
+**立项时禁止**在未填 `tts.override_reason` 的情况下把 spec 写成 action=3。
+
+## 三条路径
+
+### 路径 S — 单人旁白（`mode: solo`）
+
+适用：需要精确逐字念稿、单人讲解/教程、画面与口播严格对齐。
+
+| 步骤 | 产出 |
+|------|------|
+| 写 `01-script.md` | 逐字稿（纯文本，不带 `男：/女：` 前缀） |
+| 写 `00-structure.md` | Scene 大纲 |
+| TTS | `doubao-dialogue-tts --mono` |
+| 后续 | Whisper → `srt-proofread` → `scene-boundaries` / Remotion `audioConfig` |
+
+### 路径 A — 播客总结（`mode: duo`，**默认**）
+
+适用：素材来自 **微信稿 / 文章 / URL / 结构化摘要**；接受服务端改写口播；画面跟 **SRT** 切 Scene。
+
+| 步骤 | 产出 |
+|------|------|
+| 写 `00-podcast-source.md` | 长文要点 + 钩子 + 固定关注句（给 action=0） |
+| 写 `00-structure.md` | Scene 大纲（口播**预期**话题，非逐字稿） |
+| 可选 `01-script.md` | 仅结构/核对表，标注「非 TTS 输入」 |
+| `timing/video-input.json` | `podcastTts.action: 0`，`scriptPath: content/00-podcast-source.md` |
+| TTS | `volc-podcast-tts --action 0` 或流水线 `podcastTts` |
+| 后续 | Whisper → `srt-proofread` → `scene-boundaries` / Remotion `audioConfig` |
+
+参考：`features/content-pipeline/ai-companies-build-ai-mid-video/`
+
+### 路径 B — 逐字对白（`mode: duo` + `action: 3`，**例外**）
+
+适用：已有人审定稿、法律/品牌要求 **逐字**、或口播与画面已按句锁死。
+
+| 要求 | 说明 |
+|------|------|
+| spec `tts.action` | **`3`** |
+| spec `tts.override_reason` | **必填**（一句业务理由） |
+| TTS 输入 | **仅** `男：`/`女：` 体（无 YAML frontmatter）；或独立 `01-dialogue-volc.md` |
+| 禁止 | 把带 frontmatter 的 `01-script.md` 直接喂 CLI |
+
+参考：`features/content-pipeline/markdown-html-claude-engineer-mid-video/`（对白终稿）
+
+## 与成片技术栈无关
+
+| 成片 | 路径 S/A/B 均适用 |
+|------|----------------|
+| `html-video-from-slides` | `video-input.json` + flip-boundaries |
+| `remotion-pipelines` | `scene-boundaries.md` + `audioConfig.ts`；真源仍是 WAV+SRT |
+
+**Remotion 不等于 action=3。** 选 Remotion 仍默认 action=0，除非走路径 B 并声明理由。
+
+## spec 必填 frontmatter（content-pipeline）
+
+```yaml
+category: content-pipeline
+tts:
+  engine: volc-podcast-tts     # duo 时自动；solo 时路由到 doubao-dialogue-tts
+  mode: duo                    # solo | duo（默认 duo，缺省等价 duo）
+  action: 0                    # duo 专用；solo 时忽略
+  authority: wav_srt
+  override_reason: ""          # action 非 0 时必填非空（duo 专用）
+```
+
+复制完整正文骨架：`features/_template/spec-content-pipeline.md`
+
+## 代理门禁（执行 TTS 前）
+
+1. 读 `spec.md` 的 `tts.mode`（缺省=`duo`）。
+2. 若 `mode=duo`：
+   a. 读 `tts.action`。
+   b. 若为 `0`：确认存在 `00-podcast-source.md` 且 `video-input.json` 中 `podcastTts.action` 为 `0`（或未建 json 则 CLI 显式 `--action 0`）。
+   c. 若为 `3`：确认 `tts.override_reason` 非空，且用户曾在 `review_record.md` 确认。
+3. 若 `mode=solo`：
+   a. 确认存在 `01-script.md` 且非空。
+   b. 忽略 `action` / `override_reason` 字段。
+   c. 使用 `doubao-dialogue-tts --mono`。
+4. **禁止**因「写了双人 `01-script.md`」就自动改 action=3。
+5. **禁止** `mode=solo` 时使用 `volc-podcast-tts`。
+
+## 相关文档
+
+- `skills/volc-podcast-tts/SKILL.md`
+- `skills/html-video-from-slides/references/VIDEO_PIPELINE.md`
+- `features/_template/content-production/README.md`
+- `knowledge/standards/video-voiceover-script-conventions.md`（钩子 + 固定句仍须满足）
 
 <!-- source: features/README.md -->
 
@@ -189,7 +310,13 @@ features/
     └── tmp/                        # 构建中间物 ❌ 不跟踪
 ```
 
-新建内容型 feature 时，复制 `features/_template/content-production/` 目录结构。详见 `features/_template/content-production/README.md`。
+新建内容型 feature 时：
+
+1. 以 **`features/_template/spec-content-pipeline.md`** 写 `spec.md`（**默认** `tts.action: 0`）
+2. 复制 **`features/_template/content-production/`** 目录结构（含 `00-podcast-source.md`、`video-input.example.json`）
+3. 阅读 **`knowledge/standards/content-pipeline-tts-routing.md`**
+
+详见 `features/_template/content-production/README.md`。
 
 - **`<category>`**：按主题或产品线划分；跨类需求选一个 **主类别** 落目录，在 `spec.md` 里链接其他相关需求目录即可。
 - **`<feature-id>`**：建议稳定、简短；可与 `INDEX.md` 中的 `id` 列一致。
@@ -231,17 +358,74 @@ features/
 
 更完整的 one-context 约定见根目录 `README.md`、`knowledge/standards/one-context-conventions.md`。
 
+<!-- source: features/_template/content-production/production/content/00-podcast-source.md -->
+
+# 播客合成输入（火山 action=0 · 默认）
+
+> **给 `volc-podcast-tts --action 0` 的长文输入。** 服务端会总结并生成双人播客，**不会**逐字念 `01-script.md`。  
+> 成片以 **WAV + Whisper SRT** 为时间轴真源；`01-script.md` 仅作结构参考与核对表。
+
+## 素材来源
+
+- 原文 URL：
+- 本地存档：
+
+## 节目定位
+
+（一句话：受众、时长目标、本期要回答什么问题）
+
+## 钩子与关注引导
+
+- **钩子**：（具体反常/悬念，须可兑现）
+- **固定关注句**（须逐字，见 `knowledge/standards/video-voiceover-script-conventions.md`）：  
+  「如果你想听更多的大厂和业界AI最新资讯，欢迎关注大厂吾师兄，点关注不迷路。」
+
+## 章节要点
+
+（按话题分段写要点、专名、数字、引用层级；可长，供服务端总结成对白）
+
+### 1 …
+
+### 2 …
+
+## 专名与链接（口播 + 简介须覆盖）
+
+| 类型 | 内容 |
+|------|------|
+| 版本/命令 | |
+| GitHub / YouTube | |
+| 须标「第三方/待核」的断言 | |
+
 <!-- source: features/_template/content-production/production/content/00-structure.md -->
 
 # 话题大纲
 
-<!-- 视频的话题拆分、每段核心要点、预计时长 -->
+<!-- Scene 规划；口播默认 action=0，成片以 WAV+SRT 切镜，本文件为话题/视觉预期而非逐字稿 -->
+
+**口播路由（与 spec 一致）**：默认 `volc-podcast-tts` **action=0** · 真源 **WAV+SRT** · 见 `knowledge/standards/content-pipeline-tts-routing.md`
 
 <!-- source: features/_template/content-production/production/content/01-script.md -->
 
-# 口播讲稿
+> **口播总规范**：`knowledge/standards/video-voiceover-script-conventions.md`  
+> **默认 TTS**：`volc-podcast-tts` **action=0** → 实际念稿见 **`00-podcast-source.md`**；**本文件在 action=0 下仅为结构参考/核对表，不要喂给 TTS CLI。**  
+> **仅当 spec 声明 action=3** 时：本文件为 `男：`/`女：` 逐字输入（无 YAML frontmatter）。  
+> **封面块内**（若写在本文件）：先钩子 → 固定关注句（逐字）→ 后文。
 
-<!-- 完整口播文字稿，按话题段落组织 -->
+# 【封面】
+
+时长：约 40s
+
+（删本行括号说明后写口播。走 Edge `tts` 时页数须与 `presentation.html` 一致；真双人播客 WAV 见 `features/_template/content-production/README.md`「口播选路」。）
+
+---
+
+# 【第二页标题与幻灯一致】
+
+时长：约 40s
+
+（删说明后写口播。）
+
+---
 
 <!-- source: features/_template/content-production/production/content/05-publish-kit.md -->
 
@@ -249,17 +433,119 @@ features/
 
 标题：
 
-简介：
+## 简介与话题
 
-话题：
+（直接按平台「简介」输入框效果写纯文本：不要 **粗体** / - 列表等 Markdown）
 
-<!-- 各平台标题、简介、话题标签、置顶评论、章节轴、检查清单 -->
+（口播/讲稿里提到的 GitHub、官网、文档链接须写在正文末、话题行之前，用完整 https:// 地址，见 skills/html-video-from-slides/SKILL.md「口播链接须写进简介」）
+
+相关链接：
+https://github.com/……
+
+#话题1 #话题2 #话题3
+
+<!-- 简介与话题：正文纯文本 + 末行话题；# 开头、空格分隔、无逗号 -->
+<!-- 还可补充：置顶评论、章节轴、检查清单等 -->
+
+<!-- source: features/_template/content-production/production/cover-prompt.md -->
+
+<!--
+此文件**禁止手写堆词**。请走 `skills/cover-prompt/SKILL.md`：
+- 先选范式（默认极简艺术海报型；要 3-4 callout 才用信息密度型）
+- 走其内置约束表 + 模型选型矩阵 + 中文渲染陷阱
+- 同时输出竖版 3:4（抖音/小红书）与横版 4:3（B站/头图）
+
+机制锚点：
+- remotion-pipelines SKILL Pipeline Step 9a 强制要求本文件
+- 标题、强调色、背景 Avoid 等必须锁死；其余交给模型
+- 平台缩略图 ≠ 片内 SceneCover——禁止把 Scene SVG 搬进 callout
+
+执行后删除本注释，保留下面正式产物。
+-->
+
+# 封面提示词（cover-prompt）
+
+标题：
+
+范式：☐ 极简艺术海报型（默认）  ☐ 信息密度型
+
+## 横版 4:3（B站/头图）
+
+```
+
+```
+
+## 竖版 3:4（抖音/小红书）
+
+```
+
+```
+
+## 锁死项
+
+- 文案行数：
+- 几何中心 + 字号：
+- 强调色（唯一）：
+- 背景意象（A/B/C/D 类）：
+- 硬 Avoid：
+
+<!-- source: features/_template/content-production/production/timing/flip-checklist.md -->
+
+# 成片前翻页确认单（人审）
+
+**用途**：在运行 `node cli.js wav` 之前，用本表做 **≤5 分钟** 定点确认。  
+**真源**：`media/*.wav` + `subtitles/sub.srt` + `slides/presentation.html` 可见字；**不用** `00-structure.md` / `01-script.md` 块边界定翻页。
+
+---
+
+## 路径（开工时勾选 — **默认勾选 A**）
+
+- [x] **A. 播客 / action=0（默认）**：口播以 WAV+SRT 为准；TTS 输入为 `00-podcast-source.md`；`01-script.md` 仅参考  
+- [ ] **B. 逐字口播 / action=3**：须在 `spec.md` 的 `tts.override_reason` 有理由；`男：`/`女：` 体为 TTS 输入  
+- [ ] **C. Edge 分页念稿**：`01-script.md` 的 `# 【】` 块数 = 幻灯页数（非火山双人）
+
+---
+
+## 三条必听时间戳（填秒数后试听 `voiceover.wav`）
+
+| # | 时刻 (s) | 此时口播在讲什么（SRT #） | 画面上应是哪一页 | 通过？ |
+|---|----------|---------------------------|----------------|--------|
+| 1 | ______ | 封面钩子 / 产品名 | s0 封面 | ☐ |
+| 2 | ______ | 第一次专名或数字（如 Trending、星标） | ______ | ☐ |
+| 3 | ______ | 第一次大转场（如竞品对比、产品 UI） | ______ | ☐ |
+
+> OpenHuman 示例：① 0s ② ~33–39s 仍 s0（Trending+星标）③ ~39.6s 进 s1（Manus 对比）
+
+---
+
+## `flip-boundaries.md` 一行一问
+
+对表中 **每一行** 问：**「这一秒听到的核心信息，当前页看得见吗？」**
+
+- [ ] 封面页卖点（Trending、星标、钩子）在口播讲完前 **未提前** 切到内页  
+- [ ] 过渡句（「接下来」「下面聊」）仍算 **上一页**，未在句首翻页  
+- [ ] 最后一页时长闭合到音轨结束（ffprobe 总时长一致）
+
+---
+
+## 代理门禁（全部 ☐ 才可 wav）
+
+- [ ] `timing-check` 无 `FLIP_AT_NEXT_WA_SENTENCE_START` 高危  
+- [ ] `slideDurationsSec` 之和 = WAV 时长（误差 ≤1s）  
+- [ ] 播客路径：**未**用 `01-script` 块对齐翻页  
+
+---
+
+**确认人**：________　**日期**：________  
+**确认后执行**：`skills/html-video-from-slides/scripts/run-wav-build.ps1 -Project "<feature>/production"`
 
 <!-- source: features/_template/content-production/README.md -->
 
 # Content Production — 短视频 Feature 模板
 
-新建短视频 feature 时复制此目录到 `features/content-pipeline/<feature-id>/`，与标准 feature 模板（`spec.md` 等）合用。
+新建短视频 feature 时复制本目录到 `features/content-pipeline/<feature-id>/`，与 **`features/_template/spec-content-pipeline.md`**（勿只用通用 `spec.md`）合用。
+
+**口播默认**：`volc-podcast-tts` **action=0** + `00-podcast-source.md`；规范见 **`knowledge/standards/content-pipeline-tts-routing.md`**。
 
 ## 命名规范
 
@@ -283,9 +569,10 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 │
 └── production/
     ├── content/                    # 内容创作资产 ✅ 跟踪
-    │   ├── 00-structure.md         #   话题大纲
-    │   ├── 01-script.md            #   口播讲稿
-    │   └── 05-publish-kit.md       #   发布素材（标题/简介/话题/检查清单）
+    │   ├── 00-podcast-source.md    #   **默认** action=0 TTS 输入（长文要点）
+    │   ├── 00-structure.md         #   话题大纲 / Scene 规划
+    │   ├── 01-script.md            #   结构参考或逐字稿（action=0 时**非** TTS 输入）
+    │   └── 05-publish-kit.md       #   发布素材（标题/简介与话题同节；口播中的 GitHub/官网链接须写入简介正文）
     │
     ├── slides/                     # 幻灯片资产 ✅ 跟踪
     │   └── presentation.html       #   主幻灯（核心资产）
@@ -295,7 +582,10 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
     │
     ├── timing/                     # 时间轴与配置 ✅ 跟踪
     │   ├── wav-durations.json      #   精确翻页时长
-    │   └── video-input.json        #   配置 + srtReplacements 积累
+    │   ├── flip-boundaries.md      #   翻页语义契约（页 ↔ 时刻 ↔ SRT 锚；wav 前建议必有）
+    │   ├── flip-checklist.md       #   成片前人审确认单（复制模板后填写）
+    │   ├── video-input.json        #   配置 + srtReplacements（从 video-input.example.json 复制）
+    │   └── video-input.example.json #  模板：podcastTts.action 默认 0
     │
     ├── media/                      # 媒体文件 ❌ 不跟踪
     │   ├── *.wav                   #   原始录音
@@ -316,6 +606,8 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | presentation.html | ✅ | 布局+SVG+精炼文字，不可无损重建 |
 | sub.srt（校对后） | ✅ | 校对是人工+推理过程，不可无损重建 |
 | wav-durations.json | ✅ | 精确翻页时长，不可无损重建 |
+| flip-boundaries.md | ✅（强烈建议） | 页↔口播锚点的人审契约；缺则易画面与语义错位 |
+| flip-checklist.md | ✅（建议） | 成片前 3 个试听点 + 翻页表确认；模板见 `production/timing/flip-checklist.md` |
 | video-input.json | ✅ | 含 srtReplacements 积累，不可无损重建 |
 | cover.html | ✅ | 封面设计，不可无损重建 |
 | review_record / issue_checklist | ✅ | 评审产出，放 feature 根目录 |
@@ -331,6 +623,34 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | srt-to-deck | `wav-durations.json` | `production/timing/wav-durations.json` |
 | html-deck-layout | `presentation.html` | `production/slides/presentation.html` |
 | html-video-from-slides | `--project` 指向 | `production/`（读取各子目录） |
+
+### 幻灯内容（主题内）
+
+`production/slides/presentation.html` **只呈现本期视频主题**（对齐 `spec.md` / `00-structure.md` / 口播）。**不要**在幻灯里写「如何制作本视频」、skill 名、仓库路径等制片 meta；收口页用真实栏目名，不用占位。生成规范见 **`skills/html-deck-layout/SKILL.md`**、成片路径见 **`skills/html-video-from-slides/SKILL.md`**「幻灯内容边界」。
+
+### 成片构建
+
+| 场景 | 命令 |
+|------|------|
+| 全量（截图 + 切段 + 烧字幕） | `skills/html-video-from-slides/scripts/run-wav-build.ps1 -Project "…/production"` |
+| 仅续跑合并/烧字幕（**且未改 HTML**） | `node skills/html-video-from-slides/scripts/finish-burn.js "…/production"` |
+
+详见 **`skills/html-video-from-slides/references/resume-burn.md`**。改 `presentation.html` 后若 `tmp/part_*.mp4` 早于 HTML，须删 `tmp/` 再全量构建。**`wav` 不重录口播**，只重截图画面（见 skill「变更与重跑决策」）。
+
+交付成片：`timing/wav-durations.json` 的 `outputFile`（常见 `production/final_auto.mp4`），不要只交 `tmp/merged.mp4`。
+
+### 口播选路（立项时锁定 — 见 `content-pipeline-tts-routing.md`）
+
+| 路径 | action | TTS 输入 | 时间轴真源 |
+|------|--------|----------|------------|
+| **A 播客总结（默认）** | **0** | `00-podcast-source.md` | WAV + SRT |
+| B 逐字对白（例外） | 3 | `男：`/`女：` 体（spec 须写 `override_reason`） | 仍建议以 SRT 切 Scene |
+
+| 成片栈 | 做法 |
+|--------|------|
+| Remotion | `scene-boundaries.md` ← SRT；**不**因 Remotion 改用 action=3 |
+| html-video-from-slides | 复制 `video-input.example.json` → `video-input.json`；`podcastTts.action: 0` |
+| Edge 单人念稿 | `node cli.js tts`；`01-script.md` 按 `# 【】` 分页（非火山双人） |
 
 ## 与标准 feature 模板的关系
 
@@ -351,6 +671,8 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 |---|--------|---------|
 | 1 | spec.md 存在 | `<feature>/spec.md` 存在 |
 | 2 | spec.md category 正确 | frontmatter `category: content-pipeline` |
+| 2b | TTS 路由已声明 | frontmatter 含 `tts.action`；默认 `0`；若 `3` 则 `tts.override_reason` 非空 |
+| 2c | action=0 输入存在 | `tts.action: 0` 时须有 `production/content/00-podcast-source.md` |
 | 3 | production/ 骨架完整 | 子目录 `content/`, `slides/`, `subtitles/`, `timing/`, `media/`, `tmp/` 均存在 |
 | 4 | 无遗留临时脚本 | `<feature>/` 根目录不得有 `_gen_*.py` / `_fix_*.py` / `_*.py` 等文件 |
 | 5 | 无旧 srt/ 目录 | 不得存在 `<feature>/srt/` 目录（字幕应在 `production/subtitles/`） |
@@ -364,6 +686,8 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | 8 | content/ 有讲稿 | `production/content/01-script.md` 存在 |
 | 9 | INDEX.md 一致 | `features/INDEX.md` 中该 feature 的 path 与实际目录一致 |
 | 10 | spec.md 路径自洽 | spec.md 内引用的路径前缀与实际 `features/content-pipeline/<id>/` 一致 |
+| 11 | wav 成片语义契约（建议） | `production/timing/flip-boundaries.md` 存在并与 `wav-durations.json` 同步 |
+| 12 | 幻灯无 meta 制片页 | `slides/presentation.html` 不含「如何制作视频」、skill/CLI 名等与 `spec.md` 主题无关的页面 |
 
 <!-- source: features/_template/deliver.md -->
 
@@ -396,6 +720,126 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 ## 决议与待办
 
 - [ ]
+
+<!-- source: features/_template/review_record.md -->
+
+# 评审记录 — {{feature-id}}
+
+## 立项门禁（content-pipeline · 执行 TTS 前必过）
+
+| # | 检查项 | 结果 |
+|---|--------|------|
+| 1 | `spec.md` frontmatter 含 `tts.action` | ☐ |
+| 2 | **默认**：`tts.action` = **0**，且存在 `production/content/00-podcast-source.md` | ☐ |
+| 3 | `production/timing/video-input.json` 中 `podcastTts.action` 与 spec 一致 | ☐ |
+| 4 | 若 `tts.action` ≠ 0：`tts.override_reason` 已填 + **用户本行确认** | ☐ |
+
+**用户确认（action=0 默认可勾「采用默认路径 A」）**：
+
+- [ ] **路径 A（默认）**：action=0，`00-podcast-source.md` 为 TTS 输入，成片以 WAV+SRT 为准  
+- [ ] **路径 B（例外）**：action=3，理由：________________________  
+
+确认人：________　日期：________
+
+---
+
+## 变更记录
+
+（按日期追加）
+
+<!-- source: features/_template/spec-content-pipeline.md -->
+
+---
+id: "<feature-id>"
+title: ""
+status: draft
+category: content-pipeline
+primary_repo_id: one-context
+owner: ""
+updated: ""
+# 口播路由（必填 — 见 knowledge/standards/content-pipeline-tts-routing.md）
+tts:
+  engine: volc-podcast-tts   # duo 时自动；solo 时路由到 doubao-dialogue-tts
+  mode: duo                  # solo（单人旁白）| duo（双人播客，默认）
+  action: 0                  # duo 专用，默认 0；仅逐字对白例外用 3；mode=solo 时忽略
+  authority: wav_srt         # wav_srt（默认）| script_verbatim（仅 action=3）
+  override_reason: ""        # action 不为 0 时必填一句理由，否则立项无效
+# 成片栈（二选一或组合）
+render:
+  stack: remotion-pipelines  # remotion-pipelines | html-video-from-slides
+---
+
+# 概述
+
+<!-- 背景、素材来源（URL/本地稿）、目标时长、受众 -->
+
+**口播（立项锁定）**：
+
+| 项 | duo（默认） | solo |
+|----|-------------|------|
+| TTS | `volc-podcast-tts` action=`0` | `doubao-dialogue-tts --mono` |
+| 输入文件 | `production/content/00-podcast-source.md` | `production/content/01-script.md`（逐字稿） |
+| 时间轴真源 | WAV + Whisper SRT；`01-script.md` 仅参考 | WAV + Whisper SRT |
+| 若 action=3 | 须在 `tts.override_reason` 说明，且 `review_record` 用户确认 | N/A（action 字段忽略） |
+
+# 目标与非目标
+
+## 目标
+
+- [ ] `00-podcast-source.md`（duo/action=0 输入）或 `01-script.md`（solo 输入）+ `00-structure.md`
+- [ ] TTS → `media/voiceover.wav`；duo: `video-input.json` 中 `podcastTts.action: 0`；solo: `doubao-dialogue-tts --mono`
+- [ ] Whisper `sub.srt` → **`srt-proofread`**
+- [ ] `timing/scene-boundaries.md`（话题分组，禁止逐条 SRT 一场景）
+- [ ] 成片 + `05-publish-kit.md`
+- [ ] `production/cover-prompt.md`（**走 `skills/cover-prompt`**，禁手写堆词）
+
+## 非目标
+
+- 未在 `tts.override_reason` 声明时，**不**使用 action=3 逐字念稿。
+- 不把 skill 名、制片 meta 写进观众可见画面。
+
+# 用户与场景
+
+# 验收标准
+
+- [ ] `tts.mode` 与实际使用的 TTS 引擎一致（duo→volc-podcast-tts / solo→doubao-dialogue-tts）。
+- [ ] `tts.action` 与 `production/timing/video-input.json` 的 `podcastTts.action` 一致（仅 duo）。
+- [ ] 口播含钩子 + 固定关注句（`knowledge/standards/video-voiceover-script-conventions.md`）。
+- [ ] Scene/翻页以 **SRT** 对齐，误差 ≤1s。
+- [ ] `production/cover-prompt.md` 走 `skills/cover-prompt` 出双版（横 4:3 + 竖 3:4），不手写堆词。
+
+# 实现落点（必填）
+
+- **仓库 id**：one-context
+- **内容目录**：`features/content-pipeline/<feature-id>/production/`
+- **成片 Skill**：`skills/remotion-pipelines/` 或 `skills/html-video-from-slides/`
+
+# 口播命令速查
+
+## duo 模式（默认 action=0）
+
+```bash
+# 推荐：与 VIDEO_PIPELINE 一致
+# production/timing/video-input.json → podcastTts.enabled + action: 0
+
+# 或直调 CLI（输入为 00-podcast-source.md，不是 01-script.md）
+python skills/volc-podcast-tts/cli.py --action 0 \
+  -i features/content-pipeline/<feature-id>/production/content/00-podcast-source.md \
+  -o features/content-pipeline/<feature-id>/production/media/voiceover.wav --format pcm
+```
+
+## solo 模式
+
+```bash
+# 输入为 01-script.md（逐字稿，纯文本，不带 男：/女： 前缀）
+python skills/doubao-dialogue-tts/cli.py --mono \
+  -i features/content-pipeline/<feature-id>/production/content/01-script.md \
+  -o features/content-pipeline/<feature-id>/production/media/voiceover.wav
+```
+
+# 关联
+
+# 开放问题
 
 <!-- source: features/_template/spec.md -->
 
@@ -476,17 +920,168 @@ updated: ""
 
 勿在此文件存放密钥、token 或未脱敏的敏感客户信息。
 
+<!-- source: features/_template/spec-content-pipeline.md -->
+
+---
+id: "<feature-id>"
+title: ""
+status: draft
+category: content-pipeline
+primary_repo_id: one-context
+owner: ""
+updated: ""
+# 口播路由（必填 — 见 knowledge/standards/content-pipeline-tts-routing.md）
+tts:
+  engine: volc-podcast-tts   # duo 时自动；solo 时路由到 doubao-dialogue-tts
+  mode: duo                  # solo（单人旁白）| duo（双人播客，默认）
+  action: 0                  # duo 专用，默认 0；仅逐字对白例外用 3；mode=solo 时忽略
+  authority: wav_srt         # wav_srt（默认）| script_verbatim（仅 action=3）
+  override_reason: ""        # action 不为 0 时必填一句理由，否则立项无效
+# 成片栈（二选一或组合）
+render:
+  stack: remotion-pipelines  # remotion-pipelines | html-video-from-slides
+---
+
+# 概述
+
+<!-- 背景、素材来源（URL/本地稿）、目标时长、受众 -->
+
+**口播（立项锁定）**：
+
+| 项 | duo（默认） | solo |
+|----|-------------|------|
+| TTS | `volc-podcast-tts` action=`0` | `doubao-dialogue-tts --mono` |
+| 输入文件 | `production/content/00-podcast-source.md` | `production/content/01-script.md`（逐字稿） |
+| 时间轴真源 | WAV + Whisper SRT；`01-script.md` 仅参考 | WAV + Whisper SRT |
+| 若 action=3 | 须在 `tts.override_reason` 说明，且 `review_record` 用户确认 | N/A（action 字段忽略） |
+
+# 目标与非目标
+
+## 目标
+
+- [ ] `00-podcast-source.md`（duo/action=0 输入）或 `01-script.md`（solo 输入）+ `00-structure.md`
+- [ ] TTS → `media/voiceover.wav`；duo: `video-input.json` 中 `podcastTts.action: 0`；solo: `doubao-dialogue-tts --mono`
+- [ ] Whisper `sub.srt` → **`srt-proofread`**
+- [ ] `timing/scene-boundaries.md`（话题分组，禁止逐条 SRT 一场景）
+- [ ] 成片 + `05-publish-kit.md`
+- [ ] `production/cover-prompt.md`（**走 `skills/cover-prompt`**，禁手写堆词）
+
+## 非目标
+
+- 未在 `tts.override_reason` 声明时，**不**使用 action=3 逐字念稿。
+- 不把 skill 名、制片 meta 写进观众可见画面。
+
+# 用户与场景
+
+# 验收标准
+
+- [ ] `tts.mode` 与实际使用的 TTS 引擎一致（duo→volc-podcast-tts / solo→doubao-dialogue-tts）。
+- [ ] `tts.action` 与 `production/timing/video-input.json` 的 `podcastTts.action` 一致（仅 duo）。
+- [ ] 口播含钩子 + 固定关注句（`knowledge/standards/video-voiceover-script-conventions.md`）。
+- [ ] Scene/翻页以 **SRT** 对齐，误差 ≤1s。
+- [ ] `production/cover-prompt.md` 走 `skills/cover-prompt` 出双版（横 4:3 + 竖 3:4），不手写堆词。
+
+# 实现落点（必填）
+
+- **仓库 id**：one-context
+- **内容目录**：`features/content-pipeline/<feature-id>/production/`
+- **成片 Skill**：`skills/remotion-pipelines/` 或 `skills/html-video-from-slides/`
+
+# 口播命令速查
+
+## duo 模式（默认 action=0）
+
+```bash
+# 推荐：与 VIDEO_PIPELINE 一致
+# production/timing/video-input.json → podcastTts.enabled + action: 0
+
+# 或直调 CLI（输入为 00-podcast-source.md，不是 01-script.md）
+python skills/volc-podcast-tts/cli.py --action 0 \
+  -i features/content-pipeline/<feature-id>/production/content/00-podcast-source.md \
+  -o features/content-pipeline/<feature-id>/production/media/voiceover.wav --format pcm
+```
+
+## solo 模式
+
+```bash
+# 输入为 01-script.md（逐字稿，纯文本，不带 男：/女： 前缀）
+python skills/doubao-dialogue-tts/cli.py --mono \
+  -i features/content-pipeline/<feature-id>/production/content/01-script.md \
+  -o features/content-pipeline/<feature-id>/production/media/voiceover.wav
+```
+
+# 关联
+
+# 开放问题
+
+<!-- source: features/_template/content-production/production/content/00-podcast-source.md -->
+
+# 播客合成输入（火山 action=0 · 默认）
+
+> **给 `volc-podcast-tts --action 0` 的长文输入。** 服务端会总结并生成双人播客，**不会**逐字念 `01-script.md`。  
+> 成片以 **WAV + Whisper SRT** 为时间轴真源；`01-script.md` 仅作结构参考与核对表。
+
+## 素材来源
+
+- 原文 URL：
+- 本地存档：
+
+## 节目定位
+
+（一句话：受众、时长目标、本期要回答什么问题）
+
+## 钩子与关注引导
+
+- **钩子**：（具体反常/悬念，须可兑现）
+- **固定关注句**（须逐字，见 `knowledge/standards/video-voiceover-script-conventions.md`）：  
+  「如果你想听更多的大厂和业界AI最新资讯，欢迎关注大厂吾师兄，点关注不迷路。」
+
+## 章节要点
+
+（按话题分段写要点、专名、数字、引用层级；可长，供服务端总结成对白）
+
+### 1 …
+
+### 2 …
+
+## 专名与链接（口播 + 简介须覆盖）
+
+| 类型 | 内容 |
+|------|------|
+| 版本/命令 | |
+| GitHub / YouTube | |
+| 须标「第三方/待核」的断言 | |
+
 <!-- source: features/_template/content-production/production/content/00-structure.md -->
 
 # 话题大纲
 
-<!-- 视频的话题拆分、每段核心要点、预计时长 -->
+<!-- Scene 规划；口播默认 action=0，成片以 WAV+SRT 切镜，本文件为话题/视觉预期而非逐字稿 -->
+
+**口播路由（与 spec 一致）**：默认 `volc-podcast-tts` **action=0** · 真源 **WAV+SRT** · 见 `knowledge/standards/content-pipeline-tts-routing.md`
 
 <!-- source: features/_template/content-production/production/content/01-script.md -->
 
-# 口播讲稿
+> **口播总规范**：`knowledge/standards/video-voiceover-script-conventions.md`  
+> **默认 TTS**：`volc-podcast-tts` **action=0** → 实际念稿见 **`00-podcast-source.md`**；**本文件在 action=0 下仅为结构参考/核对表，不要喂给 TTS CLI。**  
+> **仅当 spec 声明 action=3** 时：本文件为 `男：`/`女：` 逐字输入（无 YAML frontmatter）。  
+> **封面块内**（若写在本文件）：先钩子 → 固定关注句（逐字）→ 后文。
 
-<!-- 完整口播文字稿，按话题段落组织 -->
+# 【封面】
+
+时长：约 40s
+
+（删本行括号说明后写口播。走 Edge `tts` 时页数须与 `presentation.html` 一致；真双人播客 WAV 见 `features/_template/content-production/README.md`「口播选路」。）
+
+---
+
+# 【第二页标题与幻灯一致】
+
+时长：约 40s
+
+（删说明后写口播。）
+
+---
 
 <!-- source: features/_template/content-production/production/content/05-publish-kit.md -->
 
@@ -494,17 +1089,119 @@ updated: ""
 
 标题：
 
-简介：
+## 简介与话题
 
-话题：
+（直接按平台「简介」输入框效果写纯文本：不要 **粗体** / - 列表等 Markdown）
 
-<!-- 各平台标题、简介、话题标签、置顶评论、章节轴、检查清单 -->
+（口播/讲稿里提到的 GitHub、官网、文档链接须写在正文末、话题行之前，用完整 https:// 地址，见 skills/html-video-from-slides/SKILL.md「口播链接须写进简介」）
+
+相关链接：
+https://github.com/……
+
+#话题1 #话题2 #话题3
+
+<!-- 简介与话题：正文纯文本 + 末行话题；# 开头、空格分隔、无逗号 -->
+<!-- 还可补充：置顶评论、章节轴、检查清单等 -->
+
+<!-- source: features/_template/content-production/production/cover-prompt.md -->
+
+<!--
+此文件**禁止手写堆词**。请走 `skills/cover-prompt/SKILL.md`：
+- 先选范式（默认极简艺术海报型；要 3-4 callout 才用信息密度型）
+- 走其内置约束表 + 模型选型矩阵 + 中文渲染陷阱
+- 同时输出竖版 3:4（抖音/小红书）与横版 4:3（B站/头图）
+
+机制锚点：
+- remotion-pipelines SKILL Pipeline Step 9a 强制要求本文件
+- 标题、强调色、背景 Avoid 等必须锁死；其余交给模型
+- 平台缩略图 ≠ 片内 SceneCover——禁止把 Scene SVG 搬进 callout
+
+执行后删除本注释，保留下面正式产物。
+-->
+
+# 封面提示词（cover-prompt）
+
+标题：
+
+范式：☐ 极简艺术海报型（默认）  ☐ 信息密度型
+
+## 横版 4:3（B站/头图）
+
+```
+
+```
+
+## 竖版 3:4（抖音/小红书）
+
+```
+
+```
+
+## 锁死项
+
+- 文案行数：
+- 几何中心 + 字号：
+- 强调色（唯一）：
+- 背景意象（A/B/C/D 类）：
+- 硬 Avoid：
+
+<!-- source: features/_template/content-production/production/timing/flip-checklist.md -->
+
+# 成片前翻页确认单（人审）
+
+**用途**：在运行 `node cli.js wav` 之前，用本表做 **≤5 分钟** 定点确认。  
+**真源**：`media/*.wav` + `subtitles/sub.srt` + `slides/presentation.html` 可见字；**不用** `00-structure.md` / `01-script.md` 块边界定翻页。
+
+---
+
+## 路径（开工时勾选 — **默认勾选 A**）
+
+- [x] **A. 播客 / action=0（默认）**：口播以 WAV+SRT 为准；TTS 输入为 `00-podcast-source.md`；`01-script.md` 仅参考  
+- [ ] **B. 逐字口播 / action=3**：须在 `spec.md` 的 `tts.override_reason` 有理由；`男：`/`女：` 体为 TTS 输入  
+- [ ] **C. Edge 分页念稿**：`01-script.md` 的 `# 【】` 块数 = 幻灯页数（非火山双人）
+
+---
+
+## 三条必听时间戳（填秒数后试听 `voiceover.wav`）
+
+| # | 时刻 (s) | 此时口播在讲什么（SRT #） | 画面上应是哪一页 | 通过？ |
+|---|----------|---------------------------|----------------|--------|
+| 1 | ______ | 封面钩子 / 产品名 | s0 封面 | ☐ |
+| 2 | ______ | 第一次专名或数字（如 Trending、星标） | ______ | ☐ |
+| 3 | ______ | 第一次大转场（如竞品对比、产品 UI） | ______ | ☐ |
+
+> OpenHuman 示例：① 0s ② ~33–39s 仍 s0（Trending+星标）③ ~39.6s 进 s1（Manus 对比）
+
+---
+
+## `flip-boundaries.md` 一行一问
+
+对表中 **每一行** 问：**「这一秒听到的核心信息，当前页看得见吗？」**
+
+- [ ] 封面页卖点（Trending、星标、钩子）在口播讲完前 **未提前** 切到内页  
+- [ ] 过渡句（「接下来」「下面聊」）仍算 **上一页**，未在句首翻页  
+- [ ] 最后一页时长闭合到音轨结束（ffprobe 总时长一致）
+
+---
+
+## 代理门禁（全部 ☐ 才可 wav）
+
+- [ ] `timing-check` 无 `FLIP_AT_NEXT_WA_SENTENCE_START` 高危  
+- [ ] `slideDurationsSec` 之和 = WAV 时长（误差 ≤1s）  
+- [ ] 播客路径：**未**用 `01-script` 块对齐翻页  
+
+---
+
+**确认人**：________　**日期**：________  
+**确认后执行**：`skills/html-video-from-slides/scripts/run-wav-build.ps1 -Project "<feature>/production"`
 
 <!-- source: features/_template/content-production/README.md -->
 
 # Content Production — 短视频 Feature 模板
 
-新建短视频 feature 时复制此目录到 `features/content-pipeline/<feature-id>/`，与标准 feature 模板（`spec.md` 等）合用。
+新建短视频 feature 时复制本目录到 `features/content-pipeline/<feature-id>/`，与 **`features/_template/spec-content-pipeline.md`**（勿只用通用 `spec.md`）合用。
+
+**口播默认**：`volc-podcast-tts` **action=0** + `00-podcast-source.md`；规范见 **`knowledge/standards/content-pipeline-tts-routing.md`**。
 
 ## 命名规范
 
@@ -528,9 +1225,10 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 │
 └── production/
     ├── content/                    # 内容创作资产 ✅ 跟踪
-    │   ├── 00-structure.md         #   话题大纲
-    │   ├── 01-script.md            #   口播讲稿
-    │   └── 05-publish-kit.md       #   发布素材（标题/简介/话题/检查清单）
+    │   ├── 00-podcast-source.md    #   **默认** action=0 TTS 输入（长文要点）
+    │   ├── 00-structure.md         #   话题大纲 / Scene 规划
+    │   ├── 01-script.md            #   结构参考或逐字稿（action=0 时**非** TTS 输入）
+    │   └── 05-publish-kit.md       #   发布素材（标题/简介与话题同节；口播中的 GitHub/官网链接须写入简介正文）
     │
     ├── slides/                     # 幻灯片资产 ✅ 跟踪
     │   └── presentation.html       #   主幻灯（核心资产）
@@ -540,7 +1238,10 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
     │
     ├── timing/                     # 时间轴与配置 ✅ 跟踪
     │   ├── wav-durations.json      #   精确翻页时长
-    │   └── video-input.json        #   配置 + srtReplacements 积累
+    │   ├── flip-boundaries.md      #   翻页语义契约（页 ↔ 时刻 ↔ SRT 锚；wav 前建议必有）
+    │   ├── flip-checklist.md       #   成片前人审确认单（复制模板后填写）
+    │   ├── video-input.json        #   配置 + srtReplacements（从 video-input.example.json 复制）
+    │   └── video-input.example.json #  模板：podcastTts.action 默认 0
     │
     ├── media/                      # 媒体文件 ❌ 不跟踪
     │   ├── *.wav                   #   原始录音
@@ -561,6 +1262,8 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | presentation.html | ✅ | 布局+SVG+精炼文字，不可无损重建 |
 | sub.srt（校对后） | ✅ | 校对是人工+推理过程，不可无损重建 |
 | wav-durations.json | ✅ | 精确翻页时长，不可无损重建 |
+| flip-boundaries.md | ✅（强烈建议） | 页↔口播锚点的人审契约；缺则易画面与语义错位 |
+| flip-checklist.md | ✅（建议） | 成片前 3 个试听点 + 翻页表确认；模板见 `production/timing/flip-checklist.md` |
 | video-input.json | ✅ | 含 srtReplacements 积累，不可无损重建 |
 | cover.html | ✅ | 封面设计，不可无损重建 |
 | review_record / issue_checklist | ✅ | 评审产出，放 feature 根目录 |
@@ -576,6 +1279,34 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | srt-to-deck | `wav-durations.json` | `production/timing/wav-durations.json` |
 | html-deck-layout | `presentation.html` | `production/slides/presentation.html` |
 | html-video-from-slides | `--project` 指向 | `production/`（读取各子目录） |
+
+### 幻灯内容（主题内）
+
+`production/slides/presentation.html` **只呈现本期视频主题**（对齐 `spec.md` / `00-structure.md` / 口播）。**不要**在幻灯里写「如何制作本视频」、skill 名、仓库路径等制片 meta；收口页用真实栏目名，不用占位。生成规范见 **`skills/html-deck-layout/SKILL.md`**、成片路径见 **`skills/html-video-from-slides/SKILL.md`**「幻灯内容边界」。
+
+### 成片构建
+
+| 场景 | 命令 |
+|------|------|
+| 全量（截图 + 切段 + 烧字幕） | `skills/html-video-from-slides/scripts/run-wav-build.ps1 -Project "…/production"` |
+| 仅续跑合并/烧字幕（**且未改 HTML**） | `node skills/html-video-from-slides/scripts/finish-burn.js "…/production"` |
+
+详见 **`skills/html-video-from-slides/references/resume-burn.md`**。改 `presentation.html` 后若 `tmp/part_*.mp4` 早于 HTML，须删 `tmp/` 再全量构建。**`wav` 不重录口播**，只重截图画面（见 skill「变更与重跑决策」）。
+
+交付成片：`timing/wav-durations.json` 的 `outputFile`（常见 `production/final_auto.mp4`），不要只交 `tmp/merged.mp4`。
+
+### 口播选路（立项时锁定 — 见 `content-pipeline-tts-routing.md`）
+
+| 路径 | action | TTS 输入 | 时间轴真源 |
+|------|--------|----------|------------|
+| **A 播客总结（默认）** | **0** | `00-podcast-source.md` | WAV + SRT |
+| B 逐字对白（例外） | 3 | `男：`/`女：` 体（spec 须写 `override_reason`） | 仍建议以 SRT 切 Scene |
+
+| 成片栈 | 做法 |
+|--------|------|
+| Remotion | `scene-boundaries.md` ← SRT；**不**因 Remotion 改用 action=3 |
+| html-video-from-slides | 复制 `video-input.example.json` → `video-input.json`；`podcastTts.action: 0` |
+| Edge 单人念稿 | `node cli.js tts`；`01-script.md` 按 `# 【】` 分页（非火山双人） |
 
 ## 与标准 feature 模板的关系
 
@@ -596,6 +1327,8 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 |---|--------|---------|
 | 1 | spec.md 存在 | `<feature>/spec.md` 存在 |
 | 2 | spec.md category 正确 | frontmatter `category: content-pipeline` |
+| 2b | TTS 路由已声明 | frontmatter 含 `tts.action`；默认 `0`；若 `3` 则 `tts.override_reason` 非空 |
+| 2c | action=0 输入存在 | `tts.action: 0` 时须有 `production/content/00-podcast-source.md` |
 | 3 | production/ 骨架完整 | 子目录 `content/`, `slides/`, `subtitles/`, `timing/`, `media/`, `tmp/` 均存在 |
 | 4 | 无遗留临时脚本 | `<feature>/` 根目录不得有 `_gen_*.py` / `_fix_*.py` / `_*.py` 等文件 |
 | 5 | 无旧 srt/ 目录 | 不得存在 `<feature>/srt/` 目录（字幕应在 `production/subtitles/`） |
@@ -609,3 +1342,31 @@ Feature-id 格式：`{主题}-{类型}`，类型后缀统一为：
 | 8 | content/ 有讲稿 | `production/content/01-script.md` 存在 |
 | 9 | INDEX.md 一致 | `features/INDEX.md` 中该 feature 的 path 与实际目录一致 |
 | 10 | spec.md 路径自洽 | spec.md 内引用的路径前缀与实际 `features/content-pipeline/<id>/` 一致 |
+| 11 | wav 成片语义契约（建议） | `production/timing/flip-boundaries.md` 存在并与 `wav-durations.json` 同步 |
+| 12 | 幻灯无 meta 制片页 | `slides/presentation.html` 不含「如何制作视频」、skill/CLI 名等与 `spec.md` 主题无关的页面 |
+
+<!-- source: features/_template/review_record.md -->
+
+# 评审记录 — {{feature-id}}
+
+## 立项门禁（content-pipeline · 执行 TTS 前必过）
+
+| # | 检查项 | 结果 |
+|---|--------|------|
+| 1 | `spec.md` frontmatter 含 `tts.action` | ☐ |
+| 2 | **默认**：`tts.action` = **0**，且存在 `production/content/00-podcast-source.md` | ☐ |
+| 3 | `production/timing/video-input.json` 中 `podcastTts.action` 与 spec 一致 | ☐ |
+| 4 | 若 `tts.action` ≠ 0：`tts.override_reason` 已填 + **用户本行确认** | ☐ |
+
+**用户确认（action=0 默认可勾「采用默认路径 A」）**：
+
+- [ ] **路径 A（默认）**：action=0，`00-podcast-source.md` 为 TTS 输入，成片以 WAV+SRT 为准  
+- [ ] **路径 B（例外）**：action=3，理由：________________________  
+
+确认人：________　日期：________
+
+---
+
+## 变更记录
+
+（按日期追加）

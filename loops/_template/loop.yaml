@@ -1,0 +1,42 @@
+# loop.yaml — 可循环任务的唯一事实源(规格模板)
+#
+# 由 loop-engineering skill 通过引导状态机(S0–S8)填写,落在【项目根 loops/<id>/loop.yaml】。
+# entry.*(入口产物)与 runs/(每轮留痕)全部由本文件派生 —— 改 loop 行为 = 改本 yaml 后重新编译,
+# 绝不手改 entry.*。
+#
+# <尖括号> 为占位符,填写时替换为实际值;行内注释说明字段语义与默认。
+
+id: <kebab-case>                  # 必填,等于目录名(loops/<id>/)
+
+goal: <一句话目标终态>            # 必答1,非空自然语言。例:"把 auth 拆成独立 service 且现有测试全绿"
+
+verifier:                         # 必答2【硬门槛】—— 没有可判定命令就不建 loop
+  kind: command                   # 枚举,首版只允许 command(模型自评/人工目测均不可作终判)
+  cmd: "<shell 命令>"             # 必填非空,退出码/输出可机器判定。例:"python -m pytest -x -q"
+  pass_when: exit_code == 0       # 首版固定语义:退出码 0 为通过(预留表达式扩展)
+  cwd: "."                        # 可选,命令执行目录,相对项目根
+
+stop:                             # 必答3,以下至少一项(默认值需经用户确认,非静默采用)
+  on_pass: true                   # 验证器通过即停
+  max_iterations: 20              # 上限轮数
+  max_wall: 4h                    # 墙钟上限(保守默认)。注:session 驱动单次唤醒 ≤1h 且关会话即停,
+                                  #   无"挂数天无人值守"能力,勿据此设过长
+
+handoff:                          # 必答4,可空数组;空则提示空转风险
+  when:                           # 命中任一条件 → 停下等人,不自作主张越过高危操作
+    - "<触发人工接管的条件,如:验证器连续 3 轮不变绿>"
+    - "<如:触碰 migrations/ 等高危路径>"
+    - "<如:需要外部凭证/审批>"
+
+driver: session                   # 维度A:session | cron(首版未支持) | workflow
+topology: solo                    # 维度B:solo | triad | team(首版后置)
+                                  #   首版仅放行 session×solo(C1) 与 workflow×triad(C2)
+
+# --- 以下 driver 相关可选段 ---
+# cron: "<5 段表达式>"            # 仅 driver=cron 时必填(首版未支持)
+# workflow:                       # 仅 driver=workflow
+#   team_agent_type: team-executor  # 仅 topology=team;可覆盖委托目标(首版后置)
+
+meta:
+  created: "<由调用者注入,脚本内不可用 Date.now>"
+  source_feature: skill-loop-engineering

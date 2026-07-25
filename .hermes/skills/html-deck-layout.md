@@ -8,6 +8,10 @@ Generate mobile-optimized HTML presentations (1920×1080 landscape) for
 phone-screen viewing: 投屏、录屏、口播视频配图。All slides enforce
 **fill-deck** (zero wasted space), **≥42px body text**, **≥85% coverage**.
 
+**口播 / 成片时长（与 `html-video-from-slides`、`wav-durations.json` 对齐）**：拆页时 **每一页内容页建议口播停留 30s–60s**（硬上限 **≤60s**/页，除非该话题不可分割须在提纲中注明并得到确认）；**封面 / 致谢可略短，但不建议短于 20s**。页数 ≈ `ceil(总口播秒数 / 45)` 并在 ±2 页内微调；避免「一页扛整段脚本」导致翻页与音频脱节。
+
+**已有字幕 + 已定翻页时重做幻灯**：若选题目录下已有 **`sub.srt`**、**`timing/wav-durations.json`**（及建议维护的 **`timing/flip-boundaries.md`**），重做 `presentation.html` 前须按 **每页累计起止秒** 在 SRT 中截取时间窗，**通读该窗内全部字幕条** 后再写可见文案与图示；要点应覆盖窗内 **专名、对比、因果、数字口径**，并可从同目录 **`01-script.md` / `spec.md`** 增补不与口播矛盾的细节——禁止仅凭段落标题凭记忆写页，以免漏掉播客对话中的关键句。
+
 ## When to use
 
 | 走这个 skill | 走 html-ppt |
@@ -19,13 +23,34 @@ phone-screen viewing: 投屏、录屏、口播视频配图。All slides enforce
 
 **不确定时**：如果最终在手机上看 → html-deck-layout；如果在电脑/投影上看 → html-ppt。
 
+## Open Design 设计理念
+
+与 **[Open Design](https://github.com/nexu-io/open-design)**（伞仓登记：`meta/repos.yaml` → `id: open-design`；克隆后多为 `repos/reference/open-design/`）**目标一致、实现栈不同**：OD 走「设计体系 + Skills + brief」出杂志风 / 投融资风 HTML；本 skill 走 **`templates/` + 主题 CSS + `examples/demo-deck` 视觉基准**，产出 **1920×1080**、带 **`#P` / `section.s.slide` / `go(n)`** 的 `presentation.html`，专供 **`html-video-from-slides`**。
+
+本 skill **要求在本链路内贯彻 OD 理念**（Brief 驱动、视觉优先、杂志层级、密度与留白 — 见下表），**并不要求**默认克隆或运行 open-design 仓库整条流水线。
+
+| 原则 | 落点 |
+|------|------|
+| **Brief 驱动** | 先锁定观众与「一页一个记忆点」，再选布局；禁止把讲稿整段贴进幻灯。 |
+| **视觉优先** | 抽象概念用 **inline SVG / card-diagram / 流程与数据图示**；文字只做锚点，拒绝满屏段落。 |
+| **编辑 / 杂志层级** | 大标题 + 极短副线 + 分块（chip / card）；语气像刊物版面而非 Word 大纲。 |
+| **密度与留白** | 与 **fill-deck** 一致：画布填满，但 **≤120 汉字/页**；含截图或竖图时优先 **上图下文**，避免竖图挤进窄分栏导致不可读。 |
+| **主题内内容** | 每一页只讲 **本期视频主题**（对齐 `spec.md` / `00-structure.md` / 口播窗内 SRT）。**禁止**幻灯出现「如何制作本视频」、skill/CLI 名、仓库工作流、与话题无关的制片说明；这类信息只进 README / `review_record.md`，不进 `presentation.html`。 |
+| **氛围（可选）** | OD 常见 WebGL / 双背景；走 **口播视频截屏** 时优先 **CSS 渐变、噪点、柔光**，控制外网字体与非常规脚本，避免录制不稳定。 |
+
+**只有**用户 **明确要求 OD 官方模板气质**（文档举例：`guizang-ppt`、simple-deck）时，才应到 **上游 OD** 用对应 Skill 出稿，再 **自行适配** 视频管线契约（`html-video-from-slides` 所需的 DOM / `go(n)` 等）。若任务要对齐 OD 的 brief 流程或引用 `repos/reference/open-design/`，由用户在需求里写明 **偏好与模板**（是否必须用某套 OD 模板等）。
+
+**本仓已克隆的 Open Design（须落进 HTML）**：若工作区存在 `repos/reference/open-design/`（见 `meta/repos.yaml` → `id: open-design`），且用户要求「用 Open Design」：在选题 `production/slides/` 维护由 **`skills/simple-deck`** 色板衍生的 **`od-simple-deck.css`**（可与 `html-deck-layout` 的 `base.css` 等叠用），在 `presentation.html` 的 `<head>` 中 **`link` 该文件**（通常放在 `mobile-tech.css` 之后），并为每页 `<section class="s slide">` 增加 **`od od-light`** 或封面 **`od od-dark od-center`** 等类名，使 OD 的 token / 字体栈 **实际生效**；仍保留 **`#P` + `go(n)`** 视频契约。**不要**只改 SKILL 文案而不改 HTML；亦勿引入依赖 OD 私有 runtime 的脚本。
+
+**相关：** 桌面 / 投影 **全视口响应式** 幻灯见 **`html-slides`**；两条链路可共享同一套 OD 理念，仅画布与下游工具不同。
+
 ## Before you author anything — ALWAYS ask
 
 **Do not start writing slides until you confirm three things.** Either ask
 the user directly, or — if they already provided rich content — propose a
 default and confirm.
 
-1. **Content & audience.** 什么主题？大概多少页？观众是谁（内部/公开/学员）？
+1. **Content & audience.** 什么主题？大概多少页？观众是谁（内部/公开/学员）？确认幻灯**只讲本期主题**（不含「怎么做的视频」等 meta 页）。
 2. **Style / theme.** 推荐风格：
    - 技术分享 → `mobile-tech`（深蓝科技，默认最安全）
    - 亲和/生活 → `mobile-warm`（暖橙）
@@ -65,13 +90,13 @@ A good opening message:
 
 ### Step 3: Plan outline with layout mapping
 
-将内容拆页，每页分配布局（参考下方「7 种布局速查」）：
+将内容拆页，每页分配布局（参考下方「7 种布局速查」）；**若为口播视频**，为每页标注 **建议口播时长（30s–60s 为主）**，便于下游写 `slideDurationsSec`。
 
-| 页码 | 内容 | 布局 | 有无 SVG 图？ |
-|------|------|------|-------------|
-| 1 | 封面 | Cover | — |
-| 2 | ... | Grid 2×2 / Split / ... | 简述图内容 |
-| N | 致谢 | Thanks | — |
+| 页码 | 内容 | 布局 | 建议口播 | 有无 SVG 图？ |
+|------|------|------|----------|-------------|
+| 1 | 封面 | Cover | 20–35s | — |
+| 2 | ... | Grid 2×2 / Split / ... | **30–60s** | 简述图内容 |
+| N | 致谢 | Thanks | 20–35s | — |
 
 **Each deck MUST include ≥2 SVG diagrams** (using `<div class="card-diagram">` with inline `<svg>`) and use **≥3 distinct layout types**.
 
@@ -97,6 +122,7 @@ A good opening message:
 - [ ] 每页 ≤3 info blocks
 - [ ] Layout variety: ≥3 types total, no 3+ consecutive same
 - [ ] **≥2 pages with card-diagram + inline SVG** (not just emoji!)
+- [ ] 口播成片：**内容页**规划为每页约 **30s–60s**（封面/致谢可更短，≥20s）
 
 ✓ Gate: 全部勾选通过。
 
@@ -105,6 +131,117 @@ A good opening message:
 - 完整 HTML 文件（自包含，可离线打开）
 - 包含键盘导航 `<script>` (左右键/空格切换, 约见 demo-deck 底部)
 - 如需导出视频，与 `html-video-from-slides` 联动
+
+## Animation modes (optional)
+
+By default, slides switch instantly (no CSS transition). To enable animated transitions:
+
+1. **Load transitions.css** (after mobile-layout.css in `<head>`):
+   ```html
+   <link rel="stylesheet" href="assets/transitions.css">
+   ```
+
+2. **Set transition type** on `#P`:
+   ```html
+   <div id="P" data-transition="fade">
+   ```
+   Options: `fade` | `slide-left` | `slide-up` | `scale`
+
+3. **Optional per-element entrance animations**:
+   ```html
+   <div id="P" data-transition="fade" data-animate-elements="default">
+   ```
+   Options: `default`（fade-in-up）| `scale` | `slide-right` | `slide-left` | `none`
+
+The navigation script in templates already supports both modes.
+If `data-transition` is present, `go(n)` uses CSS transitions; otherwise it uses
+instant `display` switching (backward compatible with existing decks).
+
+The script always exposes recording hooks (`__beginSlideFlip`, `__finishSlideFlip`,
+`__slideTransitionMs`, `__currentSlide`, `__deckReady`) regardless of mode.
+
+**Video pipeline compatibility**:
+
+| Mode | `wav` (screenshot) | `wav-record` (录屏) |
+|------|-------------------|---------------------|
+| Static (default) | ✅ 正常 | ✅ 正常 |
+| Animated | ✅ `activateSlideForScreenshot` 强制 display 切换，动画被绕过 | ✅ 录屏完整保留 CSS 过渡和入场动画 |
+
+**When to use animations**:
+- Animated + `wav-record`：最终视频需要平滑翻页过渡和元素入场效果
+- Static (default)：截图模式成片，或不需要过渡效果
+- `prefers-reduced-motion`：自动降级为 static
+
+**Custom timing**: Override CSS variables on `#P` or `:root`:
+```css
+:root { --transition-slide-duration: 0.8s; --entrance-stagger: 0.12s; }
+```
+
+## Timed appears (gradual reveal)
+
+Make elements appear progressively as narration reaches them — like PPT animation,
+not highlight-after-the-fact.
+
+### Enable
+
+Add `data-timed-appears` to `#P` (requires `transitions.css`):
+
+```html
+<div id="P" data-transition="fade" data-timed-appears>
+```
+
+### Mark elements
+
+**Manual timing** (seconds from page start):
+```html
+<section class="s slide" id="s2">
+  <div class="g" data-appear-at="0">          <!-- 翻页即现 -->
+    <h3>背景介绍</h3>
+  </div>
+  <div class="g" data-appear-at="5.2">        <!-- 5.2s 后出现 -->
+    <h3>核心架构</h3>
+  </div>
+  <div class="g" data-appear-at="12">         <!-- 12s 后出现 -->
+    <h3>性能数据</h3>
+  </div>
+</section>
+```
+
+**SRT-driven matching** (keyword from subtitle):
+```html
+<div class="g" data-appear-match="架构|微服务">
+  <!-- SRT 字幕含"架构"或"微服务"时出现 -->
+</div>
+```
+
+`data-appear-match` supports `|`-separated alternatives; first match triggers appearance.
+Matching is driven by `__emphasizeBySrt()` called from wav-record.
+
+### Appear style
+
+Default: fade-in-up. Override via `data-timed-appears` value:
+
+| Value | Effect |
+|-------|--------|
+| (no value / empty) | fade-in-up (default) |
+| `scale` | scale from 0.92 → 1 |
+| `slide-right` | slide in from left |
+| `static` | show all immediately (screenshot fallback) |
+
+### Video pipeline compatibility
+
+| Mode | Behavior |
+|------|----------|
+| `wav` (screenshot) | `activateSlideForScreenshot` adds `.is-appeared` to all timed elements — full content visible |
+| `wav-record` | `__startPageTimer(n)` runs after each page flip, scheduling `data-appear-at` elements |
+| Browser preview | Keyboard navigation triggers timers; `data-timed-appears` without record mode still works |
+
+### Interaction with `data-animate-elements`
+
+When both `data-timed-appears` and `data-animate-elements` are present on `#P`,
+timed-appears takes precedence for elements with `data-appear-at` or `data-appear-match`
+— those elements are excluded from the staggered entrance animation and appear
+at their designated time instead.
 
 ## Visual richness rules (HARD CONSTRAINTS)
 
@@ -125,6 +262,7 @@ These are **non-negotiable**. Violating any rule means the output is rejected.
 
 | Constraint | Value | Source |
 |-----------|-------|--------|
+| 口播停留（内容页） | **30s–60s**/页，≤60s 除非已注明不可分割 | 口播视频、`wav-durations.json` |
 | Canvas | 1920×1080 | Fixed viewport |
 | Body text | **≥42px** | Hard minimum |
 | Card title | **≥52px** | Tier table |

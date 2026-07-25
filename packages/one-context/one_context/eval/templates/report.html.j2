@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<meta charset="utf-8">
+<title>{{ skill }} / {{ scenario }} · {{ overall }} · {{ run_id }}</title>
+<script>window.RUN_DATA = {{ run_data_json | safe }};</script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'SF Mono', 'Menlo', 'monospace'],
+          display: ['"SF Pro Display"', 'Inter', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  body {
+    font-feature-settings: "ss01", "cv11", "tnum";
+    -webkit-font-smoothing: antialiased;
+  }
+  [x-cloak] { display: none !important; }
+
+  /* dashboard background (from V1 Demo C) */
+  .conic-bg {
+    background:
+      radial-gradient(800px 400px at 80% -10%, rgba(16,185,129,.12), transparent 60%),
+      radial-gradient(600px 300px at -10% 100%, rgba(99,102,241,.10), transparent 60%),
+      #09090b;
+  }
+  .gridlines {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* score ring animation */
+  @keyframes draw-ring { from { stroke-dashoffset: 314; } }
+  .ring-draw { animation: draw-ring 1.2s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes count-up { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .count-up { animation: count-up .6s ease-out both; }
+
+  /* Cursor-style uppercase eyebrow */
+  .eyebrow {
+    font-weight: 600; font-size: 11px;
+    color: #71717a; text-transform: uppercase; letter-spacing: 0.088em;
+  }
+  .eyebrow strong { color: #f4f4f5; font-weight: 700; }
+
+  /* health pill (Cursor-style, dark adapted) */
+  .ph-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 9999px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px; color: #d4d4d8;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .ph-pill .k {
+    font-family: Inter, sans-serif;
+    font-weight: 600; font-size: 10px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #a1a1aa;
+  }
+  .ph-pill.ok    { background: rgba(16,185,129,0.10); border-color: rgba(16,185,129,0.30); color: #34d399; }
+  .ph-pill.ok    .k { color: #34d399; opacity: 0.75; }
+  .ph-pill.warn  { background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.30); color: #fbbf24; }
+  .ph-pill.warn  .k { color: #fbbf24; opacity: 0.75; }
+  .ph-pill.bad   { background: rgba(244,63,94,0.10);  border-color: rgba(244,63,94,0.30);  color: #fb7185; }
+  .ph-pill.bad   .k { color: #fb7185; opacity: 0.75; }
+  .ph-pill.info  { background: rgba(56,189,248,0.10); border-color: rgba(56,189,248,0.30); color: #7dd3fc; }
+  .ph-pill.info  .k { color: #7dd3fc; opacity: 0.75; }
+  .ph-pill.violet{ background: rgba(167,139,250,0.10); border-color: rgba(167,139,250,0.30); color: #c4b5fd; }
+  .ph-pill.violet .k { color: #c4b5fd; opacity: 0.75; }
+
+  /* Gantt */
+  .gantt-row {
+    display: grid;
+    grid-template-columns: 32px 70px 1.5fr 2.5fr 70px 18px;
+    gap: 12px; align-items: center; padding: 7px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer; transition: background .12s; font-size: 12.5px;
+  }
+  .gantt-row:last-child { border-bottom: none; }
+  .gantt-row:hover { background: rgba(255,255,255,0.03); }
+  .gantt-row.expanded { background: rgba(16,185,129,0.04); border-bottom-color: rgba(16,185,129,0.18); }
+  .gantt-row .caret {
+    color: #52525b; transition: transform .15s, color .12s;
+    display: inline-block; line-height: 1;
+    font-size: 10px; text-align: center;
+  }
+  .gantt-row:hover .caret { color: #a1a1aa; }
+  .gantt-row.expanded .caret { transform: rotate(90deg); color: #34d399; }
+  /* detail panel takes its own row */
+  .gantt-detail {
+    padding: 0 14px 16px;
+    border-bottom: 1px solid rgba(16,185,129,0.18);
+    background: rgba(16,185,129,0.03);
+  }
+  .gantt-detail-inner {
+    margin-left: 110px;  /* align under params column */
+    padding: 14px 16px;
+    background: #050507;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+  }
+  .gantt-detail .desc-line {
+    font: 13px Inter, sans-serif; color: #d4d4d8; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .gantt-detail .desc-line .label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.088em;
+    color: #71717a; font-weight: 600;
+  }
+  .gantt-detail .kv {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .gantt-detail .kv-row {
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .gantt-detail .kv-row .k {
+    flex-shrink: 0; width: 120px;
+    color: #71717a; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.088em; font-family: Inter, sans-serif; font-weight: 600;
+    padding-top: 4px;
+  }
+  .gantt-detail .kv-row .v {
+    flex: 1; min-width: 0;
+    color: #d4d4d8;
+    font-family: "JetBrains Mono", monospace; font-size: 12px;
+    word-break: break-word; white-space: pre-wrap;
+    padding: 4px 10px; background: rgba(255,255,255,0.03);
+    border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);
+    line-height: 1.55;
+  }
+  .gantt-detail .jump-btn {
+    margin-top: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 6px;
+    background: rgba(16,185,129,0.12);
+    color: #34d399;
+    border: 1px solid rgba(16,185,129,0.30);
+    font: 600 11px Inter, sans-serif;
+    text-transform: uppercase; letter-spacing: 0.088em;
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .gantt-detail .jump-btn:hover { background: rgba(16,185,129,0.20); }
+  .gantt-row .step {
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    color: #71717a; font-variant-numeric: tabular-nums;
+  }
+  .pill-stage {
+    display: inline-flex; align-items: center; padding: 3px 10px;
+    border-radius: 9999px; font-weight: 600; font-size: 10px;
+    letter-spacing: 0.088em; text-transform: uppercase; width: fit-content;
+  }
+  .pill-stage.read  { background: rgba(56,189,248,0.14); color: #7dd3fc; }
+  .pill-stage.bash  { background: rgba(245,158,11,0.14); color: #fbbf24; }
+  .pill-stage.write { background: rgba(16,185,129,0.18); color: #34d399; }
+  .pill-stage.other { background: rgba(255,255,255,0.06); color: #a1a1aa; }
+  .gantt-row .params {
+    font-family: "JetBrains Mono", monospace; font-size: 12px; color: #a1a1aa;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .gantt-row .track {
+    position: relative; height: 18px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px; overflow: hidden;
+  }
+  .gantt-row .bar {
+    position: absolute; top: 0; bottom: 0;
+    border-radius: 4px;
+    display: flex; align-items: center; padding: 0 6px;
+    font: 600 10px "JetBrains Mono", monospace;
+    color: #09090b;
+    overflow: hidden; min-width: 4px;
+  }
+  .gantt-row .bar.read  { background: linear-gradient(90deg, #0284c7, #7dd3fc); }
+  .gantt-row .bar.bash  { background: linear-gradient(90deg, #d97706, #fbbf24); }
+  .gantt-row .bar.write { background: linear-gradient(90deg, #059669, #34d399); }
+  .gantt-row .bar.other { background: rgba(161,161,170,0.6); }
+  .gantt-row .dur {
+    font: 600 11px "JetBrains Mono", monospace;
+    color: #d4d4d8; text-align: right; font-variant-numeric: tabular-nums;
+  }
+
+  /* x-axis */
+  .x-axis {
+    display: flex; padding: 8px 16px 8px 230px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font: 400 10px "JetBrains Mono", monospace; color: #71717a; letter-spacing: 0.4px;
+  }
+  .x-axis .tick { flex: 1; text-align: left; }
+
+  /* event timeline (C4) */
+  .event-timeline { position: relative; padding: 6px 4px; }
+  .event-row {
+    display: grid; grid-template-columns: 32px 1fr;
+    gap: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .12s;
+    position: relative;
+  }
+  .event-row:hover { background: rgba(255,255,255,0.025); }
+  .event-row.expanded { background: rgba(255,255,255,0.04); }
+  .event-row .rail {
+    position: relative; height: 100%;
+    display: flex; align-items: flex-start; justify-content: center; padding-top: 8px;
+  }
+  /* axis line stitched between siblings */
+  .event-row .rail::before {
+    content: ""; position: absolute; top: 0; bottom: -12px; left: 50%;
+    transform: translateX(-50%);
+    width: 1px; background: rgba(255,255,255,0.10);
+  }
+  .event-row:last-child .rail::before { bottom: 50%; }
+  .event-row .node {
+    position: relative; z-index: 1;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #27272a;
+    border: 2px solid #0a0a0c;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+  }
+  .event-row.k-think       .node { background: #a78bfa; box-shadow: 0 0 0 1px rgba(167,139,250,0.6); }
+  .event-row.k-text        .node { background: #e4e4e7; box-shadow: 0 0 0 1px rgba(228,228,231,0.6); }
+  .event-row.k-tool_use    .node { background: #fbbf24; box-shadow: 0 0 0 1px rgba(251,191,36,0.6); }
+  .event-row.k-tool_result .node { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(125,211,252,0.7); }
+  .event-row.k-sys-init    .node { background: #71717a; box-shadow: 0 0 0 1px rgba(113,113,122,0.5); }
+  .event-row.k-result      .node { background: #34d399; box-shadow: 0 0 0 1px rgba(52,211,153,0.7), 0 0 8px rgba(52,211,153,0.5); }
+  .event-row .row-main { min-width: 0; padding-top: 2px; }
+  .event-row .row-head {
+    display: flex; align-items: center; gap: 10px; font-size: 12.5px;
+  }
+  .event-row .ev-idx {
+    font: 11px "JetBrains Mono", monospace; color: #52525b;
+    font-variant-numeric: tabular-nums;
+  }
+  .event-row .ev-kind {
+    font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .event-row.k-think       .ev-kind { color: #c4b5fd; }
+  .event-row.k-text        .ev-kind { color: #fafafa; }
+  .event-row.k-tool_use    .ev-kind { color: #fbbf24; font-family: "JetBrains Mono", monospace; font-size: 11.5px; }
+  .event-row.k-tool_result .ev-kind { color: #7dd3fc; }
+  .event-row.k-sys-init    .ev-kind { color: #a1a1aa; }
+  .event-row.k-result      .ev-kind { color: #34d399; }
+  .event-row .ev-size {
+    margin-left: auto; font: 10px "JetBrains Mono", monospace;
+    color: #52525b; font-variant-numeric: tabular-nums;
+  }
+  .event-row .row-preview {
+    color: #a1a1aa; font-size: 12.5px; line-height: 1.5;
+    margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+  }
+  .event-row.k-think .row-preview, .event-row.k-text .row-preview { color: #d4d4d8; }
+  .event-row .row-detail {
+    margin-top: 10px; padding: 12px;
+    background: #050507;
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
+  }
+  .event-row .row-detail .detail-pre {
+    font: 12px/1.6 ui-monospace, "JetBrains Mono", monospace;
+    color: #d4d4d8; white-space: pre-wrap; word-break: break-word; margin: 0;
+    max-height: 400px; overflow-y: auto;
+  }
+  .ev-legend {
+    display: inline-flex; align-items: center; gap: 4px;
+    font: 10px "JetBrains Mono", monospace;
+  }
+
+  /* slide-over */
+  .scrim {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(2px); z-index: 50;
+  }
+  .panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(820px, 94vw);
+    background: #0a0a0c;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    z-index: 60;
+    display: flex; flex-direction: column;
+    box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+  }
+
+  /* markdown rendered (dark) */
+  .md { color: #d4d4d8; font-size: 14px; line-height: 1.65; }
+  .md h1 { font: 600 22px/1.3 "SF Pro Display", Inter, sans-serif; letter-spacing: -0.4px; color: #fafafa; margin: 8px 0 12px; }
+  .md h2 { font: 600 17px/1.3 "SF Pro Display", Inter, sans-serif; letter-spacing: -0.2px; color: #fafafa; margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .md h3 { font: 600 15px Inter, sans-serif; color: #fafafa; margin: 18px 0 8px; }
+  .md p  { margin: 10px 0; }
+  .md ul, .md ol { padding-left: 22px; margin: 10px 0; }
+  .md li { margin: 4px 0; }
+  .md code { font: 12px "JetBrains Mono", monospace; background: rgba(255,255,255,0.06); padding: 2px 5px; border-radius: 3px; color: #fafafa; }
+  .md pre { background: #050507; border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 14px; overflow-x: auto; margin: 12px 0; }
+  .md pre code { background: none; padding: 0; font: 12px/1.55 "JetBrains Mono", monospace; color: #e4e4e7; }
+  .md strong { color: #fafafa; font-weight: 600; }
+  .md blockquote { border-left: 2px solid #6366f1; padding: 8px 14px; color: #a1a1aa; margin: 12px 0; background: rgba(99,102,241,0.06); border-radius: 0 6px 6px 0; }
+  .md table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  .md th, .md td { padding: 8px 12px; border: 1px solid rgba(255,255,255,0.08); text-align: left; }
+  .md th { background: rgba(255,255,255,0.04); color: #fafafa; font-weight: 500; }
+  .md hr { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 24px 0; }
+</style>
+</head>
+<body class="conic-bg text-zinc-200 font-sans min-h-screen"
+      x-data="report()" x-init="init()">
+  <div class="gridlines min-h-screen">
+
+    <div class="max-w-7xl mx-auto px-6 py-6">
+
+      <!-- ── TOP BAR (from V1 Demo C) ── -->
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-4">
+          <div class="relative">
+            <div class="absolute inset-0 {{ overall_pass and "bg-emerald-500/30" or "bg-rose-500/30" }} rounded-full blur-md animate-pulse"></div>
+            <div class="relative w-3 h-3 rounded-full {{ overall_pass and "bg-emerald-500 ring-emerald-500/20" or "bg-rose-500 ring-rose-500/20" }} ring-4"></div>
+          </div>
+          <div>
+            <div class="text-[10px] text-zinc-500 tracking-[0.18em] uppercase font-semibold">onecxt eval · run</div>
+            <div class="font-mono text-sm text-zinc-300">{{ run_id }}</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-zinc-500">
+          <span class="px-2 py-1 rounded bg-zinc-800/60 border border-zinc-800 font-mono">git {{ git_commit }}</span>
+          <span class="px-2 py-1 rounded bg-zinc-800/60 border border-zinc-800 font-mono">cli {{ cli_version }}</span>
+          <span class="px-2 py-1 rounded bg-zinc-800/60 border border-zinc-800">{{ timestamp }}</span>
+        </div>
+      </div>
+
+      {% if provider_status != 'ok' %}
+      <!-- ISS-019: provider failure red banner -->
+      <div class="banner-red mb-5 rounded-2xl border border-rose-500/40 bg-rose-500/10 p-5">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="text-rose-300 text-2xl">⚠</span>
+          <span class="text-rose-200 font-semibold text-lg uppercase tracking-[0.088em]">Provider failed</span>
+          <span class="ph-pill bad"><span class="k">status</span><span>{{ provider_status }}</span></span>
+        </div>
+        <p class="text-sm text-rose-100/90 mb-3">
+          The skill provider exited with status <code class="font-mono text-xs px-1 py-0.5 bg-rose-500/15 rounded">{{ provider_status }}</code>;
+          judge was skipped, no artifacts were collected. The run is recorded so you can debug from stream-json + stderr below.
+        </p>
+        {% if stderr_tail %}
+        <details class="mt-3">
+          <summary class="cursor-pointer text-xs font-semibold text-rose-300 uppercase tracking-[0.088em]">▶ stderr_tail ({{ stderr_tail|length }} chars)</summary>
+          <pre class="mt-2 p-3 bg-zinc-950/60 border border-rose-500/20 rounded text-[11px] font-mono text-rose-100/80 whitespace-pre-wrap">{{ stderr_tail }}</pre>
+        </details>
+        {% endif %}
+      </div>
+      {% elif judge_skipped_reason == 'blocking_assertion_failed' %}
+      <!-- Phase 2.6.B: blocking assertion failure red banner -->
+      <div class="banner-red mb-5 rounded-2xl border border-rose-500/40 bg-rose-500/10 p-5">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="text-rose-300 text-2xl">⛔</span>
+          <span class="text-rose-200 font-semibold text-lg uppercase tracking-[0.088em]">Blocking assertion failed</span>
+          <span class="ph-pill bad"><span class="k">failed</span><span>{{ assertions_blocking_failed }}</span></span>
+        </div>
+        <p class="text-sm text-rose-100/90 mb-3">
+          {{ assertions_blocking_failed }} blocking assertion(s) did not pass; LLM judge was skipped to save tokens
+          (deterministic fail). See the Assertions section in the Judge tab for per-row details.
+        </p>
+        {% if blocking_failed_ids %}
+        <div class="text-xs text-rose-100/80 font-mono">
+          failed_ids: {{ blocking_failed_ids|join(', ') }}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- title -->
+      <h1 class="font-display text-4xl font-semibold tracking-tight mb-1">
+        {{ skill }} <span class="text-zinc-600">×</span> {{ scenario }}
+      </h1>
+      <div class="text-sm text-zinc-500 mb-6">
+        <span class="font-mono">{{ actual_model }}</span> ·
+        <span class="text-zinc-400">repeat {{ repeat_passed }}/{{ repeat_total }} · pass-rate {{ pass_rate_pct }}%</span> ·
+        cwd <span class="font-mono">{{ cwd }}</span>
+      </div>
+
+      <!-- ── DASHBOARD HEADER (score ring + metric tiles + judge column) ── -->
+      <div class="grid grid-cols-12 gap-4 mb-6">
+
+        <!-- score ring -->
+        <div class="col-span-12 lg:col-span-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur p-6 relative overflow-hidden">
+          <div class="absolute top-4 left-6 text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold">Judge score</div>
+          <div class="flex items-center justify-center py-2">
+            <div class="relative">
+              <svg width="180" height="180" viewBox="0 0 120 120">
+                <defs>
+                  <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="{{ overall_pass and "#10b981" or "#e11d48" }}"/>
+                    <stop offset="100%" stop-color="{{ overall_pass and "#34d399" or "#fb7185" }}"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#27272a" stroke-width="10"/>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="url(#ringGrad)" stroke-width="10"
+                        stroke-linecap="round" transform="rotate(-90 60 60)"
+                        stroke-dasharray="314" stroke-dashoffset="{{ "%.2f"|format(314 * (1 - score)) }}"
+                        class="ring-draw"
+                        style="filter: drop-shadow(0 0 12px rgba(16,185,129,.4));"/>
+                <g transform="rotate({{ "%.2f"|format(threshold * 360 - 90) }} 60 60)">
+                  <line x1="60" y1="6" x2="60" y2="16" stroke="#71717a" stroke-width="2"/>
+                </g>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <div class="text-5xl font-display font-semibold tabular-nums count-up {{ overall_pass and "text-emerald-400" or "text-rose-400" }}">{{ "%.2f"|format(score) }}</div>
+                <div class="text-[10px] uppercase tracking-wider text-zinc-500 mt-1">of 1.00</div>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-xs text-zinc-500 mt-2 px-2">
+            <span>threshold <span class="font-mono text-zinc-300">{{ "%.2f"|format(threshold) }}</span></span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full {{ overall_pass and "bg-emerald-500" or "bg-rose-500" }}"></span>
+              <span class="{{ overall_pass and "text-emerald-400" or "text-rose-400" }}">{{ score_overage }}</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- 4 metric tiles -->
+        <div class="col-span-12 lg:col-span-4 grid grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur p-5">
+            <div class="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold mb-2 flex items-center gap-1.5">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Cost
+            </div>
+            <div class="text-3xl font-display font-semibold tabular-nums count-up">{{ cost_human }}</div>
+            <div class="text-[11px] text-zinc-500 mt-1 font-mono">{{ "%.4f"|format(cost_usd) }} USD</div>
+            <div class="mt-3 h-1 bg-zinc-900 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style="width:48%"></div>
+            </div>
+            <div class="text-[10px] text-zinc-600 mt-1">vs $5 budget</div>
+          </div>
+          <div class="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur p-5">
+            <div class="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold mb-2 flex items-center gap-1.5">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Duration
+            </div>
+            <div class="text-3xl font-display font-semibold tabular-nums count-up">{{ duration_human }}</div>
+            <div class="text-[11px] text-zinc-500 mt-1 font-mono">{{ "{:,}".format(duration_ms).replace(",", " ") }} ms</div>
+            <svg class="mt-3 w-full h-6" viewBox="0 0 100 24" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"
+                points="0,18 8,16 16,17 24,14 32,12 40,15 48,11 56,9 64,12 72,7 80,8 88,5 96,6"/>
+              <polyline fill="rgba(99,102,241,.12)" stroke="none"
+                points="0,18 8,16 16,17 24,14 32,12 40,15 48,11 56,9 64,12 72,7 80,8 88,5 96,6 96,24 0,24"/>
+            </svg>
+          </div>
+          <div class="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur p-5">
+            <div class="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold mb-2 flex items-center gap-1.5">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              Tool calls
+            </div>
+            <div class="text-3xl font-display font-semibold tabular-nums count-up">{{ tool_calls_count }}</div>
+            <div class="text-[11px] text-zinc-500 mt-1">
+              <span class="text-sky-400">{{ read_n }} Read</span> ·
+              <span class="text-amber-400">{{ bash_n }} Bash</span> ·
+              <span class="text-zinc-400">{{ other_n }} …</span> ·
+              <span class="text-emerald-400">{{ write_n }} Write</span>
+            </div>
+            <div class="mt-3 flex gap-px h-1 rounded-full overflow-hidden">
+              <div class="bg-sky-500" style="flex:{{ read_n if read_n > 0 else 0 }}"></div>
+              <div class="bg-amber-500" style="flex:{{ bash_n if bash_n > 0 else 0 }}"></div>
+              <div class="bg-zinc-600" style="flex:{{ other_n if other_n > 0 else 0 }}"></div>
+              <div class="bg-emerald-500" style="flex:{{ write_n if write_n > 0 else 0 }}"></div>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur p-5">
+            <div class="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold mb-2 flex items-center gap-1.5">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Artifacts
+            </div>
+            <div class="text-3xl font-display font-semibold tabular-nums count-up">{{ artifact_count }}</div>
+            <div class="text-[11px] text-zinc-500 mt-1 font-mono">{{ artifact_total_human }} · new</div>
+            <button @click="tab = 'artifacts'; openArtifact()"
+                    class="mt-3 text-[10px] uppercase tracking-wider text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold">
+              <span>Preview</span>
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- judge headline -->
+        <div class="col-span-12 lg:col-span-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur p-6 flex flex-col">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold">Verdict</div>
+            <span class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full
+                         {{ overall_pass and "bg-emerald-500/10 text-emerald-400 ring-emerald-500/30" or "bg-rose-500/10 text-rose-400 ring-rose-500/30" }} ring-1">
+              <span class="w-1.5 h-1.5 rounded-full {{ overall_pass and "bg-emerald-500" or "bg-rose-500" }} animate-pulse"></span> {{ overall }}
+            </span>
+          </div>
+          <p class="text-[14px] leading-relaxed text-zinc-300 flex-1 line-clamp-6">{{ judge_reason }}</p>
+          <button @click="tab = 'judge'"
+                  class="mt-4 text-[10px] uppercase tracking-wider text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold">
+            <span>View full reason & criteria</span>
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+          <div class="mt-3 pt-3 border-t border-zinc-800/80 grid grid-cols-2 gap-3 text-xs">
+            <div><div class="text-zinc-500 text-[10px] uppercase tracking-wider">Judge model</div>
+                 <div class="font-mono text-zinc-300 mt-0.5 truncate">{{ judge_model }}</div></div>
+            <div><div class="text-zinc-500 text-[10px] uppercase tracking-wider">Cached</div>
+                 <div class="font-mono text-zinc-300 mt-0.5">{{ judge_cached and "true" or "false" }}</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TABS (everything below) ── -->
+      <div class="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur overflow-hidden">
+
+        <!-- tab strip -->
+        <div class="flex items-center border-b border-zinc-800/80 px-2 overflow-x-auto" role="tablist">
+          <template x-for="t in tabs" :key="t.id">
+            <button @click="tab = t.id"
+                    :class="tab === t.id
+                      ? 'text-zinc-100 border-emerald-500'
+                      : 'text-zinc-500 border-transparent hover:text-zinc-300'"
+                    class="px-4 py-3 -mb-px border-b-2 text-sm font-medium transition flex items-center gap-2 whitespace-nowrap">
+              <span x-text="t.icon" class="text-base"></span>
+              <span x-text="t.label"></span>
+              <template x-if="t.badge !== undefined">
+                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/60 text-zinc-400" x-text="t.badge"></span>
+              </template>
+            </button>
+          </template>
+        </div>
+
+        <!-- TAB 0: Scenario inputs -->
+        <div x-show="tab === 'scenario'" x-cloak class="p-6 grid grid-cols-12 gap-6">
+          <!-- left: user query + scenario meta -->
+          <div class="col-span-12 lg:col-span-7">
+            <div class="eyebrow mb-3"><strong>USER QUERY</strong> · scenario.yaml → <code class="font-mono text-[11px] px-1 py-0.5 bg-zinc-800 rounded">query</code></div>
+            <div class="rounded-lg border border-violet-500/30 bg-violet-500/5 p-5 mb-6">
+              <pre class="whitespace-pre-wrap text-[14px] leading-relaxed text-zinc-200 font-sans" x-text="scenario.query"></pre>
+            </div>
+
+            <div class="eyebrow mb-3"><strong>RUBRIC</strong> · default + scenario addition</div>
+            <details class="mb-2 rounded-lg border border-zinc-800/80 bg-zinc-950/40 overflow-hidden" open>
+              <summary class="px-4 py-3 cursor-pointer text-sm font-semibold text-zinc-200 flex items-center justify-between hover:bg-zinc-900/40">
+                <span class="flex items-center gap-2">
+                  <span class="text-[10px] uppercase tracking-[0.088em] text-emerald-400 font-bold">DEFAULT</span>
+                  <span>cover-prompt skill default rubric</span>
+                </span>
+                <span class="text-xs text-zinc-500 font-mono">eval.yaml</span>
+              </summary>
+              <pre class="px-5 py-4 text-xs leading-relaxed text-zinc-300 font-mono whitespace-pre-wrap border-t border-zinc-800/60" x-text="scenario.rubricDefault"></pre>
+            </details>
+            <details class="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden" open>
+              <summary class="px-4 py-3 cursor-pointer text-sm font-semibold text-amber-200 flex items-center justify-between hover:bg-amber-500/10">
+                <span class="flex items-center gap-2">
+                  <span class="text-[10px] uppercase tracking-[0.088em] text-amber-400 font-bold">+ SCENARIO</span>
+                  <span>mid-video scenario addition</span>
+                </span>
+                <span class="text-xs text-amber-500/70 font-mono">scenario.yaml → rubric</span>
+              </summary>
+              <pre class="px-5 py-4 text-xs leading-relaxed text-amber-100/90 font-mono whitespace-pre-wrap border-t border-amber-500/20" x-text="scenario.rubricAddition"></pre>
+            </details>
+          </div>
+
+          <!-- right: overlay files + ground truth + meta -->
+          <div class="col-span-12 lg:col-span-5">
+            <div class="eyebrow mb-3"><strong>FIXTURE OVERLAY</strong> · click to view</div>
+            <div class="space-y-1.5 mb-6">
+              <template x-for="(content, path) in overlayFiles" :key="path">
+                <button @click="openFile('overlay', path)"
+                        class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg
+                               border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/60 hover:border-zinc-700
+                               transition text-left">
+                  <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <span class="text-emerald-500 font-bold flex-shrink-0">+</span>
+                    <span class="font-mono text-xs text-zinc-300 truncate" x-text="path"></span>
+                  </div>
+                  <span class="text-[10px] font-mono text-zinc-500 flex-shrink-0" x-text="(content?.length || 0) + ' B'"></span>
+                </button>
+              </template>
+            </div>
+
+            <div class="eyebrow mb-3"><strong>GROUND TRUTH</strong> · reference cases</div>
+            <div class="grid grid-cols-2 gap-1.5 mb-6">
+              <template x-for="(content, name) in groundTruth" :key="name">
+                <button @click="openFile('ground_truth', name)"
+                        :class="name.startsWith('pass') ? 'border-emerald-500/30 hover:border-emerald-500/60' : 'border-rose-500/30 hover:border-rose-500/60'"
+                        class="px-3 py-2 rounded-lg border bg-zinc-900/40 hover:bg-zinc-800/60 transition text-left">
+                  <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.088em] font-bold mb-1"
+                       :class="name.startsWith('pass') ? 'text-emerald-400' : 'text-rose-400'">
+                    <span x-text="name.startsWith('pass') ? '✓ PASS' : '✗ FAIL'"></span>
+                  </div>
+                  <div class="font-mono text-[11px] text-zinc-300 truncate" x-text="name.replace(/\.yaml$/,'')"></div>
+                </button>
+              </template>
+            </div>
+
+            <div class="eyebrow mb-3"><strong>SCENARIO META</strong></div>
+            <div class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 divide-y divide-zinc-800/60">
+              <div class="flex justify-between items-center px-4 py-2.5 text-xs">
+                <span class="text-zinc-500 uppercase tracking-[0.088em] font-semibold">cwd</span>
+                <span class="font-mono text-zinc-300 truncate ml-3" x-text="scenario.cwd"></span>
+              </div>
+              <div class="flex justify-between items-center px-4 py-2.5 text-xs">
+                <span class="text-zinc-500 uppercase tracking-[0.088em] font-semibold">fixture mode</span>
+                <span class="font-mono text-zinc-300" x-text="scenario.fixtureMode"></span>
+              </div>
+              <div class="flex justify-between items-center px-4 py-2.5 text-xs">
+                <span class="text-zinc-500 uppercase tracking-[0.088em] font-semibold">model</span>
+                <span class="font-mono text-zinc-300" x-text="scenario.provider?.model"></span>
+              </div>
+              <div class="flex justify-between items-center px-4 py-2.5 text-xs">
+                <span class="text-zinc-500 uppercase tracking-[0.088em] font-semibold">permission mode</span>
+                <span class="font-mono text-zinc-300" x-text="scenario.provider?.permissionMode"></span>
+              </div>
+              <div class="flex justify-between items-center px-4 py-2.5 text-xs">
+                <span class="text-zinc-500 uppercase tracking-[0.088em] font-semibold">timeout</span>
+                <span class="font-mono text-zinc-300" x-text="(scenario.provider?.timeoutMs / 1000) + 's'"></span>
+              </div>
+              <div class="flex justify-between items-center px-4 py-2.5 text-xs">
+                <span class="text-zinc-500 uppercase tracking-[0.088em] font-semibold">repeat</span>
+                <span class="font-mono text-zinc-300" x-text="scenario.repeat"></span>
+              </div>
+              <div class="flex justify-between items-center px-4 py-2.5 text-xs">
+                <span class="text-zinc-500 uppercase tracking-[0.088em] font-semibold">threshold</span>
+                <span class="font-mono text-emerald-400" x-text="scenario.threshold"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 1: Judge & Health -->
+        <div x-show="tab === 'judge'" class="p-6 grid grid-cols-12 gap-6">
+          <!-- judge full -->
+          <div class="col-span-12 lg:col-span-7">
+            <div class="eyebrow mb-3"><strong>JUDGE</strong> · full reason</div>
+            <p class="text-[15px] leading-relaxed text-zinc-300 mb-5 whitespace-pre-wrap">{{ judge_reason }}</p>
+
+            {% if assertions_total > 0 %}
+            <!-- Phase 2.6.B: declarative assertions table -->
+            <div class="eyebrow mb-3">
+              <strong>ASSERTIONS</strong> ·
+              {{ assertions_total }} items
+              {% if assertions_passed %}<span class="text-emerald-400">· {{ assertions_passed }} pass</span>{% endif %}
+              {% if assertions_failed %}<span class="text-rose-400">· {{ assertions_failed }} fail</span>{% endif %}
+              {% if assertions_errors %}<span class="text-amber-400">· {{ assertions_errors }} error</span>{% endif %}
+              {% if assertions_blocking_failed %}<span class="text-rose-400 font-bold">· {{ assertions_blocking_failed }} BLOCKING</span>{% endif %}
+            </div>
+            <ul class="space-y-2 mb-6">
+              <template x-for="a in (assertions || [])" :key="a.id">
+                <li class="flex items-start gap-3 text-sm py-2 border-b border-zinc-800/60 last:border-none">
+                  <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5"
+                        :class="a.status === 'pass' ? 'bg-emerald-500/15 text-emerald-400'
+                              : a.status === 'fail' ? 'bg-rose-500/15 text-rose-400'
+                              : 'bg-amber-500/15 text-amber-400'"
+                        x-text="a.status === 'pass' ? '✓' : (a.status === 'fail' ? '✗' : '!')"></span>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <code class="text-[12px] font-mono text-zinc-200" x-text="a.id"></code>
+                      <span class="text-[10px] uppercase tracking-wider text-zinc-500"
+                            x-text="a.kind"></span>
+                      <span x-show="!a.blocking"
+                            class="text-[10px] uppercase tracking-wider text-amber-400/70 px-1 py-0.5 rounded bg-amber-500/10">advisory</span>
+                    </div>
+                    <p x-show="a.message" class="text-xs text-zinc-400 mt-1" x-text="a.message"></p>
+                    <details x-show="a.detail && Object.keys(a.detail).length" class="mt-1.5">
+                      <summary class="cursor-pointer text-[10px] text-zinc-500 hover:text-zinc-300 uppercase tracking-wider">
+                        ▶ detail
+                      </summary>
+                      <pre class="mt-1 p-2 bg-zinc-950/60 border border-zinc-800/40 rounded text-[10px] font-mono text-zinc-300 whitespace-pre-wrap" x-text="JSON.stringify(a.detail, null, 2)"></pre>
+                    </details>
+                  </div>
+                </li>
+              </template>
+            </ul>
+            {% endif %}
+
+            <div class="eyebrow mb-3"><strong>CRITERIA</strong> · {{ criteria_list|length }} items parsed from rubric</div>
+            <ul class="space-y-2">
+              <template x-for="(c, i) in criteria" :key="i">
+                <li class="flex items-start gap-3 text-sm text-zinc-300 py-2 border-b border-zinc-800/60 last:border-none">
+                  <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5"
+                        :class="c.nit ? 'bg-amber-500/15 text-amber-400' : 'bg-emerald-500/15 text-emerald-400'"
+                        x-text="c.nit ? '!' : '✓'"></span>
+                  <span x-text="c.text"></span>
+                </li>
+              </template>
+            </ul>
+
+            <button @click="rubricOpen = true"
+                    class="mt-5 text-[10px] uppercase tracking-wider text-zinc-400 hover:text-emerald-400 flex items-center gap-1 font-semibold">
+              <span>View judge rubric</span>
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+
+          <!-- health groups -->
+          <div class="col-span-12 lg:col-span-5">
+            <div class="eyebrow mb-3"><strong>HEALTH</strong> · 3 groups</div>
+
+            <div class="space-y-5">
+              {% set blocking_ok = health_blocking | selectattr(2) | list | length %}
+              {% set blocking_total = health_blocking | length %}
+              <!-- Blocking -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-rose-400 uppercase tracking-[0.088em]">Blocking · must be ok to ship</span>
+                  <span class="text-[10px] font-mono {{ blocking_ok == blocking_total and 'text-emerald-400' or 'text-rose-400' }}">{{ blocking_ok }}/{{ blocking_total }} OK</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  {% for k, v, ok in health_blocking %}
+                  <span class="ph-pill {{ ok and 'ok' or 'bad' }}"><span class="k">{{ k }}</span><span>{{ v }}</span></span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Drift -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-amber-400 uppercase tracking-[0.088em]">Drift · suspect when ≠ baseline</span>
+                  <span class="text-[10px] font-mono {{ model_drift and 'text-amber-400' or 'text-emerald-400' }}">{{ model_drift and 'DRIFT' or 'no drift' }}</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  {% for k, v, ok in health_drift %}
+                  <span class="ph-pill{{ ok and ' ok' or '' }}"><span class="k">{{ k }}</span><span>{{ v }}</span></span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Stats -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-violet-400 uppercase tracking-[0.088em]">Stats · for trend tracking</span>
+                  <span class="text-[10px] font-mono text-zinc-500">tracking</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  {% for k, v in health_stats %}
+                  <span class="ph-pill violet"><span class="k">{{ k }}</span><span>{{ v }}</span></span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+{% if diff_present %}
+        <!-- TAB: Diff (Stage 2.3) -->
+        <div x-show="tab === 'diff'" x-cloak class="p-6 space-y-6">
+{% if not diff_has_baseline %}
+          <div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-6">
+            <div class="text-amber-300 text-sm font-semibold mb-2">⚠ no baseline snapshot yet</div>
+            <div class="text-zinc-400 text-xs leading-relaxed">
+              Run <code class="font-mono text-amber-200 bg-zinc-900 px-1.5 py-0.5 rounded">onecxt eval {{ skill }}/{{ scenario }} snapshot --reason "&lt;text&gt;"</code> on a PASS run to create a baseline, then re-run with <code class="font-mono text-amber-200 bg-zinc-900 px-1.5 py-0.5 rounded">--diff</code> to compare.
+            </div>
+          </div>
+{% else %}
+{% set bd = run_diff %}
+          <!-- header: provenance + summary badge -->
+          <div class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-5">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <div class="eyebrow"><strong>DIFF</strong> · vs baseline</div>
+                <div class="text-xs text-zinc-500 mt-1 font-mono">
+                  baseline runId <span class="text-zinc-300">{{ bd.baseline.run_id }}</span>
+                  · snapshot at <span class="text-zinc-300">{{ bd.baseline.snapshot_at }}</span>
+                </div>
+                <div class="text-xs text-zinc-500 mt-1 italic">"{{ bd.baseline.snapshot_reason }}"</div>
+              </div>
+              <div>
+                {% if diff_status == 'regress' %}
+                <span class="px-3 py-1.5 rounded text-xs font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/40">REGRESSION · {{ diff_badge_text }}</span>
+                {% elif diff_status == 'changed' %}
+                <span class="px-3 py-1.5 rounded text-xs font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/40">CHANGED · {{ diff_badge_text }}</span>
+                {% else %}
+                <span class="px-3 py-1.5 rounded text-xs font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">MATCH · {{ diff_badge_text }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- warnings strip -->
+{% if diff_warn_target_path or diff_warn_model %}
+          <div class="space-y-2">
+{% if diff_warn_target_path %}
+            <div class="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-xs">
+              <div class="text-amber-300 font-semibold mb-1">⚠ target_path drifted since baseline</div>
+              <div class="text-zinc-400 font-mono leading-relaxed">
+                snapshot fingerprint: <span class="text-zinc-300">{{ bd.warnings.target_path_drift.baseline_sha256_at_snapshot[:16] }}…</span><br>
+                current fingerprint:&nbsp; <span class="text-amber-200">{{ bd.warnings.target_path_drift.current_sha256[:16] }}…</span>
+              </div>
+              <div class="text-zinc-500 mt-1">The evaluation fixture under <code class="font-mono">{{ bd.baseline.run_id and current_target_path }}</code> changed since the baseline was taken — diff results may be confounded by input changes, not just skill changes.</div>
+            </div>
+{% endif %}
+{% if diff_warn_model %}
+            <div class="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-xs">
+              <div class="text-amber-300 font-semibold mb-1">⚠ actual_model drifted since baseline</div>
+              <div class="text-zinc-400 font-mono">
+                baseline: <span class="text-zinc-300">{{ bd.warnings.model_drift.baseline_model }}</span>
+                · current: <span class="text-amber-200">{{ bd.warnings.model_drift.current_model }}</span>
+              </div>
+            </div>
+{% endif %}
+          </div>
+{% endif %}
+
+          <!-- judge -->
+          <div class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 overflow-hidden">
+            <div class="px-5 py-3 border-b border-zinc-800/80 text-sm font-semibold text-zinc-200 flex items-center gap-2">
+              <span>⚖️ Judge</span>
+              {% if bd.judge.pass_flipped %}
+              <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono">pass flipped</span>
+              {% endif %}
+            </div>
+            <div class="grid grid-cols-3 divide-x divide-zinc-800/60">
+              <div class="p-5">
+                <div class="text-[10px] uppercase tracking-[0.18em] text-zinc-500">baseline score</div>
+                <div class="text-2xl font-display font-semibold tabular-nums text-zinc-300 mt-2">{{ "%.2f"|format(bd.judge.baseline_score) }}</div>
+                <div class="text-[10px] mt-1 text-zinc-500">{{ "PASS" if bd.judge.baseline_pass else "FAIL" }}</div>
+              </div>
+              <div class="p-5">
+                <div class="text-[10px] uppercase tracking-[0.18em] text-zinc-500">current score</div>
+                <div class="text-2xl font-display font-semibold tabular-nums {{ 'text-emerald-300' if bd.judge.current_pass else 'text-rose-300' }} mt-2">{{ "%.2f"|format(bd.judge.current_score) }}</div>
+                <div class="text-[10px] mt-1 {{ 'text-emerald-400' if bd.judge.current_pass else 'text-rose-400' }}">{{ "PASS" if bd.judge.current_pass else "FAIL" }}</div>
+              </div>
+              <div class="p-5">
+                <div class="text-[10px] uppercase tracking-[0.18em] text-zinc-500">delta</div>
+                {% set score_delta = bd.judge.score_delta %}
+                <div class="text-2xl font-display font-semibold tabular-nums mt-2 {% if score_delta > 0 %}text-emerald-300{% elif score_delta < 0 %}text-rose-300{% else %}text-zinc-400{% endif %}">{{ ("%+0.2f" % score_delta) if score_delta != 0 else '0.00' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- tool_calls -->
+          <div class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 overflow-hidden">
+            <div class="px-5 py-3 border-b border-zinc-800/80 text-sm font-semibold text-zinc-200 flex items-center gap-2">
+              <span>🔭 Tool calls</span>
+              {% if bd.tool_calls.sequence_unchanged %}
+              <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-mono">sequence unchanged</span>
+              {% else %}
+              <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono">sequence changed</span>
+              {% endif %}
+              <span class="ml-auto text-xs text-zinc-500 font-mono">
+                {{ bd.tool_calls.baseline_total }} → {{ bd.tool_calls.current_total }}
+                {% set td = bd.tool_calls.total_delta %}
+                ({{ ("%+d" % td) if td != 0 else '0' }})
+              </span>
+            </div>
+{% if bd.tool_calls.by_type_delta %}
+            <div class="p-5">
+              <div class="text-[10px] uppercase tracking-[0.18em] text-zinc-500 mb-3">by type</div>
+              <div class="space-y-2">
+{% for ttype, delta in bd.tool_calls.by_type_delta|dictsort %}
+                <div class="flex items-center justify-between text-xs font-mono">
+                  <span class="text-zinc-300">{{ ttype }}</span>
+                  <span class="text-zinc-500">
+                    {{ bd.tool_calls.baseline_by_type.get(ttype, 0) }} → {{ bd.tool_calls.current_by_type.get(ttype, 0) }}
+                  </span>
+                  <span class="tabular-nums {% if delta > 0 %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ "%+d" % delta }}</span>
+                </div>
+{% endfor %}
+              </div>
+            </div>
+{% else %}
+            <div class="p-5 text-xs text-zinc-500">No per-type changes.</div>
+{% endif %}
+          </div>
+
+          <!-- artifacts -->
+          <div class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 overflow-hidden">
+            <div class="px-5 py-3 border-b border-zinc-800/80 text-sm font-semibold text-zinc-200 flex items-center gap-2">
+              <span>📦 Artifacts</span>
+              <span class="ml-auto text-xs text-zinc-500 font-mono">
+                <span class="text-emerald-300">+{{ bd.artifacts.added|length }}</span>
+                · <span class="text-rose-300">-{{ bd.artifacts.removed|length }}</span>
+                · <span class="text-amber-300">~{{ bd.artifacts.changed|length }}</span>
+                · <span class="text-zinc-400">={{ bd.artifacts.unchanged_count }}</span>
+              </span>
+            </div>
+            <div class="divide-y divide-zinc-800/60">
+{% for p in bd.artifacts.added %}
+              <div class="px-5 py-2 text-xs font-mono flex items-center gap-3"><span class="text-emerald-400">+</span><span class="text-zinc-200">{{ p }}</span><span class="ml-auto text-[10px] uppercase text-emerald-400/80">added</span></div>
+{% endfor %}
+{% for p in bd.artifacts.removed %}
+              <div class="px-5 py-2 text-xs font-mono flex items-center gap-3"><span class="text-rose-400">-</span><span class="text-zinc-200">{{ p }}</span><span class="ml-auto text-[10px] uppercase text-rose-400/80">removed</span></div>
+{% endfor %}
+{% for c in bd.artifacts.changed %}
+              <div class="px-5 py-2 text-xs font-mono">
+                <div class="flex items-center gap-3"><span class="text-amber-400">~</span><span class="text-zinc-200">{{ c.path }}</span><span class="ml-auto text-[10px] uppercase text-amber-400/80">changed</span></div>
+                <div class="text-[10px] text-zinc-500 mt-1 ml-5">
+                  size {{ c.baseline_size }} → {{ c.current_size }}
+                  · sha {{ c.baseline_sha256[:8] }}… → {{ c.current_sha256[:8] }}…
+                </div>
+              </div>
+{% endfor %}
+{% if not bd.artifacts.added and not bd.artifacts.removed and not bd.artifacts.changed %}
+              <div class="px-5 py-4 text-xs text-zinc-500">All artifacts identical.</div>
+{% endif %}
+            </div>
+          </div>
+
+          <!-- final_text -->
+          <div class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 overflow-hidden">
+            <div class="px-5 py-3 border-b border-zinc-800/80 text-sm font-semibold text-zinc-200 flex items-center gap-2">
+              <span>✍️ Agent final_text</span>
+              <span class="ml-auto text-xs text-zinc-500 font-mono">
+                {{ bd.final_text.baseline_size }}c → {{ bd.final_text.current_size }}c
+                · {{ 'changed' if bd.final_text.changed else 'unchanged' }}
+              </span>
+            </div>
+{% if bd.final_text.changed %}
+            <pre class="p-5 text-[12px] leading-relaxed font-mono whitespace-pre-wrap text-zinc-300 max-h-[480px] overflow-auto">{{ bd.final_text.unified_diff }}</pre>
+{% else %}
+            <div class="p-5 text-xs text-zinc-500">No differences.</div>
+{% endif %}
+          </div>
+{% endif %}
+        </div>
+{% endif %}
+
+        <!-- TAB 2: Tool calls (Gantt) -->
+        <div x-show="tab === 'trace'" x-cloak class="p-6">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div>
+              <div class="eyebrow"><strong>TRACE</strong> · agent execution</div>
+              <div class="text-xs text-zinc-500 mt-1">
+                <span x-show="traceView === 'timeline'"><span x-text="events.length"></span> events parsed from stream-json (think + tool_use + tool_result + text) · <span class="text-emerald-400">click any event to expand</span></span>
+                <span x-show="traceView === 'gantt'" x-cloak>{{ tool_calls_count }} tool calls · wall-time from stream-json timestamps</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <!-- view toggle -->
+              <div class="inline-flex p-0.5 rounded-lg bg-zinc-900 border border-zinc-800">
+                <button @click="traceView = 'timeline'"
+                        :class="traceView === 'timeline' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'"
+                        class="px-3 py-1 text-xs font-semibold uppercase tracking-[0.088em] rounded-md transition">
+                  🔭 Timeline
+                </button>
+                <button @click="traceView = 'gantt'"
+                        :class="traceView === 'gantt' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'"
+                        class="px-3 py-1 text-xs font-semibold uppercase tracking-[0.088em] rounded-md transition">
+                  📊 Gantt
+                </button>
+              </div>
+              <div class="flex gap-1.5 flex-wrap" x-show="traceView === 'gantt'" x-cloak>
+                <span class="pill-stage read">READ</span>
+                <span class="pill-stage bash">BASH</span>
+                <span class="pill-stage write">WRITE</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─── EVENT TIMELINE (default) ─── -->
+          <div x-show="traceView === 'timeline'" class="border border-zinc-800/80 rounded-lg bg-zinc-950/40 p-1">
+            <div class="event-timeline">
+              <template x-for="ev in events" :key="ev.idx">
+                <div class="event-row" :class="['k-' + ev.kind.replace('.','-'), expandedEvent === ev.idx ? 'expanded' : '']"
+                     @click="expandedEvent = (expandedEvent === ev.idx ? null : ev.idx)">
+                  <!-- left rail -->
+                  <span class="rail">
+                    <span class="node"></span>
+                  </span>
+                  <!-- row content -->
+                  <div class="row-main">
+                    <div class="row-head">
+                      <span class="ev-idx" x-text="String(ev.idx).padStart(2,'0')"></span>
+                      <span class="ev-kind">
+                        <template x-if="ev.kind === 'think'"><span>🧠 thinking</span></template>
+                        <template x-if="ev.kind === 'text'"><span>💬 text</span></template>
+                        <template x-if="ev.kind === 'tool_use'"><span>🛠️ <span x-text="ev.tool"></span></span></template>
+                        <template x-if="ev.kind === 'tool_result'"><span :class="ev.is_error ? 'text-rose-400' : ''">📥 result</span></template>
+                        <template x-if="ev.kind === 'sys.init'"><span>⚙️ system init</span></template>
+                        <template x-if="ev.kind === 'result'"><span>🏁 done</span></template>
+                      </span>
+                      <span class="ev-size" x-show="ev.size != null">
+                        <span x-text="ev.size"></span> chars
+                      </span>
+                      <span class="ev-size" x-show="ev.cost_usd != null">
+                        $<span x-text="ev.cost_usd?.toFixed(4)"></span>
+                      </span>
+                      <span class="ev-size" x-show="ev.t_offset_ms != null"
+                            :title="'wall-time relative to first event'">
+                        t+<span x-text="formatDur(ev.t_offset_ms)"></span>
+                      </span>
+                      <span class="ev-size" x-show="ev.t_offset_ms == null"
+                            :title="provider did not stamp this line (Stage &lt; 2.5.3)">
+                        t+—
+                      </span>
+                    </div>
+                    <div class="row-preview">
+                      <template x-if="ev.kind === 'tool_use'">
+                        <span class="font-mono text-[12px]" x-text="ev.preview"></span>
+                      </template>
+                      <template x-if="ev.kind !== 'tool_use' && ev.kind !== 'sys.init'">
+                        <span x-text="ev.preview"></span>
+                      </template>
+                      <template x-if="ev.kind === 'sys.init'">
+                        <span class="text-zinc-500 text-xs">model=<span class="font-mono text-zinc-300" x-text="ev.meta?.model"></span> · <span x-text="ev.meta?.tools?.length"></span> tools available</span>
+                      </template>
+                    </div>
+                    <!-- expanded detail -->
+                    <div class="row-detail" x-show="expandedEvent === ev.idx" x-cloak>
+                      <template x-if="ev.kind === 'think' || ev.kind === 'text' || ev.kind === 'tool_result'">
+                        <pre class="detail-pre" x-text="ev.full"></pre>
+                      </template>
+                      <template x-if="ev.kind === 'tool_use'">
+                        <div class="kv">
+                          <template x-for="(val, key) in ev.input" :key="key">
+                            <div class="kv-row">
+                              <span class="k" x-text="key"></span>
+                              <span class="v" x-text="typeof val === 'string' ? val : JSON.stringify(val, null, 2)"></span>
+                            </div>
+                          </template>
+                          <div class="kv-row" x-show="ev.tool_use_id">
+                            <span class="k">tool_use_id</span>
+                            <span class="v text-zinc-500" x-text="ev.tool_use_id"></span>
+                          </div>
+                        </div>
+                      </template>
+                      <template x-if="ev.kind === 'sys.init'">
+                        <pre class="detail-pre" x-text="JSON.stringify(ev.meta, null, 2)"></pre>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- timeline legend at bottom -->
+            <div class="mt-3 px-3 pb-2 flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
+              <span class="text-zinc-400 font-semibold uppercase tracking-wider">Legend:</span>
+              <span class="ev-legend k-think">🧠 thinking <span class="text-zinc-600">(agent reasoning)</span></span>
+              <span class="ev-legend k-text">💬 text <span class="text-zinc-600">(agent reply)</span></span>
+              <span class="ev-legend k-tool_use">🛠️ tool_use <span class="text-zinc-600">(call out)</span></span>
+              <span class="ev-legend k-tool_result">📥 result <span class="text-zinc-600">(env returns)</span></span>
+            </div>
+          </div>
+
+          <!-- ─── GANTT (mock, secondary view) ─── -->
+          <div x-show="traceView === 'gantt'" x-cloak class="border border-zinc-800/80 rounded-lg overflow-hidden bg-zinc-950/40">
+            <div class="x-axis">
+              <span class="tick">0s</span><span class="tick">33s</span><span class="tick">66s</span>
+              <span class="tick">100s</span><span class="tick">133s</span><span class="tick">166s</span>
+            </div>
+            <template x-for="c in withOffsets" :key="c.n">
+              <div>
+                <div class="gantt-row" :class="expandedStep === c.n ? 'expanded' : ''"
+                     @click="expandedStep = (expandedStep === c.n ? null : c.n)">
+                  <span class="step" x-text="String(c.n).padStart(2,'0')"></span>
+                  <span class="pill-stage" :class="c.name.toLowerCase()" x-text="c.name"></span>
+                  <span class="params" x-text="c.summary" :title="c.summary"></span>
+                  <div class="track">
+                    <div class="bar" :class="c.name.toLowerCase()"
+                         :style="'left:' + c.left + '%; width:' + Math.max(c.width, 0.3) + '%;'"
+                         x-text="c.duration_ms >= 8000 ? formatDur(c.duration_ms) : ''"></div>
+                  </div>
+                  <span class="dur" x-text="formatDur(c.duration_ms)"></span>
+                  <span class="caret">▶</span>
+                </div>
+                <div class="gantt-detail" x-show="expandedStep === c.n" x-cloak>
+                  <div class="gantt-detail-inner">
+                    <div class="desc-line" x-show="c.desc">
+                      <span class="label">PURPOSE</span>
+                      <span x-text="c.desc"></span>
+                    </div>
+                    <div class="kv">
+                      <template x-for="(val, key) in c.input" :key="key">
+                        <div class="kv-row">
+                          <span class="k" x-text="key"></span>
+                          <span class="v" x-text="typeof val === 'string' ? val : JSON.stringify(val, null, 2)"></span>
+                        </div>
+                      </template>
+                    </div>
+                    <template x-if="c.links_artifact">
+                      <button class="jump-btn" @click.stop="tab = 'artifacts'; openArtifact()">
+                        <span>📦 View written content in Artifact preview</span>
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <div x-show="traceView === 'gantt'" x-cloak
+               class="mt-4 flex items-start gap-2 px-4 py-3 rounded-lg
+                      bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-xs">
+            <span>ℹ️</span>
+            <span>
+              <strong class="text-emerald-200">Gantt bars show real wall-time durations</strong>
+              derived from per-event timestamps in stream-json.jsonl.
+              Bar widths and positions reflect actual tool_use → tool_result intervals.
+              Gaps between bars represent LLM reasoning / thinking time (see Timeline for detail).
+            </span>
+          </div>
+          <div x-show="traceView === 'timeline'"
+               class="mt-4 flex items-start gap-2 px-4 py-3 rounded-lg
+                      bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-xs">
+            <span>✓</span>
+            <span>
+              <strong class="text-emerald-200">Timeline parsed from real <code class="font-mono text-[11px] px-1 py-0.5 bg-emerald-500/10 rounded">stream-json.jsonl</code>.</strong>
+              Each event shows its wall-time offset (<code class="font-mono text-[11px] px-1 py-0.5 bg-emerald-500/10 rounded">t+</code>) when the provider stamped <code class="font-mono text-[11px] px-1 py-0.5 bg-emerald-500/10 rounded">_t</code> on the stream (Stage 2.5.3+). Older runs show <code class="font-mono text-[11px] px-1 py-0.5 bg-emerald-500/10 rounded">t+—</code>.
+              You can see the full execution shape — thinking blocks vs tool round-trips — and where wall-time actually goes.
+            </span>
+          </div>
+        </div>
+
+        <!-- TAB 3: Artifacts -->
+        <div x-show="tab === 'artifacts'" x-cloak class="p-6">
+          <div class="eyebrow mb-4"><strong>ARTIFACTS</strong> · {{ artifact_count }} file{{ artifact_count != 1 and "s" or "" }} · {{ deleted_count }} deleted · {{ overlay_replaced_count }} replaced</div>
+
+          <div class="flex items-center justify-between p-4 rounded-xl border border-zinc-800 bg-zinc-900/40
+                      hover:bg-zinc-800/60 hover:border-zinc-700 transition cursor-pointer"
+               @click="openArtifact()">
+            <div class="flex items-center gap-4 min-w-0">
+              <div class="w-12 h-12 rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="min-w-0">
+                <div class="font-mono text-[15px] text-zinc-100 truncate">{{ primary_artifact and primary_artifact.path or "(no artifact)" }}</div>
+                <div class="text-xs text-zinc-500 font-mono mt-1">{{ primary_artifact_size_human }} · sha256 {{ primary_artifact_short_sha }}… · written via Write tool</div>
+              </div>
+            </div>
+            <button class="text-xs font-semibold uppercase tracking-wider text-emerald-400 hover:text-emerald-300
+                           flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/30
+                           flex-shrink-0">
+              Open preview
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+
+          <div class="mt-6">
+            <div class="eyebrow mb-3"><strong>OVERLAY</strong> · fixture · +{{ overlay_added | length }} added · {{ overlay_replaced_count }} replaced</div>
+            <div class="space-y-1">
+              <template x-for="(p, i) in overlay" :key="i">
+                <div class="flex items-center gap-3 px-3 py-2 rounded font-mono text-xs text-zinc-400 hover:bg-zinc-900/40">
+                  <span class="text-emerald-500 font-bold">+</span>
+                  <span x-text="p"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: Agent output -->
+        <div x-show="tab === 'output'" x-cloak class="p-6">
+          <div class="flex items-center justify-between mb-3">
+            <div class="eyebrow"><strong>AGENT FINAL TEXT</strong> · {{ final_text|length }} chars</div>
+            <span class="text-[10px] font-mono text-zinc-500">last assistant text · before result event</span>
+          </div>
+          <div class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-5">
+<pre class="whitespace-pre-wrap text-[13px] leading-relaxed text-zinc-300 font-sans">{{ final_text }}</pre>
+          </div>
+        </div>
+
+        <!-- TAB 5: Raw meta -->
+        <div x-show="tab === 'meta'" x-cloak class="p-6">
+          <div class="eyebrow mb-4"><strong>RAW METADATA</strong></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <template x-for="(row, i) in meta" :key="i">
+              <div class="flex justify-between gap-4 py-2 border-b border-zinc-800/60">
+                <span class="text-zinc-500 text-xs uppercase tracking-wider" x-text="row.k"></span>
+                <span class="font-mono text-xs text-zinc-300 text-right truncate" :class="row.cls || ''" x-text="row.v"></span>
+              </div>
+            </template>
+          </div>
+          <div class="mt-6 flex items-center gap-3">
+            <a href="run.json" class="text-xs px-4 py-2 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 font-mono">run.json</a>
+            <a href="stream-json.jsonl" class="text-xs px-4 py-2 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 font-mono">stream-json.jsonl</a>
+            <a href="artifacts" class="text-xs px-4 py-2 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 font-mono">artifacts/</a>
+            <a href="inputs" class="text-xs px-4 py-2 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 font-mono">inputs/</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- footer -->
+      <div class="mt-6 flex items-center justify-between text-xs text-zinc-600 border-t border-zinc-800/60 pt-4">
+        <span>onecxt eval · single-run view</span>
+        <span>run_schema_version <span class="font-mono">{{ run_schema_version }}</span></span>
+      </div>
+    </div>
+  </div>
+
+<!-- Artifact slide-over -->
+<template x-teleport="body">
+  <div x-show="artifactOpen" x-cloak>
+    <div class="scrim" @click="artifactOpen = false"></div>
+    <div class="panel" @keydown.escape.window="artifactOpen = false">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-950/60">
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] uppercase tracking-[0.088em] font-semibold px-2 py-1 rounded bg-emerald-500/15 text-emerald-300">📦 ARTIFACT</span>
+          <span class="font-mono text-sm text-zinc-200">{{ primary_artifact and primary_artifact.path or "" }}</span>
+        </div>
+        <button @click="artifactOpen = false"
+                class="w-8 h-8 rounded-md border border-zinc-800 text-zinc-500 hover:text-zinc-100 hover:border-zinc-600 flex items-center justify-center">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="flex border-b border-zinc-800/80 bg-zinc-950/30 px-4 gap-1">
+        <template x-for="t in ['preview','raw','metadata']" :key="t">
+          <button @click="artifactTab = t"
+                  :class="artifactTab === t ? 'text-zinc-100 border-emerald-500' : 'text-zinc-500 border-transparent hover:text-zinc-300'"
+                  class="px-4 py-2.5 -mb-px border-b-2 text-xs font-semibold uppercase tracking-[0.088em]">
+            <span x-text="t"></span>
+          </button>
+        </template>
+      </div>
+      <div class="flex-1 overflow-auto p-6">
+        <div x-show="artifactTab === 'preview'" class="md" x-html="renderedMd"></div>
+        <pre x-show="artifactTab === 'raw'" x-cloak
+             class="font-mono text-xs leading-relaxed text-zinc-300 whitespace-pre-wrap bg-zinc-950/60 p-4 rounded-lg border border-zinc-800"
+             x-text="window.RUN_DATA?.artifactMarkdown"></pre>
+        <div x-show="artifactTab === 'metadata'" x-cloak class="space-y-0">
+          <template x-for="row in artifactMeta" :key="row.k">
+            <div class="flex justify-between gap-4 py-3 border-b border-zinc-800/60 text-sm">
+              <span class="text-zinc-500 text-xs uppercase tracking-[0.088em] font-semibold" x-text="row.k"></span>
+              <span class="font-mono text-xs text-zinc-200 text-right truncate" :class="row.cls || ''" x-text="row.v"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- Rubric modal -->
+<template x-teleport="body">
+  <div x-show="rubricOpen" x-cloak>
+    <div class="scrim" @click="rubricOpen = false"></div>
+    <div class="panel" style="width: min(620px, 92vw);" @keydown.escape.window="rubricOpen = false">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-950/60">
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] uppercase tracking-[0.088em] font-semibold px-2 py-1 rounded bg-violet-500/15 text-violet-300">📘 RUBRIC</span>
+          <span class="font-mono text-sm text-zinc-200">{{ skill }} × {{ scenario }}</span>
+        </div>
+        <button @click="rubricOpen = false"
+                class="w-8 h-8 rounded-md border border-zinc-800 text-zinc-500 hover:text-zinc-100 hover:border-zinc-600 flex items-center justify-center">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-auto p-6">
+<pre class="font-mono text-xs leading-relaxed text-zinc-300 whitespace-pre-wrap bg-zinc-950/60 p-4 rounded-lg border border-zinc-800">{{ rubric_text or "(rubric is empty)" }}</pre>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- File preview slide-over (overlay / ground_truth) -->
+<template x-teleport="body">
+  <div x-show="filePreviewOpen" x-cloak>
+    <div class="scrim" @click="filePreviewOpen = false"></div>
+    <div class="panel" @keydown.escape.window="filePreviewOpen = false">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-950/60">
+        <div class="flex items-center gap-3 min-w-0">
+          <template x-if="filePreviewKind === 'overlay'">
+            <span class="text-[10px] uppercase tracking-[0.088em] font-semibold px-2 py-1 rounded bg-violet-500/15 text-violet-300 flex-shrink-0">📥 OVERLAY</span>
+          </template>
+          <template x-if="filePreviewKind === 'ground_truth'">
+            <span class="text-[10px] uppercase tracking-[0.088em] font-semibold px-2 py-1 rounded flex-shrink-0"
+                  :class="filePreviewPath?.startsWith('pass') ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'"
+                  x-text="filePreviewPath?.startsWith('pass') ? '✓ GROUND TRUTH (PASS)' : '✗ GROUND TRUTH (FAIL)'"></span>
+          </template>
+          <span class="font-mono text-sm text-zinc-200 truncate" x-text="filePreviewPath"></span>
+        </div>
+        <button @click="filePreviewOpen = false"
+                class="w-8 h-8 rounded-md border border-zinc-800 text-zinc-500 hover:text-zinc-100 hover:border-zinc-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-auto p-6">
+        <pre class="font-mono text-xs leading-relaxed text-zinc-300 whitespace-pre-wrap bg-zinc-950/60 p-4 rounded-lg border border-zinc-800" x-text="filePreviewBody"></pre>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  function report() {
+    return {
+      tab: 'judge',
+      tabs: [
+        { id: 'scenario',  label: 'Inputs',         icon: '📥', badge: '{{ overlay_count }} + {{ gt_count }}' },
+        { id: 'judge',     label: 'Judge & Health', icon: '⚖️', badge: '{{ overall }}' },
+        {%- if diff_present %}
+        { id: 'diff',      label: 'Diff',           icon: '🔀', badge: '{{ diff_badge_text }}' },
+        {%- endif %}
+        { id: 'trace',     label: 'Trace',          icon: '🔭', badge: {{ events_count }} },
+        { id: 'artifacts', label: 'Artifacts',      icon: '📦', badge: {{ artifact_count }} },
+        { id: 'output',    label: 'Agent output',   icon: '✍️', badge: '{{ final_text|length }}c' },
+        { id: 'meta',      label: 'Meta',           icon: '⚙️' },
+      ],
+      // ── C4 additions ──
+      traceView: 'timeline',
+      events: [],
+      expandedEvent: null,
+      scenario: {},
+      overlayFiles: {},
+      groundTruth: {},
+      filePreviewOpen: false,
+      filePreviewPath: '',
+      filePreviewBody: '',
+      filePreviewKind: 'overlay',
+      openFile(kind, path) {
+        this.filePreviewKind = kind;
+        this.filePreviewPath = path;
+        this.filePreviewBody = (kind === 'overlay' ? this.overlayFiles[path] : this.groundTruth[path]) || '';
+        this.filePreviewOpen = true;
+      },
+      // criteria / overlay / meta / artifactMeta now come from window.RUN_DATA
+      // (populated in init() so we don't duplicate render-time strings)
+      criteria:     [],
+      overlay:      [],
+      meta:         [],
+      artifactMeta: [],
+      // Phase 2.6.B: assertions table
+      assertions:   [],
+      calls: [],
+      withOffsets: [],
+      expandedStep: null,
+      artifactOpen: false,
+      artifactTab: 'preview',
+      rubricOpen: false,
+      renderedMd: '',
+      init() {
+        const D = window.RUN_DATA || {};
+        this.calls = (D.toolCalls || []).map((tc, i) => {
+          const enriched = { ...tc, n: i + 1 };
+          const inp = tc.input || {};
+          if (tc.name === 'Bash') {
+            enriched.summary = inp.command || '';
+            enriched.desc = inp.description || '';
+          } else if (['Read', 'Write', 'Edit'].includes(tc.name)) {
+            enriched.summary = inp.file_path || '';
+            enriched.desc = `Operating on ${inp.file_path || 'file'}...`;
+            if (tc.name === 'Write' && typeof inp.content === 'string' && inp.content.length > 0) {
+              enriched.links_artifact = true;
+            }
+          } else if (tc.name === 'Glob') {
+            enriched.summary = inp.pattern || '';
+          } else {
+            enriched.summary = JSON.stringify(inp).slice(0, 80);
+          }
+          return enriched;
+        });
+        const total = D.totalDurationMs || 1;
+        this.withOffsets = this.calls.map(c => {
+          const left = ((c.start_offset_ms || 0) / total) * 100;
+          const width = ((c.duration_ms || 0) / total) * 100;
+          return { ...c, left, width };
+        });
+        // C4 additions
+        this.events       = D.events || [];
+        this.scenario     = D.scenario || {};
+        this.overlayFiles = D.overlayFiles || {};
+        this.groundTruth  = D.groundTruth || {};
+        // these are produced by the Python view dict (server-side)
+        this.criteria     = D.criteriaList     || [];
+        this.overlay      = D.overlayAdded     || [];
+        this.meta         = D.metaRows         || [];
+        this.artifactMeta = D.artifactMetaRows || [];
+        this.assertions   = D.assertions       || [];
+        // update badges with real counts
+        const tabBadge = (id, v) => { const t = this.tabs.find(x => x.id === id); if (t) t.badge = v; };
+        tabBadge('scenario', `${Object.keys(this.overlayFiles).length} files`);
+        tabBadge('trace', this.events.length);
+      },
+      openArtifact() {
+        this.artifactOpen = true;
+        this.artifactTab = 'preview';
+        if (!this.renderedMd && window.marked && window.RUN_DATA) {
+          this.renderedMd = window.marked.parse(window.RUN_DATA.artifactMarkdown);
+        }
+      },
+      formatDur(ms) {
+        if (ms == null) return '—';
+        if (ms < 1000) return ms + 'ms';
+        if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
+        const m = Math.floor(ms / 60000);
+        const s = Math.floor((ms % 60000) / 1000);
+        return `${m}m ${s}s`;
+      },
+    };
+  }
+</script>
+</body>
+</html>
