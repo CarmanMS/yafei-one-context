@@ -26,5 +26,9 @@
 | [`review/`](review/) | **方案评审智能体**：多智能体协作交叉评审技术方案，支持双 Agent 对弈 / 多角色委员会两种模式；触发词：方案评审、review、技术方案评审；见 `SKILL.md` |
 | [`pmdcheck/`](pmdcheck/) | **PMD Java 静态检查**：自动定位 Maven 项目、执行 PMD 规则集（默认查无效/重复/同包 import），`--fix` 调 AI 智能修复；触发词：PMD检查、静态代码分析、无效import检测；见 `SKILL.md` |
 | [`consolecast/`](consolecast/) | **控制台会话录制与讲解**：将控制台输出录制为 `.consolecast` 演示文件，纯 HTML/JS 播放器回放（打字动画 + 流式输出 + 讲解气泡）；触发词：consolecast、录制演示、回放、演示文件；见 `SKILL.md` |
+| [`grilling/`](grilling/) | **决策树追问**：逐个问题压力测试方案/决策，每问附推荐答案，达成共识前不动手；取代原 `grill-me`；触发词：grill、grill me、追问我、压力测试方案；见 `SKILL.md` |
+| [`obsidian-knowledge/`](obsidian-knowledge/) | **Obsidian 知识库统一管理**：创建/导入/整理/去重/编译/审查，通过 Local REST API 维护 `knowledge/` vault 的 wikilinks/dataview/MOC；thin dispatcher + `playbooks/`；取代原 kb/kb-compile/kb-review；触发词：知识库、knowledge、整理知识库、笔记去重；见 `SKILL.md` |
+| [`train-sleeper-search/`](train-sleeper-search/) | **12306 卧铺/夜车查询**：筛选夜发次晨到含卧铺车次（睡一觉直达），支持多目的地批扫、省名展开、到达站未来 3 天天气（Open-Meteo）；`query.py` + `lib/weather.py`；触发词：查卧铺、找卧铺、夜车扫描、卧铺+天气；见 `SKILL.md` |
+| [`feidex/`](feidex/) | **飞书 ↔ Claude Code 桥接**：`feidex serve` 前台运行，飞书群 @机器人 转发到 Claude Code；支持 daemon 装为 Windows 服务；本机需先安装 feidex.exe + 建 `config.toml`；触发词：feidex、飞书、feishu、飞书机器人；见 `SKILL.md` |
 
 各视频选题目录**不应**再复制一套 Node 脚本；应通过 `--project` 指向仅含素材的文件夹。

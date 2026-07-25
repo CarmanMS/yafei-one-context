@@ -60,6 +60,13 @@ _tmp/
 # Doubao TTS: copy local.env.example → local.env（勿提交）
 skills/doubao-dialogue-tts/local.env
 skills/volc-podcast-tts/local.env
+# Obsidian Local REST API key (secret, local only — 勿提交)
+skills/obsidian-knowledge/api-key.txt
+
+# Local AI research repo (separate remote: CarmanMS/paperwork) — not tracked here
+ai/
+# Assistant runtime working memory (project-local, generated) — not tracked here
+.workbuddy/memory/
 
 # Features: production/ — track creative assets, ignore media & temp
 # See features/_template/content-production/ for canonical layout

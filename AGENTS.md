@@ -55,6 +55,7 @@ Canonical machine-readable policy: `meta/profiles.yaml`; tool-specific text is e
 - For deeper structure, see `docs/architecture.md`.
 - After editing manifests, validate with: `onecxt doctor` (or `python -m one_context doctor`)
 - Do not run destructive commands without asking.
+- **Obsidian vault 笔记（`knowledge/**`）只能经 Obsidian Local REST API 访问**（`curl → https://127.0.0.1:27124`）。**禁止**用 `Read`/`Write`/`Edit`/`Grep` 或直接文件系统操作去读改 `knowledge/` 下的笔记文件——直读直写会绕过 Obsidian 索引导致脱节。唯一允许直接文件工具修改的是 skill 自身定义文件（`skills/obsidian-knowledge/` 下的 `SKILL.md`/`playbooks/*`/`references/*`/`api-key.txt`）。
 
 ## Agent Templates
 
