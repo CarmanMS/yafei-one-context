@@ -41,6 +41,33 @@ triggers:
   - 审查知识
 ---
 
+# Execution policy: API-first and API-only
+
+This policy is mandatory for every operation involving `knowledge/**` notes.
+
+1. Treat every `.md` file under `knowledge/` as an Obsidian-managed note, not as an ordinary repository file.
+2. Before reading, searching, creating, editing, moving, renaming, or deleting a note, check the Local REST API at `https://127.0.0.1:27124/` and authenticate with the configured API key.
+3. Use the Local REST API for both reads and writes: `/vault/{path}`, `/search/simple/`, `/search/`, `/open/{path}`, `/tags/`, and the corresponding mutation endpoints.
+4. Do not use filesystem read/search/write tools on `knowledge/**`: no `Read`, `Grep`, `rg`, `Get-Content`, `cat`, `sed`, `Write`, `Edit`, `Set-Content`, or equivalent commands.
+5. If the API is unavailable, stop the vault operation and report the exact blocker. Do not silently fall back to direct filesystem access. Only proceed with a non-vault operation, such as editing this skill's own files, when it is clearly outside `knowledge/**`.
+6. A command or script that internally reads or writes vault files directly is also prohibited. A helper is allowed only when it uses the Local REST API for the vault operation.
+
+## Mandatory decision sequence
+
+For any request that mentions `knowledge`, `vault`, a note path, or Obsidian:
+
+1. Identify whether the target is under `knowledge/**`.
+2. If yes, check API availability and load the API key.
+3. Read the relevant rules and notes through API calls only.
+4. Perform the requested operation through API calls only.
+5. Report the API endpoints used and any files changed. If API access failed, do not claim the operation was completed.
+
+## Search and audit clarification
+
+`check`, `review`, and other audit workflows must use API search/read operations whenever they inspect note content. Local filesystem tools may inspect only this skill's own definition files and non-vault repository metadata; they must never be used to inspect `knowledge/**` note contents.
+
+This API-only policy overrides any older fallback wording elsewhere in this file or in a playbook. If the API is unavailable, stop and report the blocker; never silently downgrade to filesystem access.
+
 # Obsidian Knowledge Vault Manager
 
 > 统一管理入口。取代原 `kb` / `kb-compile` / `kb-review` 三个 skill。
@@ -50,7 +77,7 @@ triggers:
 **API 基址**：`https://127.0.0.1:27124`（HTTPS，**主用**）
 
 > ⚠️ **运行环境两个硬约束**（实操踩坑确认）：
-> 1. **本机回环被沙箱隔离**：WorkBuddy 的 Bash 默认沙箱连不到 `127.0.0.1`。所有 Obsidian API 调用必须用「非沙箱」模式运行（`dangerouslyDisableSandbox: true`），否则一律 `HTTP 000`。
+> 1. **本机回环可能被沙箱隔离（环境相关）**：部分运行环境的 Bash 沙箱会隔离回环地址（如 WorkBuddy 默认沙箱连不到 `127.0.0.1`）。若遇到 `HTTP 000`，改用非沙箱模式（`dangerouslyDisableSandbox: true`）再试；在 OpenClaw/PowerShell 环境下 `curl.exe` 直连 `27124` 通常无需此操作。
 > 2. **HTTPS 自签证书**：插件开的 27124 用自签证书，`curl` 必须跳过校验。已在 `~/.curlrc` 写入 `insecure` 一劳永逸；若你删了该文件，每个 `curl` 要加 `-k`。
 > 3. HTTP `27123` 在「启用 HTTPS」时默认不监听；若 `27124` 也不通，先去插件设置确认 HTTPS 已开、Obsidian 窗口开着。
 
@@ -185,21 +212,29 @@ curl -H "$AUTH" https://127.0.0.1:27124/vault/_meta/HOME.md
 
 ## 检索（API 速查，各 playbook 共用）
 
-**简单搜索**：
+> ⚠️ 版本实测（Local REST API v5.0.2 / Obsidian 1.12.7）：
+> - **简单搜索必须用 `?query=` URL 参数（POST）**；用 body 传 `{"query":...}` 会报 `40015`/`40090`。
+> - **JsonLogic 结构化搜索（`/search/`）在本实例未返回结果**，疑似未启用；若返回空数组，请改用「标签统计」+「简单搜索」。**
+
+**① 标签概览（推荐首选：看主题分布 / 最近在做什么）**：
 ```bash
-curl -X POST "https://127.0.0.1:27124/search/simple/" \
-  -H "$AUTH" -H "Content-Type: application/json" \
-  -d '{"query": "关键词"}'
+curl -s -k "$BASE/tags/" -H "$AUTH"
 ```
 
-**JsonLogic 结构化搜索**：
+**② 简单搜索（POST + `?query=` URL 参数）**：
 ```bash
-curl -X POST "https://127.0.0.1:27124/search/" \
-  -H "$AUTH" -H "Content-Type: application/json" \
-  -d '{"query": {"and": [{"in": [{"var": "tags"}, ["科研/算子空间"]]}]}}'
+curl -s -k -X POST "$BASE/search/simple/?query=关键词" -H "$AUTH"
 ```
 
-结果按 score 降序，展示标题/路径/摘要。
+**③ JsonLogic 结构化搜索（部分版本可用，本实例实测为空，作回退说明）**：
+```bash
+curl -s -k -X POST "$BASE/search/" -H "$AUTH" \
+  -H "Content-Type: application/json" \
+  --data-binary '{"query":{"in":["科研/算子空间",{"var":"tags"}]}}'
+```
+> 若 ③ 返回空数组，说明当前 Obsidian 实例未启用 JsonLogic 搜索，回退到 ①+②。
+
+结果按 score 降序，展示 filename / path / score / 匹配上下文。
 
 ## 同步
 
