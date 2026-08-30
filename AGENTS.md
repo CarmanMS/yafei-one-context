@@ -21,6 +21,7 @@
 |---|---|
 | Git 同步、拉取远端且保留本地改动 | `skills/gitsync/SKILL.md` |
 | 知识库、Obsidian 笔记、整理或审查 vault | `skills/obsidian-knowledge/SKILL.md` |
+| 本仓 `features/` 下的 PM 立项、PRD、需求梳理或 feature spec | `skills/pm/SKILL.md` |
 | 多角色技术方案评审 | `skills/review/SKILL.md` |
 | 逐项追问并压力测试决策 | `skills/grilling/SKILL.md` |
 
