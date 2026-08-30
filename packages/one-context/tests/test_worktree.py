@@ -11,6 +11,7 @@ import yaml
 
 from one_context.errors import ManifestError
 from one_context.worktree import (
+    _resolve_worktree_path,
     find_feature_dir,
     load_worktrees_yaml,
     resolve_worktree_config,
@@ -19,6 +20,12 @@ from one_context.worktree import (
     status_worktrees,
     teardown_worktrees,
 )
+
+
+def test_worktree_path_stays_below_root(tmp_path: Path):
+    for raw in ("", ".", "../outside", str(tmp_path.resolve())):
+        with pytest.raises(ManifestError):
+            _resolve_worktree_path(tmp_path, raw)
 
 
 # ---------------------------------------------------------------------------
@@ -47,7 +54,11 @@ AGENTS_NO_DEV = textwrap.dedent("""\
 def _init_git_repo(path: Path) -> None:
     """Create a bare-minimum git repo at *path*."""
     path.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init", str(path)], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "--initial-branch=main", str(path)],
+        check=True,
+        capture_output=True,
+    )
     subprocess.run(
         ["git", "-C", str(path), "commit", "--allow-empty", "-m", "init"],
         check=True, capture_output=True,

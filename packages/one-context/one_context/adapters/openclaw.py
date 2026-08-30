@@ -139,10 +139,6 @@ class OpenClawAdapter(AdapterBase):
             if worktree:
                 config["worktree"] = worktree
 
-            deploy_manifest = agent.get("deploy_manifest")
-            if deploy_manifest:
-                config["deploy_manifest"] = deploy_manifest
-
             if profile_id:
                 profile = profiles_by_id.get(profile_id.casefold())
                 if profile:

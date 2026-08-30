@@ -1,91 +1,73 @@
-# Contributing to one-context
+# Contributing
 
-Thank you for your interest in contributing to one-context!
+本仓是 `CarmanMS/yafei-one-context` 的数学科研分支。改动应保持小、可验证，并尊重个人知识库边界。
 
-## Development Setup
-
-1. Clone the repository:
+## 环境
 
 ```bash
-git clone https://github.com/harnessworld/one-context.git
-cd one-context
-```
-
-2. Create a virtual environment and install dependencies:
-
-```bash
+git clone --recurse-submodules git@github.com:CarmanMS/yafei-one-context.git
+cd yafei-one-context
 python -m venv .venv
-source .venv/bin/activate  # macOS/Linux
-# .venv\Scripts\activate   # Windows
-pip install -e ./packages/one-context[dev]
-pip install -r requirements.txt
 ```
 
-**Dependency sources (read this once):**
+激活环境：
 
-- **`packages/one-context/pyproject.toml`** — source of truth for the `onecxt` / `one_context` runtime deps (and `dev` extras such as pytest).
-- **Root `requirements.txt`** — minimal pins for **umbrella-root scripts** (for example `scripts/sync_repos.py` needs PyYAML). It is not a duplicate “full” app manifest; use the editable install above for CLI development.
+```bash
+# macOS/Linux
+source .venv/bin/activate
 
-3. Verify the setup:
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+```
+
+安装唯一的 Python 项目及开发依赖：
+
+```bash
+python -m pip install -e "./packages/one-context[dev]"
+```
+
+根目录没有独立 `requirements.txt` 或 Node 项目；`packages/one-context/pyproject.toml` 是 CLI 依赖的事实来源。
+
+## 开发流程
+
+1. 从 `main` 创建短生命周期分支。
+2. 只修改任务所需文件，保留已有的无关改动。
+3. 对非平凡逻辑补最小测试。
+4. 运行：
 
 ```bash
 python -m one_context doctor
-cd packages/one-context && python -m pytest tests/ -v
+python -m pytest packages/one-context/tests -q
+git diff --check
 ```
 
-## Project Structure
+5. 使用清晰的 Conventional Commit，例如 `fix(sync): report partial failures`。
 
-- `packages/one-context/` — **CLI implementation and usage docs** (console command `onecxt`, import package `one_context`). Install with `pip install -e ./packages/one-context` (add `[dev]` for pytest). Command reference: `packages/one-context/README.md`.
-- `meta/` — YAML manifests (repos, workspaces, profiles)
-- `knowledge/` — tool-neutral standards, playbooks, prompts, and related layout (see `knowledge/README.md`)
-- `docs/` — architecture and contributor documentation
-- `scripts/` — utility scripts (root `requirements.txt` is mainly for running these without a full editable install)
+## 目录边界
 
-## Making Changes
+- CLI：`packages/one-context/`
+- 清单：`meta/`
+- 跨仓规格：`features/`
+- 工作流：`skills/`
+- 架构文档：`docs/`
+- 子仓工作副本：`repos/`，不提交
+- 个人 vault：`knowledge/` submodule
 
-1. Create a feature branch from `main`.
-2. Make your changes. Follow existing code style and conventions.
-3. Add or update tests if applicable.
-4. Run the test suite:
+`knowledge/**` 只能经 Obsidian Local REST API 访问。不要通过文件系统读取、搜索或修改笔记；详见 `AGENTS.md` 和 `skills/obsidian-knowledge/SKILL.md`。
 
-```bash
-python -m one_context doctor
-cd packages/one-context && python -m pytest tests/ -v
-```
+`onecxt adapt` 产生的工具配置只在本地使用，不加入提交。
 
-5. Commit with a clear, descriptive message following Conventional Commits:
+## Pull Request
 
-```
-feat: add workspace switching command
-fix: correct path resolution on Windows
-docs: update CLI usage examples
-```
+PR 应说明：
 
-## Pull Request Process
+- 问题与最小改动
+- 验证命令及结果
+- 对清单、兼容性或知识边界的影响
+- 尚未解决的限制
 
-1. Ensure all tests pass.
-2. Update documentation if your change affects user-facing behavior.
-3. Keep PRs focused — one logical change per PR.
-4. Describe what your PR does and why in the PR description.
-
-## Code Style
-
-- Python 3.10+ with type hints where practical.
-- Use `from __future__ import annotations` in all modules.
-- Follow PEP 8. Keep lines under 100 characters.
-- Prefer simple, readable code over clever abstractions.
-
-## Reporting Issues
-
-Use GitHub Issues for bugs and feature requests. For **security vulnerabilities**, use the process in [SECURITY.md](SECURITY.md) instead of a public issue.
-
-Include:
-
-- What you expected to happen
-- What actually happened
-- Steps to reproduce
-- Python version and OS
+不要提交密钥、私人笔记、个人会话日志、生成媒体或子仓内容。安全问题按 `SECURITY.md` 私下报告。
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+贡献按 `LICENSE` 中的 MIT License 授权。

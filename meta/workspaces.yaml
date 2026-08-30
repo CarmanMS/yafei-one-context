@@ -16,29 +16,25 @@
 version: 1
 
 workspaces:
-  # Example workspace - customize for your needs
-  - id: example-workspace
-    name: Example Workspace
-    description: A sample workspace demonstrating the configuration format.
+  - id: math-research
+    name: Mathematics Research
+    description: 数学科研、论文写作与交互式数学可视化工作区。
     repos:
-      # List repo ids from meta/repos.yaml
-      # - your-repo-id
+      - paperwork
+      - FunctionCanvas
     profiles:
       - default-coding
     tags:
-      - example
+      - mathematics
+      - research
     context:
-      summary: Describe what this workspace is focused on.
+      summary: 聚焦 p-operator spaces、局部反射性等研究稿件，以及复杂函数与向量场可视化。
       focus:
-        - area 1
-        - area 2
+        - LaTeX 论文写作、修订与可复现脚本
+        - p-operator spaces、映射空间与局部反射性
+        - 复杂函数、曲面与向量场的交互式可视化
       knowledge:
-        - knowledge/standards/
-        - knowledge/playbooks/
-        # Agent framework — required for all agents to work correctly
-        # Include per-agent knowledge so tools can find templates and playbooks
-        - meta/agents.yaml
+        - AGENTS.md
+        - skills/obsidian-knowledge/SKILL.md
         - features/README.md
         - features/INDEX.md
-        - features/_template/
-        - skills/skill-parallel-verify/

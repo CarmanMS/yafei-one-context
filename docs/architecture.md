@@ -1,52 +1,71 @@
-# one-context Architecture Notes
+# Architecture
 
-This document captures the current target architecture for `one-context`.
+## 定位
 
-## Product Position
+yafei-one-context 是面向个人数学科研的本地控制面。它连接多个独立 Git 仓库、一个个人 Obsidian vault 和若干 AI 工具，但不合并各仓历史，也不把私人知识复制到工具配置中。
 
-one-context is a local-first, cross-platform workspace hub for people who manage many Git repositories and want AI tools to share one common context model.
+## 层次
 
-## Main Layers
+### 1. Registry
 
-### 1. Registry Layer
+`meta/` 是机器可读事实来源：
 
-Files under `meta/` describe what exists.
+- `repos.yaml`：远端、稳定 repo id 与本地路径
+- `workspaces.yaml`：跨仓任务视图；当前主视图是 `math-research`
+- `profiles.yaml`：工具无关的行为策略
+- `agents.yaml`：少量明确角色及其可加载上下文
 
-- `repos.yaml`: repository registry
-- `workspaces.yaml`: task- or theme-oriented context views
-- `profiles.yaml`: shared runtime and AI behavior profiles
+### 2. Working copies
 
-### 2. Working Copy Layer
+`repos/` 保存独立克隆并由 `onecxt sync` 管理。本仓不跟踪其内容。跨仓引用使用 repo id，不使用猜测的绝对路径。
 
-`repos/` contains local clones. Repositories remain independent Git repos; one-context does not merge them into one traditional single-tree monorepo.
+### 3. Knowledge vault
 
-### 3. Knowledge Layer
+`knowledge/` 是 Git submodule 固定的个人 Obsidian vault。它是私人研究数据，不是 Agent 指令层。
 
-`knowledge/` contains canonical human-and-AI guidance in tool-neutral form.
+所有笔记访问必须经过 Obsidian Local REST API 和 `skills/obsidian-knowledge/SKILL.md`。解析器、doctor、context export 与 adapter 都不得遍历、读取或内联 `knowledge/**`。
 
-- `standards/`: conventions and policies
-- `playbooks/`: reusable procedures
-- `prompts/`: reusable context fragments
-- `tools/`: optional notes about how tools consume the layer (not a second source of truth for vendor-specific config)
+### 4. Features and skills
 
-The tree under `knowledge/` may gain more folders over time. If this list lags, treat **`knowledge/README.md` and the repository** as authoritative.
+`features/` 保存真实存在的跨仓事项；`INDEX.md` 是目录事实的索引，不是历史愿望清单。
 
-### 4. Features Layer
+`skills/` 保存可执行工作流。入口是各自的 `SKILL.md`，运行时缓存和密钥留在本机。
 
-`features/` holds umbrella-level requirements and delivery artifacts (spec, technical design, test and MR notes, deliverables). It complements per-repository work in `repos/`: specs here should reference registered repositories by **`id`** from `meta/repos.yaml`. Conventions: `features/README.md`; index: `features/INDEX.md`. Playbook: `knowledge/playbooks/add-umbrella-feature.md`.
+### 5. CLI
 
-### 5. Adapter Layer
+`packages/one-context/` 提供 `onecxt`：
 
-Tool-specific exports should live in adapters (today: `one_context.adapters` inside `packages/one-context`; later optionally split into separate packages). Adapters are translation boundaries, not sources of truth.
+- 读取与校验清单
+- 同步登记仓库
+- 列出 repo、workspace、profile 与 agent
+- 组装允许的上下文
+- 生成工具适配输出
 
-### 6. Entry Layer
+CLI 必须返回可用于自动化的退出码，并在 Windows、macOS 和 Linux 上保持同一语义。
 
-The `onecxt` CLI is implemented in the **`packages/one-context`** installable package (import package `one_context`). It is the user-facing entrypoint for sync, inspection, and manifest validation. Install and command examples: `packages/one-context/README.md`.
+### 6. Adapters
 
-Future work: workspace selection helpers, context bundle export, and adapter-driven output for specific AI tools.
+Adapter 只翻译 `meta/`、`docs/`、`features/`、`skills/` 等允许来源，不拥有业务事实。
 
-## Key Design Rule
+`.claude/`、`.cursor/`、`.hermes/`、`.openclaw/` 及对应根入口是本地生成物，默认不进入 Git。修改源文件后重新运行 `onecxt adapt`。
 
-Write shared meaning once. Adapt it many times.
+## 数据流
 
-The system should avoid storing the same intent separately in multiple vendor-specific configuration files whenever a canonical source can exist instead.
+```text
+meta + docs + features + skills
+              │
+              ├── onecxt doctor / context export
+              └── onecxt adapt ──> local tool configs
+
+Obsidian client ── Local REST API ──> knowledge submodule
+```
+
+两条路径不交叉：adapter 不直接消费 vault，vault 工作流也不修改框架配置。
+
+## 专业边界
+
+- 清单和文档必须指向真实路径。
+- 生成物、缓存、个人会话和凭证不提交。
+- 研究原件在所属子仓或私人归档中保存。
+- 未通过校验和测试的能力不宣称稳定。
+- 新层、新角色或新依赖只在出现真实使用者后增加。

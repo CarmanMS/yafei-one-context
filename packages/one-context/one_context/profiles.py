@@ -7,6 +7,7 @@ from typing import Any
 import yaml
 
 from one_context.errors import ManifestError
+from one_context.identifiers import is_portable_id
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +63,8 @@ def _parse_entries(
             raise ManifestError(f"{kind}[{i}] needs a non-empty string 'id'")
         eid = eid.strip()
         item["id"] = eid  # write back normalized id
+        if not is_portable_id(eid):
+            raise ManifestError(f"{kind}[{i}].id is not portable: {eid!r}")
 
         lk = eid.casefold()
         if lk in by_id:

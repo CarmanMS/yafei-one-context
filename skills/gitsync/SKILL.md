@@ -98,11 +98,20 @@ fi
 
 ### Step 2: Sync Git Submodules
 
-!`test -f .gitmodules && grep -E '^\\[submodule' .gitmodules | sed 's/\\[submodule "//;s/"\\]//' | while read sub; do echo "=== $sub ==="; cd "$sub" 2>/dev/null && REMOTE=$(git rev-parse --abbrev-ref @{upstream} 2>/dev/null) && if [ -n "$REMOTE" ]; then LOCAL=$(git rev-parse HEAD); REMOTE_HEAD=$(git rev-parse $REMOTE); echo "  Local:  ${LOCAL:0:8}"; echo "  Remote: ${REMOTE_HEAD:0:8}"; if [ "$LOCAL" != "$REMOTE_HEAD" ]; then GIT_SSH_COMMAND="ssh -o ProxyCommand=none" git fetch --all && GIT_SSH_COMMAND="ssh -o ProxyCommand=none" git pull --ff-only; else echo "  ✓ Already up to date"; fi; else echo "  ⚠️ No upstream configured"; fi || echo "✗ FAILED"; cd - > /dev/null; done || echo "No submodules"`
+Submodules are pinned by the parent repository. Update them to the recorded commit; do not run `git pull` inside a submodule.
+
+```bash
+git submodule status
+GIT_SSH_COMMAND="ssh -o ProxyCommand=none" git submodule update --init --recursive
+```
+
+If the recorded commit no longer exists upstream, stop and report the stale gitlink. Do not silently switch to the submodule's latest branch.
 
 ### Step 3: Sync Virtual Monorepo Sub-repos
 
 对 `repos/` 下每个仓库：
+
+Windows helper: `powershell -File skills/gitsync/sync_repos.ps1`. It discovers initialized repositories dynamically; use `onecxt sync` to clone manifest entries that are still missing.
 
 1. **先比对**本地 HEAD 与缓存的 `origin/<branch>` — 相同则跳过 fetch（仅做确认性轻 fetch）
 2. **带 GIT_SSH_COMMAND** 绕过坏代理

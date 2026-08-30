@@ -109,6 +109,18 @@ class TestLoadRepos:
         entries, _ = load_repos(tmp_path)
         assert entries[0]["path"] == Path("my/custom/path")
 
+    def test_path_cannot_escape_workspace(self, tmp_path: Path):
+        meta = tmp_path / "meta"
+        meta.mkdir()
+        manifest = meta / "repos.yaml"
+        for path in ("../outside", "/outside", "C:/outside", "."):
+            manifest.write_text(
+                f"repos:\n  - url: git@test.local:x/y.git\n    path: '{path}'\n",
+                encoding="utf-8",
+            )
+            with pytest.raises(ManifestError, match="inside the workspace"):
+                load_repos(tmp_path)
+
     def test_missing_manifest_raises(self, tmp_path: Path):
         with pytest.raises(ManifestError, match="Manifest not found"):
             load_repos(tmp_path)

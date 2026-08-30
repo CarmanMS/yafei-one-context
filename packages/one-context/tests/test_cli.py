@@ -10,6 +10,17 @@ from unittest.mock import patch
 import pytest
 
 from one_context.cli import build_parser, main
+from one_context.cli._adapt import _generated_target
+from one_context.errors import ManifestError
+
+
+def test_generated_target_stays_below_root(tmp_path: Path):
+    assert _generated_target(tmp_path, "generated/file.md") == (
+        tmp_path / "generated" / "file.md"
+    ).resolve()
+    for raw in ("", ".", "../outside", "C:/outside"):
+        with pytest.raises(ManifestError):
+            _generated_target(tmp_path, raw)
 
 
 class TestBuildParser:
@@ -85,25 +96,6 @@ class TestBuildParser:
         args = parser.parse_args(["skills", "list"])
         assert args.command == "skills"
         assert args.skills_command == "list"
-
-    def test_skills_install(self):
-        parser = build_parser()
-        args = parser.parse_args(["skills", "install", "info-radar", "gitsync"])
-        assert args.command == "skills"
-        assert args.skills_command == "install"
-        assert args.names == ["info-radar", "gitsync"]
-        assert args.all is False
-
-    def test_skills_install_all(self):
-        parser = build_parser()
-        args = parser.parse_args(["skills", "install", "--all"])
-        assert args.all is True
-
-    def test_skills_uninstall(self):
-        parser = build_parser()
-        args = parser.parse_args(["skills", "uninstall", "info-radar"])
-        assert args.skills_command == "uninstall"
-        assert args.names == ["info-radar"]
 
 
 class TestMainIntegration:
@@ -233,46 +225,4 @@ class TestMainIntegration:
             main()
         assert exc.value.code == 0
         out = capsys.readouterr().out
-        assert "Project skills:" in out
-
-    def test_skills_install_and_uninstall(
-        self, tmp_root: Path, monkeypatch: pytest.MonkeyPatch, capsys, tmp_path: Path,
-    ):
-        # Prepare a fake project skill
-        skill_dir = tmp_root / "skills" / "test-skill"
-        skill_dir.mkdir(parents=True)
-        (skill_dir / "SKILL.md").write_text("---\nname: test-skill\n---\n# Test Skill\n", encoding="utf-8")
-
-        # Isolate Claude Code runtime directory
-        monkeypatch.setenv("HOME", str(tmp_path))
-
-        # Install
-        monkeypatch.setattr(
-            sys, "argv",
-            ["onecxt", "--root", str(tmp_root), "skills", "install", "test-skill"],
-        )
-        with pytest.raises(SystemExit) as exc:
-            main()
-        assert exc.value.code == 0
-        installed = tmp_path / ".claude" / "skills" / "test-skill" / "SKILL.md"
-        assert installed.is_file()
-
-        # List should show it as installed
-        monkeypatch.setattr(
-            sys, "argv",
-            ["onecxt", "--root", str(tmp_root), "skills", "list"],
-        )
-        with pytest.raises(SystemExit) as exc:
-            main()
-        out = capsys.readouterr().out
-        assert "[x] test-skill" in out
-
-        # Uninstall
-        monkeypatch.setattr(
-            sys, "argv",
-            ["onecxt", "--root", str(tmp_root), "skills", "uninstall", "test-skill"],
-        )
-        with pytest.raises(SystemExit) as exc:
-            main()
-        assert exc.value.code == 0
-        assert not (tmp_path / ".claude" / "skills" / "test-skill").exists()
+        assert "no project skills" in out

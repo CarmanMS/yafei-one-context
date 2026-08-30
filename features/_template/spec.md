@@ -2,8 +2,7 @@
 id: ""
 title: ""
 status: draft
-# Available categories: core | develop | content-pipeline | integrations | research
-# content-pipeline: 短视频、口播、演示等内容创作类 feature（须同时复制 _template/content-production/）
+# Suggested categories: research | engineering | integrations
 category: ""
 primary_repo_id: ""
 owner: ""

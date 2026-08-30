@@ -51,7 +51,9 @@ def _cmd_worktree_teardown(root: Path, args: argparse.Namespace) -> int:
     for wt in manifest.get("worktrees", []):
         print(f"  {wt.get('repo_id')}\t{wt.get('status')}")
     print(f"worktrees.yaml updated for feature {args.feature_id}")
-    return 0
+    return 1 if any(
+        wt.get("status") == "teardown_failed" for wt in manifest.get("worktrees", [])
+    ) else 0
 
 
 def register(sub: argparse._SubParsersAction) -> None:

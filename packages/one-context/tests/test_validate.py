@@ -308,9 +308,9 @@ class TestDoctorAgents:
             """),
             encoding="utf-8",
         )
-        kdir = tmp_root / "knowledge" / "standards"
-        kdir.mkdir(parents=True)
-        (kdir / "example.md").write_text("example", encoding="utf-8")
+        docs_dir = tmp_root / "docs"
+        docs_dir.mkdir()
+        (docs_dir / "example.md").write_text("example", encoding="utf-8")
         (tmp_root / "meta" / "agents.yaml").write_text(
             textwrap.dedent("""\
                 agents:
@@ -319,7 +319,7 @@ class TestDoctorAgents:
                     role: dev
                     profile: default-coding
                     knowledge:
-                      - knowledge/standards/
+                      - docs/
             """),
             encoding="utf-8",
         )
@@ -390,88 +390,8 @@ class TestDoctorAgents:
         assert any("repo_id" in w for w in result.warnings)
 
 
-class TestDoctorDeployYaml:
-    """Doctor checks for deploy.yaml validation in repos."""
-
-    def test_valid_deploy_yaml_no_errors(self, tmp_root: Path):
-        # Set up sre agent
-        (tmp_root / "meta" / "agents.yaml").write_text(
-            textwrap.dedent("""\
-                agents:
-                  - id: sre
-                    name: SRE
-                    role: sre
-                    deploy_manifest: deploy.yaml
-            """),
-            encoding="utf-8",
-        )
-        # Create repo dir with valid deploy.yaml
-        repo_dir = tmp_root / "repos" / "develop" / "alpha"
-        repo_dir.mkdir(parents=True)
-        (repo_dir / ".git").mkdir()
-        (repo_dir / "deploy.yaml").write_text(
-            textwrap.dedent("""\
-                version: "1"
-                name: alpha-svc
-                strategy: manual
-                stages:
-                  - id: staging
-                    cmd: "echo deploy"
-                    health_check: "echo ok"
-            """),
-            encoding="utf-8",
-        )
-        result = doctor(tmp_root)
-        assert not any("deploy.yaml" in e for e in result.errors)
-
-    def test_invalid_deploy_yaml_errors(self, tmp_root: Path):
-        (tmp_root / "meta" / "agents.yaml").write_text(
-            textwrap.dedent("""\
-                agents:
-                  - id: sre
-                    name: SRE
-                    role: sre
-                    deploy_manifest: deploy.yaml
-            """),
-            encoding="utf-8",
-        )
-        repo_dir = tmp_root / "repos" / "develop" / "alpha"
-        repo_dir.mkdir(parents=True)
-        (repo_dir / ".git").mkdir()
-        (repo_dir / "deploy.yaml").write_text(
-            textwrap.dedent("""\
-                version: "2"
-                name: ""
-                strategy: invalid
-                stages: []
-            """),
-            encoding="utf-8",
-        )
-        result = doctor(tmp_root)
-        deploy_errors = [e for e in result.errors if "deploy.yaml" in e]
-        assert len(deploy_errors) >= 3  # version, name, strategy, stages
-
-    def test_missing_deploy_yaml_no_error(self, tmp_root: Path):
-        """Repos without deploy.yaml should not cause errors."""
-        (tmp_root / "meta" / "agents.yaml").write_text(
-            textwrap.dedent("""\
-                agents:
-                  - id: sre
-                    name: SRE
-                    role: sre
-                    deploy_manifest: deploy.yaml
-            """),
-            encoding="utf-8",
-        )
-        repo_dir = tmp_root / "repos" / "develop" / "alpha"
-        repo_dir.mkdir(parents=True)
-        (repo_dir / ".git").mkdir()
-        result = doctor(tmp_root)
-        assert not any("deploy.yaml" in e for e in result.errors)
-
-
 class TestDoctorKnowledgeIntegrity:
-    """Doctor checks for knowledge reference integrity."""
+    """Doctor checks repository context without opening the Obsidian vault."""
 
     def test_workspace_knowledge_path_not_found(self, tmp_root: Path):
         """Workspace referencing a non-existent knowledge path should warn."""
@@ -481,22 +401,14 @@ class TestDoctorKnowledgeIntegrity:
                   - id: ws1
                     context:
                       knowledge:
-                        - knowledge/nonexistent/
+                        - docs/nonexistent/
             """),
             encoding="utf-8",
         )
         result = doctor(tmp_root)
         assert any("knowledge path not found" in w and "ws1" in w for w in result.warnings)
 
-    def test_orphan_knowledge_file(self, tmp_root: Path):
-        """Knowledge .md file not referenced by any agent/workspace should warn."""
-        # Create a knowledge file that no one references
-        kdir = tmp_root / "knowledge" / "standards"
-        kdir.mkdir(parents=True)
-        (kdir / "referenced.md").write_text("referenced", encoding="utf-8")
-        (kdir / "orphan.md").write_text("orphan", encoding="utf-8")
-
-        # Agent only references one file
+    def test_vault_reference_is_blocked(self, tmp_root: Path):
         (tmp_root / "meta" / "agents.yaml").write_text(
             textwrap.dedent("""\
                 agents:
@@ -504,46 +416,12 @@ class TestDoctorKnowledgeIntegrity:
                     name: Dev
                     role: dev
                     knowledge:
-                      - knowledge/standards/referenced.md
+                      - knowledge/private.md
             """),
             encoding="utf-8",
         )
         result = doctor(tmp_root)
-        assert any(w.startswith("knowledge: orphan") and "orphan.md" in w for w in result.warnings)
-        assert not any(w.startswith("knowledge: orphan") and "referenced.md" in w for w in result.warnings)
-
-    def test_directory_ref_covers_all_files(self, tmp_root: Path):
-        """Directory reference like knowledge/ should cover all files under it."""
-        kdir = tmp_root / "knowledge" / "standards"
-        kdir.mkdir(parents=True)
-        (kdir / "a.md").write_text("a", encoding="utf-8")
-        (kdir / "b.md").write_text("b", encoding="utf-8")
-
-        (tmp_root / "meta" / "agents.yaml").write_text(
-            textwrap.dedent("""\
-                agents:
-                  - id: keeper
-                    name: Keeper
-                    role: knowledge-keeper
-                    knowledge:
-                      - knowledge/
-            """),
-            encoding="utf-8",
-        )
-        result = doctor(tmp_root)
-        # No orphans since knowledge/ covers everything
-        assert not any(w.startswith("knowledge: orphan") for w in result.warnings)
-
-    def test_no_orphan_warning_when_no_knowledge_dir(self, tmp_root: Path):
-        """No orphan knowledge file warnings when knowledge/ directory doesn't exist."""
-        result = doctor(tmp_root)
-        # Use a more specific pattern to avoid false positives from temp dir paths
-        # that may contain the word "orphan" in the test function name.
-        orphan_knowledge_warnings = [
-            w for w in result.warnings
-            if w.startswith("knowledge: orphan")
-        ]
-        assert orphan_knowledge_warnings == []
+        assert any("blocked knowledge path" in error for error in result.errors)
 
     def test_at_reference_pattern(self):
         """AT_REF_PATTERN should match file refs and exclude email/CSS."""
@@ -562,25 +440,12 @@ class TestDoctorKnowledgeIntegrity:
 
     def test_dangling_at_reference_warning(self, tmp_root: Path):
         """Dangling @-reference in a .md file should produce a warning."""
-        kdir = tmp_root / "knowledge" / "standards"
-        kdir.mkdir(parents=True)
-        (kdir / "existing.md").write_text("exists", encoding="utf-8")
+        docs_dir = tmp_root / "docs"
+        docs_dir.mkdir()
+        (docs_dir / "existing.md").write_text("exists", encoding="utf-8")
         # File with a dangling @-reference
-        (kdir / "broken.md").write_text(
-            "See @knowledge/standards/nonexistent.md for details.\n",
-            encoding="utf-8",
-        )
-
-        # Ensure the agent references knowledge/ so no orphan warnings
-        (tmp_root / "meta" / "agents.yaml").write_text(
-            textwrap.dedent("""\
-                agents:
-                  - id: keeper
-                    name: Keeper
-                    role: knowledge-keeper
-                    knowledge:
-                      - knowledge/
-            """),
+        (docs_dir / "broken.md").write_text(
+            "See @docs/nonexistent.md for details.\n",
             encoding="utf-8",
         )
 
@@ -590,11 +455,11 @@ class TestDoctorKnowledgeIntegrity:
 
     def test_valid_at_reference_no_warning(self, tmp_root: Path):
         """Valid @-reference should not produce a warning."""
-        kdir = tmp_root / "knowledge" / "standards"
-        kdir.mkdir(parents=True)
-        (kdir / "target.md").write_text("target content", encoding="utf-8")
-        (kdir / "source.md").write_text(
-            "See @knowledge/standards/target.md for details.\n",
+        docs_dir = tmp_root / "docs"
+        docs_dir.mkdir()
+        (docs_dir / "target.md").write_text("target content", encoding="utf-8")
+        (docs_dir / "source.md").write_text(
+            "See @docs/target.md for details.\n",
             encoding="utf-8",
         )
 
@@ -608,36 +473,36 @@ class TestDoctorKnowledgeIntegrity:
             {
                 "id": "ws1",
                 "context": {
-                    "knowledge": ["knowledge/standards/", "docs/architecture.md"],
+                    "knowledge": ["docs/standards/", "docs/architecture.md"],
                 },
             }
         ]
         agents = [
             {
                 "id": "dev",
-                "knowledge": ["knowledge/standards/agent-framework.md", "meta/repos.yaml"],
+                "knowledge": ["features/README.md", "meta/repos.yaml"],
             }
         ]
         refs = _collect_all_knowledge_references(workspaces, agents)
-        assert "knowledge/standards/" in refs
+        assert "docs/standards/" in refs
         assert "docs/architecture.md" in refs
-        assert "knowledge/standards/agent-framework.md" in refs
+        assert "features/README.md" in refs
         assert "meta/repos.yaml" in refs
 
     def test_expand_directory_refs(self, tmp_root: Path):
         """_expand_directory_refs expands directories to individual .md files."""
-        kdir = tmp_root / "knowledge" / "standards"
+        kdir = tmp_root / "docs" / "standards"
         kdir.mkdir(parents=True)
         (kdir / "a.md").write_text("a", encoding="utf-8")
         (kdir / "b.md").write_text("b", encoding="utf-8")
         # Non-markdown file should be excluded
         (kdir / "c.txt").write_text("c", encoding="utf-8")
 
-        refs = {"knowledge/standards/", "docs/architecture.md"}
+        refs = {"docs/standards/", "docs/architecture.md"}
         expanded = _expand_directory_refs(tmp_root, refs)
-        assert "knowledge/standards/a.md" in expanded
-        assert "knowledge/standards/b.md" in expanded
-        assert "knowledge/standards/c.txt" not in expanded
+        assert "docs/standards/a.md" in expanded
+        assert "docs/standards/b.md" in expanded
+        assert "docs/standards/c.txt" not in expanded
         # Non-directory ref passes through unchanged
         assert "docs/architecture.md" in expanded
 
@@ -646,7 +511,7 @@ class TestKnowledgeGraph:
     """Tests for generate_knowledge_graph."""
 
     def _setup_graph_root(self, tmp_path: Path) -> Path:
-        """Create a minimal one-context root with knowledge files and agents."""
+        """Create a minimal one-context root with repository context files."""
         meta = tmp_path / "meta"
         meta.mkdir()
 
@@ -661,7 +526,7 @@ class TestKnowledgeGraph:
                     name: Dev
                     context:
                       knowledge:
-                        - knowledge/standards/
+                        - docs/
             """),
             encoding="utf-8",
         )
@@ -672,24 +537,24 @@ class TestKnowledgeGraph:
                     name: Dev
                     role: dev
                     knowledge:
-                      - knowledge/standards/conventions.md
+                      - docs/conventions.md
                   - id: pm
                     name: PM
                     role: pm
                     knowledge:
-                      - knowledge/playbooks/add-feature.md
+                      - features/add-feature.md
             """),
             encoding="utf-8",
         )
 
-        # Create knowledge files
-        kdir = tmp_path / "knowledge" / "standards"
-        kdir.mkdir(parents=True)
+        # Create repository context files
+        kdir = tmp_path / "docs"
+        kdir.mkdir()
         (kdir / "conventions.md").write_text("# Conventions\n", encoding="utf-8")
-        (kdir / "testing.md").write_text("See @knowledge/standards/conventions.md\n", encoding="utf-8")
+        (kdir / "testing.md").write_text("See @docs/conventions.md\n", encoding="utf-8")
 
-        pdir = tmp_path / "knowledge" / "playbooks"
-        pdir.mkdir(parents=True)
+        pdir = tmp_path / "features"
+        pdir.mkdir()
         (pdir / "add-feature.md").write_text("# Add Feature\n", encoding="utf-8")
 
         return tmp_path

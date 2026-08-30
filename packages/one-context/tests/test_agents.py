@@ -29,7 +29,7 @@ agents:
     profile: default
     description: "Create and manage feature specs"
     knowledge:
-      - knowledge/playbooks/add-feature.md
+      - docs/add-feature.md
     owns:
       - "features/**/spec.md"
     instructions: |
@@ -186,32 +186,31 @@ agents: []
 
 def test_resolve_agent_knowledge_file(tmp_path: Path) -> None:
     """Resolves knowledge paths for files."""
-    # Create a knowledge file
-    knowledge_dir = tmp_path / "knowledge"
-    knowledge_dir.mkdir()
-    (knowledge_dir / "test.md").write_text("# Test", encoding="utf-8")
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "test.md").write_text("# Test", encoding="utf-8")
 
     agent = {
         "id": "test",
-        "knowledge": ["knowledge/test.md"],
+        "knowledge": ["docs/test.md"],
     }
 
     result = resolve_agent_knowledge(tmp_path, agent)
 
     assert len(result) == 1
-    assert result[0]["path"] == "knowledge/test.md"
+    assert result[0]["path"] == "docs/test.md"
     assert result[0]["exists"] is True
     assert result[0]["type"] == "file"
 
 
 def test_resolve_agent_knowledge_directory(tmp_path: Path) -> None:
     """Resolves knowledge paths for directories."""
-    knowledge_dir = tmp_path / "knowledge" / "standards"
-    knowledge_dir.mkdir(parents=True)
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
 
     agent = {
         "id": "test",
-        "knowledge": ["knowledge/standards/"],
+        "knowledge": ["docs/"],
     }
 
     result = resolve_agent_knowledge(tmp_path, agent)
@@ -225,7 +224,7 @@ def test_resolve_agent_knowledge_missing(tmp_path: Path) -> None:
     """Handles missing knowledge paths."""
     agent = {
         "id": "test",
-        "knowledge": ["knowledge/nonexistent.md"],
+        "knowledge": ["docs/nonexistent.md"],
     }
 
     result = resolve_agent_knowledge(tmp_path, agent)
@@ -233,6 +232,15 @@ def test_resolve_agent_knowledge_missing(tmp_path: Path) -> None:
     assert len(result) == 1
     assert result[0]["exists"] is False
     assert result[0]["type"] == "missing"
+
+
+def test_resolve_agent_knowledge_blocks_vault(tmp_path: Path) -> None:
+    result = resolve_agent_knowledge(
+        tmp_path,
+        {"id": "test", "knowledge": ["knowledge/private.md"]},
+    )
+    assert result[0]["type"] == "blocked"
+    assert result[0]["exists"] is False
 
 
 def test_resolve_agent_knowledge_empty(tmp_path: Path) -> None:

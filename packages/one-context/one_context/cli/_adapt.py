@@ -1,13 +1,14 @@
-"""Adapter generation + git hook install/uninstall."""
+"""Adapter generation."""
 from __future__ import annotations
 
 import argparse
 import difflib
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from one_context.agents import load_agents
 from one_context.context import build_workspace_context
+from one_context.errors import ManifestError
 from one_context.profiles import load_mixins, load_profiles, resolve_profile
 from one_context.workspaces import load_workspaces
 
@@ -28,27 +29,45 @@ def _print_dry_run_block(rel_path: str, description: str, body: str) -> None:
         sys.stdout.buffer.write(block.encode("utf-8", errors="replace"))
 
 
-def _emit_file(root: Path, gf, dry_run: bool, cache: dict[str, str] | None = None) -> bool:
-    """Write a generated file to disk, or print in dry-run mode.
+def _generated_target(root: Path, rel_path: str) -> Path:
+    """Resolve one generated path without allowing traversal or symlink escape."""
+    if not isinstance(rel_path, str) or not rel_path.strip():
+        raise ManifestError(f"unsafe generated path: {rel_path!r}")
+    rel = Path(rel_path)
+    if (
+        rel == Path(".")
+        or rel.is_absolute()
+        or PureWindowsPath(rel_path).drive
+        or ".." in rel.parts
+    ):
+        raise ManifestError(f"unsafe generated path: {rel_path!r}")
 
-    When *cache* is provided, skip files whose content hash matches the
-    cached value.  Returns True if the file was written (or would have
-    been in dry-run), False if skipped due to cache hit.
-    """
-    if cache is not None and not dry_run:
-        from one_context.cache import needs_write, update_cache
-        if not needs_write(gf.rel_path, gf.content, cache):
-            return False
+    root_resolved = root.resolve()
+    cursor = root_resolved
+    for part in rel.parts:
+        cursor /= part
+        if cursor.is_symlink():
+            raise ManifestError(f"generated path crosses a symlink: {rel_path!r}")
+    target = (root_resolved / rel).resolve()
+    try:
+        target.relative_to(root_resolved)
+    except ValueError as exc:
+        raise ManifestError(f"unsafe generated path: {rel_path!r}") from exc
+    return target
+
+
+def _emit_file(root: Path, gf, dry_run: bool) -> bool:
+    """Write a generated file, skipping only byte-identical content."""
+    target = _generated_target(root, gf.rel_path)
 
     if dry_run:
         _print_dry_run_block(gf.rel_path, gf.description, gf.content)
     else:
-        target = root / gf.rel_path
+        if target.is_file() and target.read_text(encoding="utf-8") == gf.content:
+            return False
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(gf.content, encoding="utf-8")
         print(f"wrote: {gf.rel_path} ({gf.description})")
-        if cache is not None:
-            update_cache(gf.rel_path, gf.content, cache)
 
     return True
 
@@ -57,7 +76,7 @@ def _check_generated(root: Path, files: list) -> int:
     """Compare generated content to disk. Return 0 if all match, 1 if any differ."""
     mismatched: list[str] = []
     for gf in files:
-        target = root / gf.rel_path
+        target = _generated_target(root, gf.rel_path)
         if not target.is_file():
             mismatched.append(f"  missing: {gf.rel_path}")
             continue
@@ -80,7 +99,7 @@ def _report_dirty_files(root: Path, files: list) -> None:
     """Detect and report files that were modified externally since last adapt."""
     dirty_count = 0
     for gf in files:
-        target = root / gf.rel_path
+        target = _generated_target(root, gf.rel_path)
         if not target.is_file():
             continue
         existing = target.read_text(encoding="utf-8")
@@ -143,12 +162,10 @@ def _cmd_adapt(root: Path, args: argparse.Namespace) -> int:
     _, profiles_by_id = load_profiles(root)
 
     _, mixins_by_id = load_mixins(root)
-    resolved_profiles: dict = {}
-    for pid in profiles_by_id:
-        try:
-            resolved_profiles[pid] = resolve_profile(pid, profiles_by_id, mixins_by_id)
-        except Exception:
-            resolved_profiles[pid] = profiles_by_id[pid]
+    resolved_profiles = {
+        pid: resolve_profile(pid, profiles_by_id, mixins_by_id)
+        for pid in profiles_by_id
+    }
 
     from one_context.adapters import GeneratedFile
     all_generated: list[GeneratedFile] = []
@@ -181,132 +198,26 @@ def _cmd_adapt(root: Path, args: argparse.Namespace) -> int:
         adapter = get_adapter(aname)
         all_generated.extend(adapter.generate_project_artifacts(root, workspace_ids, agents))
 
+    paths = [gf.rel_path for gf in all_generated]
+    if len(paths) != len(set(paths)):
+        raise ManifestError("multiple adapters produced the same output path")
+
     if check_mode:
         return _check_generated(root, all_generated)
-
-    from one_context.cache import load_cache, save_cache
-    cache = load_cache(root)
 
     _report_dirty_files(root, all_generated)
     written = 0
     skipped = 0
     for gf in all_generated:
-        did_write = _emit_file(root, gf, dry_run, cache=cache)
+        did_write = _emit_file(root, gf, dry_run)
         if did_write:
             written += 1
         else:
             skipped += 1
 
-    if not dry_run:
-        save_cache(root, cache)
-        if skipped:
-            print(f"cache: {skipped} file(s) unchanged (skipped), "
-                  f"{written} file(s) written, "
-                  f"cache saved to {'.onecxt/adapt-cache.json'}")
+    if not dry_run and skipped:
+        print(f"unchanged: {skipped}; written: {written}")
 
-    return 0
-
-
-def _cmd_adapt_install(root: Path, args: argparse.Namespace) -> int:
-    """Install git hooks that auto-run ``onecxt adapt`` after checkout/merge."""
-    import subprocess
-
-    try:
-        git_dir = subprocess.check_output(
-            ["git", "rev-parse", "--git-dir"],
-            cwd=str(root),
-            stderr=subprocess.PIPE,
-            text=True,
-        ).strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("error: not inside a git repository", file=sys.stderr)
-        return 2
-
-    hooks_dir = root / git_dir / "hooks"
-    hooks_dir.mkdir(parents=True, exist_ok=True)
-
-    import shutil
-    onecxt_path = shutil.which("onecxt") or "onecxt"
-
-    root_arg = str(root.resolve())
-
-    hook_names = ["post-checkout", "post-merge"]
-    installed: list[str] = []
-    skipped: list[str] = []
-
-    for hook_name in hook_names:
-        hook_path = hooks_dir / hook_name
-        target_line = f"{onecxt_path} adapt --all --root {root_arg}"
-
-        existing = ""
-        if hook_path.is_file():
-            existing = hook_path.read_text(encoding="utf-8")
-
-        if target_line in existing:
-            skipped.append(hook_name)
-            continue
-
-        if existing:
-            new_content = existing.rstrip() + "\n\n# one-context: auto-adapt on pull/checkout\n" + target_line + "\n"
-        else:
-            new_content = f"#!/bin/sh\n\n# one-context: auto-adapt on pull/checkout\n{target_line}\n"
-
-        hook_path.write_text(new_content, encoding="utf-8")
-        hook_path.chmod(hook_path.stat().st_mode | 0o755)
-        installed.append(hook_name)
-
-    if installed:
-        print(f"installed: git hooks {', '.join(installed)} → auto-adapt --all")
-    if skipped:
-        print(f"skipped:   {', '.join(skipped)} (already contains onecxt adapt)")
-    if not installed and not skipped:
-        print("nothing to do")
-    return 0
-
-
-def _cmd_adapt_uninstall(root: Path, args: argparse.Namespace) -> int:
-    """Remove onecxt adapt lines from git hooks."""
-    import subprocess
-
-    try:
-        git_dir = subprocess.check_output(
-            ["git", "rev-parse", "--git-dir"],
-            cwd=str(root),
-            stderr=subprocess.PIPE,
-            text=True,
-        ).strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("error: not inside a git repository", file=sys.stderr)
-        return 2
-
-    hooks_dir = root / git_dir / "hooks"
-    hook_names = ["post-checkout", "post-merge"]
-    removed: list[str] = []
-
-    for hook_name in hook_names:
-        hook_path = hooks_dir / hook_name
-        if not hook_path.is_file():
-            continue
-        content = hook_path.read_text(encoding="utf-8")
-        lines = content.split("\n")
-        filtered = [
-            ln for ln in lines
-            if "onecxt adapt" not in ln and "one-context: auto-adapt" not in ln
-        ]
-        while filtered and not filtered[-1].strip():
-            filtered.pop()
-        new_content = "\n".join(filtered)
-        if new_content != content:
-            if new_content.strip() == "#!/bin/sh" or not new_content.strip():
-                hook_path.unlink()
-            else:
-                hook_path.write_text(new_content + "\n", encoding="utf-8")
-            removed.append(hook_name)
-
-    if removed:
-        print(f"removed: onecxt adapt from {', '.join(removed)}")
-    else:
-        print("no onecxt adapt hooks found")
     return 0
 
 
@@ -349,15 +260,3 @@ def register(sub: argparse._SubParsersAction) -> None:
         help="Check that generated files are up-to-date (exit 1 if not). Does not write.",
     )
     p_adapt.set_defaults(func=_cmd_adapt)
-
-    p_adapt_install = sub.add_parser(
-        "adapt-install",
-        help="Install git hooks to auto-run onecxt adapt after checkout/merge",
-    )
-    p_adapt_install.set_defaults(func=_cmd_adapt_install)
-
-    p_adapt_uninstall = sub.add_parser(
-        "adapt-uninstall",
-        help="Remove onecxt adapt git hooks installed by adapt-install",
-    )
-    p_adapt_uninstall.set_defaults(func=_cmd_adapt_uninstall)

@@ -41,9 +41,12 @@ def _cmd_doctor(root: Path, args: argparse.Namespace) -> int:
 
 def _cmd_sync(root: Path, args: argparse.Namespace) -> int:
     load_dotenv(root / ".env")
+    if args.jobs <= 0:
+        print("error: --jobs must be greater than zero", file=sys.stderr)
+        return 2
     select = list(args.select) if args.select else None
-    sync_repositories(root, select, workers=args.jobs)
-    return 0
+    results = sync_repositories(root, select, workers=args.jobs)
+    return 0 if all(result.success for result in results) else 1
 
 
 # ── repo ─────────────────────────────────────────────────────────────────
@@ -91,6 +94,17 @@ def _cmd_workspace_show(root: Path, args: argparse.Namespace) -> int:
 
 
 def _cmd_context_export(root: Path, args: argparse.Namespace) -> int:
+    wants_compression = bool(
+        getattr(args, "compress", False)
+        or getattr(args, "target_tokens", None) is not None
+    )
+    if getattr(args, "target_tokens", None) is not None and args.target_tokens <= 0:
+        print("error: --target-tokens must be greater than zero", file=sys.stderr)
+        return 2
+    if wants_compression and args.format != "markdown":
+        print("error: context compression is supported only for markdown", file=sys.stderr)
+        return 2
+
     try:
         data = build_workspace_context(root, args.id)
     except ValueError as e:
@@ -98,7 +112,7 @@ def _cmd_context_export(root: Path, args: argparse.Namespace) -> int:
         return 2
 
     rendered = render_workspace_context(data, args.format)
-    if getattr(args, "compress", False) or getattr(args, "target_tokens", None) is not None:
+    if wants_compression:
         from one_context.context import apply_context_compression
 
         rendered = apply_context_compression(

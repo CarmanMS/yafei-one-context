@@ -7,7 +7,9 @@ from typing import Any
 
 import yaml
 
+from one_context.context_sources import resolve_context_source
 from one_context.errors import ManifestError
+from one_context.identifiers import is_portable_id
 
 
 def load_agents(root: Path) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
@@ -42,6 +44,8 @@ def load_agents(root: Path) -> tuple[list[dict[str, Any]], dict[str, dict[str, A
             raise ManifestError(f"agents[{i}] needs a non-empty string 'id'")
         aid = aid.strip()
         item["id"] = aid  # write back normalized id
+        if not is_portable_id(aid):
+            raise ManifestError(f"agents[{i}].id is not portable: {aid!r}")
 
         role = item.get("role")
         if not role or not isinstance(role, str) or not role.strip():
@@ -69,8 +73,18 @@ def resolve_agent_knowledge(root: Path, agent: dict[str, Any]) -> list[dict[str,
     for item in raw_paths:
         if not isinstance(item, str) or not item.strip():
             continue
-        rel = Path(item.strip())
-        target = (root / rel).resolve()
+        try:
+            rel, target = resolve_context_source(root, item)
+        except ValueError:
+            out.append(
+                {
+                    "path": Path(item.strip()).as_posix(),
+                    "absolute_path": "",
+                    "exists": False,
+                    "type": "blocked",
+                }
+            )
+            continue
         if target.is_dir():
             target_type = "directory"
         elif target.is_file():

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from urllib.parse import urlparse
 
 import yaml
 
 from one_context.errors import ManifestError
+from one_context.identifiers import is_portable_id
 
 
 def _repo_name_from_url(url: str) -> str:
@@ -79,7 +80,27 @@ def load_repos(root: Path) -> tuple[list[dict[str, Any]], dict[str, dict[str, An
                 raise ManifestError(
                     f"repos[{i}] needs 'category' when 'path' is omitted"
                 )
+            category = category.strip()
+            if not is_portable_id(category):
+                raise ManifestError(f"repos[{i}].category is not a portable id")
             rel = Path("repos") / category / repo_name
+
+        if (
+            rel.is_absolute()
+            or PureWindowsPath(str(path_str or rel)).drive
+            or not rel.parts
+            or ".." in rel.parts
+            or rel == Path(".")
+        ):
+            raise ManifestError(
+                f"repos[{i}].path must be a relative path inside the workspace"
+            )
+        try:
+            (root.resolve() / rel).resolve().relative_to(root.resolve())
+        except ValueError as exc:
+            raise ManifestError(
+                f"repos[{i}].path must stay inside the workspace"
+            ) from exc
 
         rid = item.get("id")
         if rid is None:
@@ -88,6 +109,8 @@ def load_repos(root: Path) -> tuple[list[dict[str, Any]], dict[str, dict[str, An
             raise ManifestError(f"repos[{i}].id must be a non-empty string")
         else:
             rid = rid.strip()
+        if not is_portable_id(rid):
+            raise ManifestError(f"repos[{i}].id is not a portable id: {rid!r}")
 
         description = item.get("description")
         if description is not None and not isinstance(description, str):
@@ -96,6 +119,11 @@ def load_repos(root: Path) -> tuple[list[dict[str, Any]], dict[str, dict[str, An
         aliases = _normalize_aliases(item.get("alias"))
         if "aliases" in item:
             aliases.extend(_normalize_aliases(item["aliases"]))
+        for alias in aliases:
+            if not is_portable_id(alias):
+                raise ManifestError(
+                    f"repos[{i}] alias is not a portable id: {alias!r}"
+                )
 
         entry: dict[str, Any] = {
             "id": rid,

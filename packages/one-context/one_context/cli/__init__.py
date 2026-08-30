@@ -3,9 +3,8 @@
 Sub-modules each own a coherent slice of the CLI:
     _meta      doctor / sync / repo / workspace / context / profile / agent
     _worktree  worktree setup/status/teardown
-    _skills    Claude Code runtime skills list/install/uninstall
-    _adapt     adapter generation + git hook install/uninstall
-    _eval      skill eval runner
+    _skills    project skill discovery
+    _adapt     adapter generation
 
 Each sub-module exposes a `register(sub: _SubParsersAction)` function
 that registers its subparsers. This file just chains them.
@@ -26,21 +25,16 @@ from one_context.errors import ManifestError
 from one_context.log import setup_logging
 from one_context.root import find_root
 
-from one_context.cli import (
-    _adapt, _eval, _meta, _recorder, _retro_eval, _skills, _usage_eval, _worktree,
-)
+from one_context.cli import _adapt, _meta, _skills, _worktree
 
 # Re-exports for backwards compat with tests:
 from one_context.cli._adapt import (  # noqa: F401
     _check_generated,
     _cmd_adapt,
-    _cmd_adapt_install,
-    _cmd_adapt_uninstall,
     _emit_file,
     _print_dry_run_block,
     _report_dirty_files,
 )
-from one_context.cli._eval import _cmd_eval_dispatch, _run_many  # noqa: F401
 from one_context.cli._meta import (  # noqa: F401
     _cmd_agent_list,
     _cmd_agent_show,
@@ -54,11 +48,7 @@ from one_context.cli._meta import (  # noqa: F401
     _cmd_workspace_list,
     _cmd_workspace_show,
 )
-from one_context.cli._skills import (  # noqa: F401
-    _cmd_skills_install,
-    _cmd_skills_list,
-    _cmd_skills_uninstall,
-)
+from one_context.cli._skills import _cmd_skills_list  # noqa: F401
 from one_context.cli._worktree import (  # noqa: F401
     _cmd_worktree_setup,
     _cmd_worktree_status,
@@ -107,11 +97,6 @@ def build_parser() -> argparse.ArgumentParser:
     _adapt.register(sub)
     _worktree.register(sub)
     _skills.register(sub)
-    _eval.register(sub)
-    _recorder.register(sub)
-    _usage_eval.register(sub)
-    _retro_eval.register(sub)
-
     return parser
 
 
@@ -121,25 +106,15 @@ def main() -> None:
 
     setup_logging(verbose=args.verbose)
 
-    # recorder subcommands operate on /tmp/onecxt-recorder/, not the
-    # workspace tree — skip root resolution so they work from any cwd.
-    if args.command == "recorder":
-        raise SystemExit(args.func(Path("."), args))
-
-    # usage-eval is invoked by cc SessionEnd hook from arbitrary user repos
-    # (not necessarily one-context). Handlers take only (args), and use
-    # --cwd / payload.cwd for repo path.
-    if args.command == "usage-eval":
-        raise SystemExit(args.func(args))
-
-    # retro-eval is a回溯分析工具，可从任意仓发起；不强制 one-context root。
-    if args.command == "retro-eval":
-        raise SystemExit(args.func(args))
-
     try:
         root = _resolve_root(args.root)
     except ManifestError as e:
         print(e.message, file=sys.stderr)
         raise SystemExit(1) from e
 
-    raise SystemExit(args.func(root, args))
+    try:
+        code = args.func(root, args)
+    except ManifestError as e:
+        print(f"error: {e.message}", file=sys.stderr)
+        code = 2
+    raise SystemExit(code)

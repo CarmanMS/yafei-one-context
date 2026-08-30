@@ -1,30 +1,28 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  在用户已通过对话明确授权的前提下，执行白名单内的 C 盘相关清理（缓存/临时/Docker 等）。
+  预览或执行白名单内的 C 盘缓存清理。
 
 .DESCRIPTION
-  **无授权不得运行**：必须提供 -ChatAuthorizationNote（用户在聊天中的同意原话，供审计）。
-  至少指定一个清理开关。建议清理前后各执行一次 Get-PSDrive C。
-  本脚本不卸载「已安装的应用」注册表项；卸载请用系统设置。
+  默认仅预览。实际清理必须同时提供 -Execute、用户明确授权的具体清理开关，
+  以及 -ChatAuthorizationNote。脚本不会打印授权原文。
 
 .PARAMETER ChatAuthorizationNote
-  必填。粘贴用户在对话中同意执行清理的原文（≥8 字符）。
+  实际执行时必填：用户在当前对话中的明确同意原文（8–4000 字符）。
 
-.PARAMETER DryRun
-  只打印将执行的步骤，不调用删除/清理命令。
+.PARAMETER Execute
+  真正执行所选清理。省略时只预览，不修改磁盘。
 
 .NOTES
-  与 SKILL.md 安全边界一致；未列出的路径请勿在此脚本外批量删除。
+  不卸载应用，也不删除 Visual Studio Installer 包缓存。
 #>
 
 [CmdletBinding()]
 param(
-  [Parameter(Mandatory = $true, HelpMessage = 'Paste the user exact consent message from the chat')]
-  [ValidateLength(8, 4000)]
-  [string]$ChatAuthorizationNote,
+  [ValidateLength(0, 4000)]
+  [string]$ChatAuthorizationNote = '',
 
-  [switch]$DryRun,
+  [switch]$Execute,
 
   [switch]$NpmCache,
   [switch]$PipCache,
@@ -36,57 +34,109 @@ param(
   [switch]$DockerSystemPrune,
   [switch]$DockerSystemPruneAll,
   [switch]$CondaCleanAll,
-  [switch]$DotnetNugetLocalsAllClear,
-  [switch]$VisualStudioPackagesCache
+  [switch]$DotnetNugetLocalsAllClear
 )
 
 Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Continue'
+$ErrorActionPreference = 'Stop'
 
-$any = $NpmCache -or $PipCache -or $YarnCache -or $PnpmStorePrune -or $UserTemp -or $LocalAppDataTemp -or $RecycleBin -or $DockerSystemPrune -or $DockerSystemPruneAll -or $CondaCleanAll -or $DotnetNugetLocalsAllClear -or $VisualStudioPackagesCache
+$any = $NpmCache -or $PipCache -or $YarnCache -or $PnpmStorePrune -or $UserTemp -or $LocalAppDataTemp -or $RecycleBin -or $DockerSystemPrune -or $DockerSystemPruneAll -or $CondaCleanAll -or $DotnetNugetLocalsAllClear
 
 if (-not $any) {
-  Write-Error 'Specify at least one cleanup switch (e.g. -NpmCache). Use -DryRun to preview. See SKILL.md.'
-  exit 2
+  throw '至少指定一个清理开关（例如 -NpmCache）；省略 -Execute 即为预览。'
+}
+
+if ($Execute -and $ChatAuthorizationNote.Trim().Length -lt 8) {
+  throw '实际执行需要 -ChatAuthorizationNote，内容须为用户对所选清理项的明确授权原文（至少 8 字符）。'
 }
 
 function Write-CFree {
   try {
-    $d = Get-PSDrive -Name C -ErrorAction Stop
-    Write-Host ('  C: 已用 {0:N2} GB  可用 {1:N2} GB' -f ($d.Used / 1GB), ($d.Free / 1GB))
-  } catch {
+    $drive = Get-PSDrive -Name C -ErrorAction Stop
+    Write-Host ('  C: 已用 {0:N2} GB  可用 {1:N2} GB' -f ($drive.Used / 1GB), ($drive.Free / 1GB))
+  }
+  catch {
     Write-Host '  (无法读取 C: 盘)' -ForegroundColor Yellow
   }
 }
 
 function Invoke-Step {
-  param([string]$Title, [scriptblock]$Action)
-  Write-Host ""
+  param(
+    [Parameter(Mandatory = $true)][string]$Title,
+    [Parameter(Mandatory = $true)][scriptblock]$Action
+  )
+
+  Write-Host ''
   Write-Host ">> $Title" -ForegroundColor Cyan
-  if ($DryRun) {
-    Write-Host '   [DryRun] 跳过实际执行' -ForegroundColor DarkGray
+  if (-not $Execute) {
+    Write-Host '   [预览] 未执行' -ForegroundColor DarkGray
     return
   }
+
   try {
     & $Action
     Write-Host '   完成' -ForegroundColor Green
-  } catch {
-    Write-Host ('   失败: {0}' -f $_.Exception.Message) -ForegroundColor Yellow
+  }
+  catch {
+    Write-Host ('   失败或仅部分完成: {0}' -f $_.Exception.Message) -ForegroundColor Yellow
+  }
+}
+
+function Resolve-SafeTempDirectory {
+  param([Parameter(Mandatory = $true)][string]$Path)
+
+  if ([string]::IsNullOrWhiteSpace($Path)) { throw '临时目录路径为空。' }
+
+  $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+  if (-not $item.PSIsContainer) { throw "目标不是目录: $Path" }
+  if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+    throw "拒绝清理重解析点目录: $Path"
+  }
+
+  $resolved = [IO.Path]::GetFullPath($item.FullName)
+  $trimChars = [char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+  $normalized = $resolved.TrimEnd($trimChars)
+  $root = [IO.Path]::GetPathRoot($resolved).TrimEnd($trimChars)
+  if ($normalized -ieq $root) { throw "拒绝清理磁盘根目录: $resolved" }
+  if ((Split-Path -Leaf $normalized) -ine 'Temp') {
+    throw "拒绝清理非 Temp 目录: $resolved"
+  }
+
+  foreach ($broadPath in @($env:USERPROFILE, $env:LOCALAPPDATA, $env:SystemRoot)) {
+    if ([string]::IsNullOrWhiteSpace($broadPath)) { continue }
+    $broad = [IO.Path]::GetFullPath($broadPath).TrimEnd($trimChars)
+    if ($normalized -ieq $broad) { throw "拒绝清理宽泛目录: $resolved" }
+  }
+
+  return $resolved
+}
+
+function Remove-SafeTempContents {
+  param([Parameter(Mandatory = $true)][string]$Path)
+
+  $safePath = Resolve-SafeTempDirectory -Path $Path
+  foreach ($child in Get-ChildItem -LiteralPath $safePath -Force -ErrorAction Stop) {
+    if (($child.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+      Write-Warning "跳过重解析点: $($child.FullName)"
+      continue
+    }
+    Remove-Item -LiteralPath $child.FullName -Recurse -Force -ErrorAction Stop
   }
 }
 
 Write-Host '=== invoke-c-drive-cleanup（白名单清理）===' -ForegroundColor Cyan
-Write-Host ('  授权记录（对话原文摘要前 120 字）: {0}' -f ($ChatAuthorizationNote.Substring(0, [Math]::Min(120, $ChatAuthorizationNote.Length))))
-if ($ChatAuthorizationNote.Length -gt 120) { Write-Host '  …' -ForegroundColor DarkGray }
-Write-Host ('  模式: {0}' -f ($(if ($DryRun) { 'DryRun' } else { '执行' })))
-Write-Host '  清理前 C:' -ForegroundColor DarkGray
+Write-Host ('  模式: {0}' -f $(if ($Execute) { '执行' } else { '预览' }))
+if ($Execute) {
+  Write-Host ('  授权记录: 已提供（{0} 字符，不回显）' -f $ChatAuthorizationNote.Length)
+}
+Write-Host '  当前 C:' -ForegroundColor DarkGray
 Write-CFree
 
 if ($NpmCache) {
   Invoke-Step 'npm cache clean --force' {
     if (-not (Get-Command npm -ErrorAction SilentlyContinue)) { throw 'npm 不在 PATH' }
     & npm cache clean --force
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "npm 退出码 $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "npm 退出码 $LASTEXITCODE" }
   }
 }
 
@@ -94,7 +144,7 @@ if ($PipCache) {
   Invoke-Step 'pip cache purge' {
     if (-not (Get-Command pip -ErrorAction SilentlyContinue)) { throw 'pip 不在 PATH' }
     & pip cache purge
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "pip 退出码 $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "pip 退出码 $LASTEXITCODE" }
   }
 }
 
@@ -102,7 +152,7 @@ if ($YarnCache) {
   Invoke-Step 'yarn cache clean' {
     if (-not (Get-Command yarn -ErrorAction SilentlyContinue)) { throw 'yarn 不在 PATH' }
     & yarn cache clean
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "yarn 退出码 $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "yarn 退出码 $LASTEXITCODE" }
   }
 }
 
@@ -110,45 +160,42 @@ if ($PnpmStorePrune) {
   Invoke-Step 'pnpm store prune' {
     if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) { throw 'pnpm 不在 PATH' }
     & pnpm store prune
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "pnpm 退出码 $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "pnpm 退出码 $LASTEXITCODE" }
   }
 }
 
 if ($UserTemp) {
-  Invoke-Step '清空 %TEMP% 下文件（保留 Temp 目录本身）' {
-    $t = $env:TEMP
-    if ([string]::IsNullOrWhiteSpace($t) -or -not (Test-Path -LiteralPath $t)) { throw 'TEMP 无效' }
-    Get-ChildItem -LiteralPath $t -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+  Invoke-Step "清空 %TEMP% 下内容（目标: $env:TEMP；保留目录本身）" {
+    Remove-SafeTempContents -Path $env:TEMP
   }
 }
 
 if ($LocalAppDataTemp) {
-  Invoke-Step '清空 LocalAppData\Temp 下文件' {
-    $lt = Join-Path $env:LOCALAPPDATA 'Temp'
-    if (-not (Test-Path -LiteralPath $lt)) { throw 'LocalAppData\Temp 不存在' }
-    Get-ChildItem -LiteralPath $lt -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+  $localTemp = Join-Path $env:LOCALAPPDATA 'Temp'
+  Invoke-Step "清空 LocalAppData\Temp 下内容（目标: $localTemp；保留目录本身）" {
+    Remove-SafeTempContents -Path $localTemp
   }
 }
 
 if ($RecycleBin) {
-  Invoke-Step '清空回收站（当前用户）' {
+  Invoke-Step '清空回收站（当前用户，不可撤销）' {
     if (-not (Get-Command Clear-RecycleBin -ErrorAction SilentlyContinue)) { throw 'Clear-RecycleBin 不可用' }
     Clear-RecycleBin -Force -ErrorAction Stop
   }
 }
 
 if ($DockerSystemPruneAll) {
-  Invoke-Step 'docker system prune -a -f（删除未使用镜像/网络等，激进）' {
+  Invoke-Step 'docker system prune -a -f（激进：删除未使用镜像/容器/网络等）' {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw 'docker 不在 PATH' }
     & docker system prune -a -f
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "docker 退出码 $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "docker 退出码 $LASTEXITCODE" }
   }
 }
 elseif ($DockerSystemPrune) {
-  Invoke-Step 'docker system prune -f（不删未使用镜像）' {
+  Invoke-Step 'docker system prune -f（保留非悬空的未使用镜像）' {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw 'docker 不在 PATH' }
     & docker system prune -f
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "docker 退出码 $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "docker 退出码 $LASTEXITCODE" }
   }
 }
 
@@ -156,7 +203,7 @@ if ($CondaCleanAll) {
   Invoke-Step 'conda clean -a -y' {
     if (-not (Get-Command conda -ErrorAction SilentlyContinue)) { throw 'conda 不在 PATH' }
     & conda clean -a -y
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "conda 退出码 $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "conda 退出码 $LASTEXITCODE" }
   }
 }
 
@@ -164,22 +211,15 @@ if ($DotnetNugetLocalsAllClear) {
   Invoke-Step 'dotnet nuget locals all --clear' {
     if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { throw 'dotnet 不在 PATH' }
     & dotnet nuget locals all --clear
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "dotnet 退出码 $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "dotnet 退出码 $LASTEXITCODE" }
   }
 }
 
-if ($VisualStudioPackagesCache) {
-  Invoke-Step '删除 Visual Studio Installer 包缓存（ProgramData\...\Packages 内文件）' {
-    $vsPkg = 'C:\ProgramData\Microsoft\VisualStudio\Packages'
-    if (-not (Test-Path -LiteralPath $vsPkg)) { throw 'VS Packages 目录不存在' }
-    Write-Warning '以后修复/增装 VS 组件可能需要重新下载。'
-    Get-ChildItem -LiteralPath $vsPkg -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-  }
-}
-
-Write-Host ""
-Write-Host '  清理后 C:' -ForegroundColor DarkGray
+Write-Host ''
+Write-Host ($(if ($Execute) { '  清理后 C:' } else { '  当前 C（预览未修改）:' })) -ForegroundColor DarkGray
 Write-CFree
-Write-Host ""
+Write-Host ''
 Write-Host '=== 结束 ===' -ForegroundColor Green
-if ($DryRun) { Write-Host '本次为 DryRun，未修改磁盘。去掉 -DryRun 且保持授权记录可真正执行。' -ForegroundColor DarkGray }
+if (-not $Execute) {
+  Write-Host '本次仅预览。确认具体开关并取得用户明确授权后，添加 -Execute 与 -ChatAuthorizationNote 才会清理。' -ForegroundColor DarkGray
+}

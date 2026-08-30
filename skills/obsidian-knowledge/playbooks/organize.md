@@ -53,37 +53,21 @@
 
 1. `GET` 源文件确认内容
 2. 更新 frontmatter：
-   - 补全 `type` / `status` / `created`
-   - `tags` 加入目标领域前缀（如 `#科研/...`）
-3. **原子 move**：
-   ```bash
-   # Step1: PUT 新位置（领域/单元/文件名）
-   curl -X PUT "https://127.0.0.1:27124/vault/10-%E7%A7%91%E7%A0%94/<单元>/<中文名>.md" \
-     -H "$AUTH" -H "Content-Type: text/markdown" \
-     --data-binary @updated-content.md
-   # Step2: GET 校验新位置
-   curl -H "$AUTH" "https://127.0.0.1:27124/vault/10-%E7%A7%91%E7%A0%94/<单元>/<中文名>.md" | diff - updated-content.md
-   # Step3: DELETE 原位置（仅当 Step2 一致）
-   curl -X DELETE "https://127.0.0.1:27124/vault/00-inbox/<中文名>.md" -H "$AUTH"
-   ```
+   - 仅补全能够确认的 `type` / `status`；`created` 无可信来源时先让用户确认，不从文件 mtime 推断
+   - `tags` 加入目标领域前缀（如 YAML 值 `科研/...`，不带 `#`）
+3. **原子 move**（全文只保留在进程内存）：GET 源全文 → PUT 新位置 → GET 新位置并在内存中逐字节校验 → 仅在一致时 DELETE 原位置
 4. 更新源和目标领域 `_MOC.md`
-5. **扫反向链接**：`POST /search/simple/` 查 `[[旧路径]]`，PATCH 所有匹配改为新路径
+5. **扫反向链接**：`POST /search/simple/` 查 `[[旧路径]]`；逐篇 GET → 内存精确替换 → PUT → GET 校验
 
 ### 反向链接更新
 
 ```bash
 # 找所有引用旧路径的笔记
-curl -X POST "https://127.0.0.1:27124/search/simple/" \
-  -H "$AUTH" -H "Content-Type: application/json" \
-  -d '{"query": "[[00-inbox/旧名]]"}'
-
-# 对每个匹配文件 PATCH 替换 wikilink
-for f in $matching_files; do
-  curl -X PATCH "https://127.0.0.1:27124/vault/$f" \
-    -H "$AUTH" -H "Content-Type: application/json" \
-    -d '{"operation":"replace","target":"[[00-inbox/旧名]]","content":"[[10-科研/单元/新名]]"}'
-done
+curl -s -k -X POST -G "https://127.0.0.1:27124/search/simple/" \
+  -H "$AUTH" --data-urlencode "query=[[00-inbox/旧名]]"
 ```
+
+对每个匹配路径，从 API GET 最新全文；仅在旧链接精确存在时于内存替换为 `[[10-科研/单元/新名]]`，PUT 全文并再次 GET 校验。不要写临时文件；通用 wikilink 替换不使用结构化 PATCH。
 
 ---
 
@@ -134,19 +118,10 @@ done
 
 **关键**：DELETE 前必须 GET 校验新位置内容一致，避免半失败产生重复。
 
-```bash
-# Step1: PUT 新位置
-curl -X PUT "https://127.0.0.1:27124/vault/<new-path>" \
-  -H "$AUTH" -H "Content-Type: text/markdown" \
-  --data-binary @content.md
-
-# Step2: GET 校验
-curl -s -H "$AUTH" "https://127.0.0.1:27124/vault/<new-path>" > /tmp/new.md
-diff /tmp/new.md content.md || { echo "校验失败，跳过 DELETE"; exit 1; }
-
-# Step3: DELETE 原位置
-curl -X DELETE "https://127.0.0.1:27124/vault/<old-path>" -H "$AUTH"
-```
+1. `GET /vault/<old-path>`，全文仅保存在进程内存。
+2. 以该内存内容 `PUT /vault/<new-path>`。
+3. `GET /vault/<new-path>` 并在内存中逐字节比较；不一致则停止且保留原文件。
+4. 仅校验一致时 `DELETE /vault/<old-path>`。
 
 ### _MOC PATCH 安全流程
 
@@ -167,6 +142,6 @@ curl -X PATCH "https://127.0.0.1:27124/vault/10-%E7%A7%91%E7%A0%94/_MOC.md" \
 - 原子 move：PUT → GET 校验 → DELETE
 - Rename/move 必扫反向链接并更新
 - 整理完必跑去重
-- 标签两级且以领域开头
+- frontmatter `tags` 两级且以领域开头，YAML 值不带 `#`
 - 归档不出领域：完结内容进本领域 `_archive/` 或 `status: archived`
 - `_MOC.md` 只追加，不删除条目

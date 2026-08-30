@@ -1,322 +1,99 @@
 ---
 name: smart-commit
-type: workflow
-description: >
-  智能提交：扫描本地变更，敏感词告警（ant/支付宝/蚂蚁等公司标识），按 one-context 定位评估文件归属，
-  挪正错位文件，排除不属于仓库的内容（加入 gitignore 或移至 tmp/），将合规变更拆分为多个独立 commit
-  并推送。触发关键词：提交、commit、smart-commit、智能提交。
-triggers:
-  - 提交
-  - commit
-  - smart-commit
-  - 智能提交
-  - 提交代码
-author: 水猿
-version: 1.3.0
-tags:
-  - git
-  - workflow
-  - commit
-openclaw:
-  requires:
-    bins:
-      - git
-  install: []
+description: 审查当前 Git 变更，按逻辑精确暂存并创建本地提交；仅在用户明确要求时推送。
 ---
 
-# Smart Commit — one-context 智能提交流程
+# Smart Commit
 
-按 one-context 仓库定位，对本地变更进行分类、归位、排除，然后拆分为多个独立 commit 并推送。
+用于用户明确要求提交当前工作时。目标是保留现有改动、避免敏感信息，并产出少量可独立理解的 commit。
 
----
+## 1. 只读快照
 
-## 触发条件
-
-当用户提到以下场景时使用：
-- "提交" / "commit" / "提交代码"
-- "帮我提交" / "smart-commit"
-- "把这些改动提交了"
-
----
-
-## one-context 仓库定位速查
-
-one-context 是**本地优先、跨仓库、AI 工具无关的协作层**——核心哲学是"一处定义，多处同步"。
-
-### 应纳入版本控制的路径（合规）
-
-| 类别 | 路径模式 | 说明 |
-|------|---------|------|
-| 注册表 | `meta/*.yaml` | repos / workspaces / profiles / agents |
-| 知识库 | `knowledge/**` | standards / playbooks / prompts / references / tools |
-| 特性文档 | `features/**/spec.md`, `features/**/tech_design.md`, `features/**/test_report.md`, `features/**/mr_report.md`, `features/**/deliver.md`, `features/**/review_record.md`, `features/INDEX.md` | 伞形需求文档 |
-| 内容管道骨架 | `features/**/production/content/**`, `features/**/production/timing/**` | 口播稿、场景切分表等（不含媒体产物） |
-| Remotion 场景源码 | `features/**/remotion/src/**`, `features/**/remotion/scripts/**`, `features/**/remotion/package.json`, `features/**/remotion/remotion.config.ts`, `features/**/remotion/tsconfig.json`, `features/**/remotion/public/audio/.gitkeep` | Feature 级 Remotion 工程（场景组件、shared、配置）；⚠️ 与 `production/remotion/` 产物目录区分 |
-| 技能 | `skills/*/SKILL.md`, `skills/*/references/**`, `skills/*/assets/**`, `skills/*/lib/**`, `skills/*/templates/**` | 可复用自动化流程 |
-| 工具适配输出 | `.claude/agents/**`, `.claude/adapters/**`, `.cursor/rules/**`, `CLAUDE.md` | onecxt adapt 生成，需跟踪以保持同步 |
-| CLI | `packages/one-context/**` | 核心 Python CLI |
-| 顶层配置 | `.gitignore`, `docs/**`, `AGENTS.md` | 仓级文件 |
-
-### 不应纳入的路径（排除）
-
-| 类别 | 路径模式 | 处理方式 |
-|------|---------|---------|
-| 临时 / 构建产物 | `tmp/**`, `features/**/temp_*`, `features/**/scratch/` | 移至 `tmp/` 或确认已在 .gitignore |
-| 内容管道产物 | `features/**/production/media/**`, `features/**/production/tmp/**`, `features/**/production/remotion/`, `features/**/production/**/*.wav`, `features/**/production/**/*.mp4`, `features/**/production/**/*.png`, `features/**/production/**/*.jpg`, `features/**/production/**/*.webm`, `features/**/production/**/*.srt` | 媒体文件移至 `tmp/` 或确认已在 .gitignore。⚠️ 仅排除 `production/remotion/`（运行时产物），**不排除** `features/**/remotion/`（源码，见合规表） |
-| 运行时产物 | `.skill-parallel-verify/**`, `memory/*`（除 .gitkeep / README.md） | 确认 .gitignore |
-| 媒体文件 | `*.mp4`, `*.webm`, `*.wav` | 移至 `tmp/` 或确认 .gitignore |
-| IDE / OS | `.idea/**`, `.vscode/**`, `.DS_Store`, `*.swp` | 确认 .gitignore |
-| Node 依赖 | `**/node_modules/` | 确认 .gitignore |
-| Python 产物 | `.venv/`, `__pycache__/`, `*.egg-info/` | 确认 .gitignore |
-| 本地配置 | `.env` | 确认 .gitignore |
-| 个人 Agent 配置 | `HEARTBEAT.md`, `IDENTITY.md`, `SOUL.md`, `USER.md`, `TOOLS.md`, `canvas-philosophy.md`, 根目录 `cover.*` | 移至 `tmp/` |
-| ad-hoc 脚本 | `/_*.py`, `/_*.ps1`, `/_*_*.py`, `_*-*.txt`, `_search*.cjs`, `/_shots_*/` | 确认 .gitignore 或移至 `tmp/` |
-| 其他工具运行时 | `.openclaw/**`（除 `onecxt-project.json`）, `.opencli/`, `.playwright-mcp/**` | 确认 .gitignore |
-
-### 可能错位的文件（需要挪正）
-
-| 文件特征 | 应挪至 | 原因 |
-|---------|-------|------|
-| 根目录下的 `prompt-*.md`（内容为知识性 prompt） | `knowledge/prompts/` | 属于知识层，不属于根目录 |
-| 根目录下的设计素材（`.jpg`, `.png` 等非封面） | `knowledge/design-resources/` 或 `skills/<相关skill>/assets/` | 属于资源层 |
-| 根目录下的架构 / 分析文档 | `docs/` 或 `knowledge/references/` | 属于文档或参考层 |
-| 根目录下的工具说明 | `knowledge/tools/` | 属于知识层 |
-| `.claude/` 下非 onecxt adapt 生成的个人文件 | 移除或移至 `tmp/` | .claude/ 仅保留 adapt 输出 |
-
----
-
-## 执行流程
-
-### Step 1: 扫描本地变更
+先运行：
 
 ```bash
-git status --short
-git diff --name-status HEAD
+git status --short --branch
+git diff --stat
+git diff --cached --stat
+git remote -v
 ```
 
-收集所有 **modified (M)**、**added (A)**、**untracked (?)**、**deleted (D)**、**renamed (R)** 的文件。
+再按需读取相关 diff。不要用 `git add -A` 掩盖未审查文件，也不要自动清理、移动或覆盖用户改动。
 
-### Step 2: 敏感词扫描告警
+确认：
 
-对 Step 1 中所有**新增或修改**的文件内容进行敏感词扫描：
+- 当前分支与 upstream
+- 已暂存、未暂存、未跟踪和 submodule pointer 变化
+- 变更是否混入 `.env`、密钥、个人会话、生成媒体或本地 adapter 输出
+- 每组改动是否有对应验证
+
+## 2. 仓库边界
+
+通常可提交：
+
+- `meta/`、`features/`、`skills/`、`docs/`
+- `packages/one-context/`、`.github/`
+- 根级项目文档和配置
+- 已在子模块自身形成 commit 的 `knowledge` gitlink 变化
+
+不得提交：
+
+- `.env`、API key、token、浏览器或 Agent 会话
+- `output/`、`.workbuddy/`、缓存、构建产物和独立 `repos/` 内容
+- `.claude/`、`.cursor/`、`.hermes/`、`.openclaw/`、`CLAUDE.md` 等本地生成配置
+- 尚未在知识子模块内形成 commit 的 vault 工作区变化
+
+`knowledge/**` 笔记不得通过文件系统读取、搜索或暂存。外层只检查并提交已有的 submodule pointer；需要处理笔记时转交 `obsidian-knowledge`，并仅走 Local REST API。
+
+发现错位、敏感或归属不明的文件时，先报告并等待决定；提交请求本身不授权删除、归档或重写历史。
+
+## 3. 提交计划
+
+按“能否独立解释和回滚”分组，而不是机械按目录拆分。通常 1–3 个 commit 足够。向用户简要列出：
+
+- commit message
+- 精确路径
+- 验证结果
+- 排除或阻塞项
+
+若用户已经明确要求“把这些改动提交”，可在范围清晰且无风险项时直接执行该计划；范围不清或包含他人改动时先确认。
+
+## 4. 精确执行
+
+每组使用精确路径暂存：
 
 ```bash
-# 扫描已暂存和未暂存的变更内容
-git diff HEAD --unified=0 -- $(git diff --name-only HEAD)
-# 扫描未跟踪文件
-for f in $(git ls-files --others --exclude-standard); do echo "=== $f ==="; cat "$f"; done
+git add -- <path>...
+git diff --cached --check
+git diff --cached --stat
+git commit -m "<message>"
 ```
 
-**敏感关键词来源**：`.onecxt/sensitive-words.yaml`
-
-敏感词列表从项目本地配置文件 `.onecxt/sensitive-words.yaml` 读取，该文件不纳入版本控制（已在 `.gitignore` 中排除），每个团队/个人可自行维护。
-
-**文件格式**：
-
-```yaml
-words:
-  - keyword: example-敏感词
-    category: 类别标签
-    note: 简要说明
-```
-
-**缺省行为**：若 `.onecxt/sensitive-words.yaml` 不存在或 `words` 为空，Step 2 直接放行，不执行敏感词扫描。
-
-**扫描规则**：
-- 逐条读取 `words` 中的 `keyword`，对变更内容进行大小写不敏感匹配
-- 匹配时需排除合理上下文（如路径中包含 `ant` 的 UI 属性名 `ant-design`、`.gitignore`、`package.json` 中的依赖声明等非敏感引用），排除规则参见各 `note` 字段
-- 对每个命中，输出 **文件路径:行号:命中内容**
-
-**告警流程**：
-1. 输出命中清单表格：`文件 | 行号 | 命中关键词 | 上下文片段`
-2. 如有命中，**暂停流程**，向用户发出告警并等待确认：
-   - 列出所有命中项
-   - 询问用户是否属于敏感信息泄露风险
-   - 用户确认"继续"后才能进入 Step 3
-3. 如无命中，直接进入 Step 3，无需额外提示
-
-### Step 3: 分类每一行
-
-对每个变更路径，判定为以下类别之一：
-
-| 类别 | 标记 | 含义 |
-|------|------|------|
-| **合规** | `OK` | 文件在正确位置，属于 one-context 仓库 |
-| **错位** | `MOVE` | 文件属于仓库但放错了位置，需挪到正确路径 |
-| **排除** | `SKIP` | 文件不属于仓库，需加入 .gitignore 或移至 tmp/ |
-| **灰区** | `ASK` | 不确定归属，需询问用户 |
-
-输出 **Markdown 表格**：`路径 | 标记(OK/MOVE/SKIP/ASK) | 一行理由`。
-
-**分类优先级规则**：
-1. **明确匹配合规路径** → `OK`
-2. **明确匹配排除路径**（如 `**/node_modules/`, `tmp/`, `.env` 等 `.gitignore` 规则） → `SKIP`
-3. **未明确匹配任何规则** → 默认 **`ASK`**（而非 SKIP）
-
-**路径匹配禁令**：
-- **禁止子串模糊匹配**：路径必须以完整路径段匹配，不得因路径中含关键词片段而跳级判定。例如 `features/xxx/remotion/` 含关键词 `remotion`，但不等于 `features/**/production/remotion/`，**不得按排除规则处理**，应按合规表或 ASK 处理。
-
-**灰区判定示例**（一律 ASK）：
-- 根目录下的 `package.json`（可能是特性配置或临时文件，需确认）
-- `features/**/production/` 下的新文件（需区分骨架文档与媒体产物）
-- 未见于上述表格的新路径模式（避免武断排除）
-- `features/**/remotion/` 下未经合规表列举的新文件类型（如新增的构建产物）
-
-### Step 4: 执行挪正（MOVE 类）
-
-对标记为 `MOVE` 的文件：
-
-1. 确定目标路径（参考上方"可能错位的文件"表）
-2. 用 `git mv`（已跟踪文件）或 `mv` + `git add`（未跟踪文件）挪到正确位置
-3. 若目标目录不存在，先 `mkdir -p` 创建
-4. 记录挪正操作，在最终报告里展示
-
-### Step 5: 执行排除（SKIP 类）
-
-对标记为 `SKIP` 的文件，按系统性原则处理：
-
-1. **已在 .gitignore 中有匹配规则** → **Git 侧**：不加入索引、不提交；**不等于**磁盘上永远保留。若同一文件仍出现在 `git status`（未跟踪）且属于 **Step 5.5** 所列「工作区卫生」范畴，须与用户确认是否删除或归档，勿仅以「已 ignore」结案。
-2. **属于已有分类但缺规则** → 在 .gitignore 中添加**分类级规则**（如 `tmp/`、`.playwright-mcp/`），而非逐文件添加
-3. **个人临时文件 / 业务资产** → `mkdir -p tmp && mv` 移至 `tmp/`，确认 `tmp/` 已在 .gitignore
-4. 输出排除操作清单
-
-### Step 5.5: 工作区卫生（磁盘，可选但推荐）
-
-**目的**：补上「匹配 ignore 就不用管」的缺口——**不进仓库的垃圾仍不应长期堆在工作区**（尤其仓库根、feature 根）。
-
-**与 Step 1 的关系**：Step 1 以 `git status` 为主；本步可 **主动枚举** 常见垃圾路径（仍须用户确认后才删除）。
-
-**触发**：用户提到「整理目录 / 清垃圾 / 根目录很乱」或在 Step 3–5 中发现大量 **已被 ignore 或未跟踪** 的一次性文件。
-
-**建议扫描范围**（只读列举，再询问）：
-
-| 区域 | 典型垃圾 | 默认建议 |
-|------|----------|----------|
-| 仓库根 | `/_*.py`、`/_*.ps1`、一次性 `sub.ass`、`prompt-*.md`（知识类）、散落 `.md` 日志 | 有价值 → `tmp/<yyyy-mm-dd>-cleanup/` 或归位到 `knowledge/` / `docs/`；确认无用 → **删除** |
-| `tmp/` | 历史脚本、中间产物 | 确认后可整目录或按子目录删除；**删除前须用户逐条或批量明确同意** |
-| `features/**/production/` | `media/`、`remotion/`、`*.wav`、`*.mp4`、`*.png`、`*.jpg` 等媒体产物 | 已在 `.gitignore` 的媒体：磁盘占用大时，列出体积 Top，用户确认后删除或迁到外置盘；保留 `content/`、`timing/` 等骨架文档 |
-| 个人 Agent 根文件 | `HEARTBEAT.md`、`IDENTITY.md` 等 | **禁止擅自删除**；仅可提示迁移到个人目录或保持 ignore |
-
-**执行约束**：
-
-- **删除**（`Remove-Item`、`rm`、清空目录）必须在对话中得到用户 **对路径或清单的明确授权**（与 `windows-c-drive-cleanup` skill 的删除授权一致）。
-- 默认优先：**移到 `tmp/<dated>-cleanup/`** 而非删除，便于反悔。
-- 不在本流程中「静默跳过」：若枚举出明显一次性产物，应在报告中单列 **「卫生建议」**，即使用户本次不做清理。
-
-### Step 6: 处理灰区（ASK 类）
-
-对标记为 `ASK` 的文件，向用户提问：
-- 该文件属于 one-context 仓库吗？
-- 如果属于，应该放在哪里？
-- 如果不属于，加入 .gitignore 还是移至 tmp/？
-
-等用户确认后再继续。
-
-### Step 7: 拆分 commit
-
-将所有合规变更（包括挪正后的文件）按逻辑拆分为多个独立 commit。**推荐拆分维度**：
-
-| commit 维度 | 包含路径模式 | commit message 前缀 |
-|-------------|-------------|-------------------|
-| 知识层 | `knowledge/**` | `feat(knowledge):` 或 `docs(knowledge):` |
-| 注册表 / 框架 | `meta/**` | `feat(meta):` |
-| 特性文档 | `features/**` | `feat(features):` |
-| 技能 | `skills/**` | `feat(skills):` |
-| 工具适配 | `.claude/agents/**`, `.claude/adapters/**`, `.cursor/rules/**`, `CLAUDE.md` | `chore(adapt):` |
-| CLI | `packages/one-context/**` | `feat(cli):` 或 `fix(cli):` |
-| 顶层配置 | `.gitignore`, `AGENTS.md`, `docs/**` | `chore:` |
-| 文件挪正 | 跨目录移动的文件 | `refactor: relocate misplaced files` |
-
-**规则**：
-- 如果某个维度没有变更，跳过该 commit
-- 如果只有 1-2 个维度有变更，可以合并为一个 commit
-- commit message 参考项目最近提交风格（使用中文或英文均可，但同一批 commit 风格一致）
-- 每个 commit 末尾附加 `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
-
-### Step 8: 推送
-
-所有 commit 完成后，执行：
+提交后复查：
 
 ```bash
-git push origin HEAD
+git status --short --branch
+git log -n 3 --oneline
 ```
 
-若当前分支没有设置 upstream，使用 `git push -u origin HEAD`。
+规则：
 
-### Step 9: 输出报告
+- 不使用 `git reset --hard`、`git checkout --` 或 force push。
+- 不自动添加固定 co-author、签名或作者身份。
+- hook 失败时修复原因并重新验证，不用 `--no-verify` 绕过。
+- 不修改 Git 全局配置。
+- 未被纳入计划的变更保持原样。
 
-生成简短报告：
+## 5. 推送门控
 
-```
-## Smart Commit 报告
+本地 commit 不等于授权推送。只有用户明确要求 push / 推送时才执行：
 
-### 挪正
-- <old_path> → <new_path>（理由）
-
-### 排除
-- <path>：加入 .gitignore（规则）
-- <path>：移至 tmp/（理由）
-
-### 工作区卫生（Step 5.5，如有）
-- <path>：删除 / 归档至 tmp/…（须用户已确认）
-
-### Commits
-1. <commit-hash> <message>
-2. <commit-hash> <message>
-...
-
-### 推送
-- 分支：<branch>
-- 远程：<remote>
-- 状态：成功/失败
+```bash
+git push
 ```
 
----
+没有 upstream 时，先展示目标 remote 与 branch；确认无误后使用 `git push -u <remote> <branch>`。禁止默认推送到 `main`，禁止 force push。
 
-## 事后纠正与恢复机制
+## 6. 交付
 
-执行过程中可能出现误判（如将合规文件标记为 SKIP 排除）。用户发现后可随时要求纠正：
-
-### 用户命令
-- **"恢复"** / **"撤销刚才的移动"** / **"把 X 文件放回原位"**
-
-### 执行流程
-1. 从 `tmp/<dated>-cleanup/` 或 `tmp/` 中找到被移动的文件
-2. 确定正确目标位置（特征根目录或特性目录下的合规路径）
-3. 执行 `mv` 恢复原位，并 `git add` 重新纳入版本控制
-4. 追加 commit 说明纠正操作
-5. 重新推送
-
-### 预防措施
-- 排除类操作（SKIP）**必须先显示清单并征得用户确认**，不得静默执行
-- 移动文件到 `tmp/` 前保留原路径信息，便于追溯
-
----
-
-## 硬规则
-
-1. **不提交敏感信息**：`.env`、含 token/密钥的文件绝不提交
-2. **敏感词扫描门控**：Step 2 扫描到敏感词命中时必须暂停并告警，用户确认后才能继续；不得跳过此步骤
-3. **必须经用户确认**：Step 3 的分类表、**Step 5.5** 的删除/归档清单和 Step 6 的灰区问题须等用户确认后才能继续执行
-4. **不 force push**：除非用户用原话明确要求
-5. **系统性 .gitignore**：添加忽略规则时按分类级添加（如 `tmp/`、`.playwright-mcp/`），不逐文件添加
-6. **保留 .gitkeep 和 README.md**：`memory/.gitkeep`、`memory/README.md`、`repos/**/.gitkeep` 等占位文件不被排除
-7. **不修改 adapt 生成文件内容**：`.claude/agents/`、`.claude/adapters/`、`.cursor/rules/` 下的文件由 `onecxt adapt` 生成，仅跟踪同步，不手动编辑
-8. **磁盘删除与 ignore 脱钩**：`.gitignore` 只解决版本控制；**实质删除或清空**须用户明确授权；不得以「已 ignore」代替卫生结论
-
----
-
-## Quick Reference
-
-| 步骤 | 操作 | 门控条件 |
-|------|------|---------|
-| 1 | 扫描 git status / diff | 变更清单获取完成 |
-| 2 | 敏感词扫描告警 | 无命中 → 直接继续；有命中 → 用户确认 |
-| 3 | 分类 (OK/MOVE/SKIP/ASK) | 分类表输出 |
-| 4 | 挪正 MOVE 类文件 | 文件到位 |
-| 5 | 排除 SKIP 类文件 | .gitignore 更新 + tmp/ 移动；已 ignore 但仍堆积时勿静默跳过 |
-| 5.5 | 工作区卫生（磁盘） | 枚举 → 用户确认 → 归档或删除 |
-| 6 | 处理 ASK 类文件 | 用户确认 |
-| 7 | 拆分 commit | 所有 commit 完成 |
-| 8 | git push | 推送成功 |
-| 9 | 输出报告 | 报告展示完毕 |
+报告 commit hash、message、包含范围、验证结果、未提交变更，以及是否推送。不要把敏感命中内容原样复制到报告。

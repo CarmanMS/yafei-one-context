@@ -6,6 +6,7 @@ from typing import Any
 import yaml
 
 from one_context.errors import ManifestError
+from one_context.identifiers import is_portable_id
 
 
 def load_workspaces(root: Path) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
@@ -39,6 +40,9 @@ def load_workspaces(root: Path) -> tuple[list[dict[str, Any]], dict[str, dict[st
         if not wid or not isinstance(wid, str) or not wid.strip():
             raise ManifestError(f"workspaces[{i}] needs a non-empty string 'id'")
         wid = wid.strip()
+        item["id"] = wid
+        if not is_portable_id(wid):
+            raise ManifestError(f"workspaces[{i}].id is not portable: {wid!r}")
 
         lk = wid.casefold()
         if lk in by_id:

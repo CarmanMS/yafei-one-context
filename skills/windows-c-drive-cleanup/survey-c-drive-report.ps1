@@ -364,7 +364,7 @@ Write-Host @'
 '@
 
 Write-Section '五、交付清单 · 自动清理 vs 手动清理'
-Write-Host '  A 类：你在对话里**逐条说清同意哪些项**后，由代理在仓库根运行 `invoke-c-drive-cleanup.ps1`（可先 `-DryRun`）。' -ForegroundColor DarkGray
+Write-Host '  A 类：先用 `invoke-c-drive-cleanup.ps1` 默认预览；你在对话里逐条授权后，代理才可添加 `-Execute`。' -ForegroundColor DarkGray
 Write-Host '  B 类：系统界面或第三方客户端内操作，脚本无法可靠代替。' -ForegroundColor DarkGray
 Write-Host ''
 
@@ -413,10 +413,10 @@ if ($autoRows.Count -eq 0) {
   $orderedSw = @($suggestedSwitches | Sort-Object)
   $swArgs = ($orderedSw | ForEach-Object { '-' + $_ }) -join ' '
   Write-Host ''
-  Write-Host '  示例（在 **one-context 仓库根**；`ChatAuthorizationNote` 填你在对话里的**同意原文**）：' -ForegroundColor DarkCyan
-  Write-Host ('  .\skills\windows-c-drive-cleanup\invoke-c-drive-cleanup.ps1 -ChatAuthorizationNote ''<粘贴同意原文>'' {0} -DryRun' -f $swArgs)
+  Write-Host '  默认预览示例（在 one-context 仓库根；不会修改磁盘）：' -ForegroundColor DarkCyan
+  Write-Host ('  .\skills\windows-c-drive-cleanup\invoke-c-drive-cleanup.ps1 {0}' -f $swArgs)
   Write-Host '  上列开关是本机**命中项的并集**；**实跑时只保留你在对话里逐条同意的那几个**，不要照抄全部。' -ForegroundColor Yellow
-  Write-Host '  确认 DryRun 输出无误后去掉 -DryRun 再执行。' -ForegroundColor DarkGray
+  Write-Host '  确认预览后，实际执行还须添加 -Execute 和 -ChatAuthorizationNote ''<同意原文>''。' -ForegroundColor DarkGray
 }
 
 Write-Section '五-B · 须你本机手动（界面 / 客户端 / 高风险附录）'
@@ -471,8 +471,8 @@ if (-not $IncludeProgramFilesBreakdown) {
 }
 
 Write-Host ''
-Write-Host '  其它：管理员 **cleanmgr / DISM**、**VS Installer 包缓存**（-VisualStudioPackagesCache）、**conda**（-CondaCleanAll）、**回收站**（-RecycleBin）等见 SKILL「可自动清理」表；均须在对话**点名授权**后再跑 invoke。' -ForegroundColor DarkGray
+Write-Host '  其它：管理员 **cleanmgr / DISM**、Visual Studio Installer 手动维护，以及 **conda**（-CondaCleanAll）、**回收站**（-RecycleBin）等见 SKILL；删除类操作均须在对话点名授权。' -ForegroundColor DarkGray
 
 Write-Host ''
 Write-Host '=== 报告结束（只读；未删除任何文件）===' -ForegroundColor Green
-Write-Host '自动清理仅通过 invoke-c-drive-cleanup.ps1，且必须带你在对话中的同意原文。' -ForegroundColor DarkGray
+Write-Host 'invoke 默认只预览；自动清理必须显式添加 -Execute，并带当前对话中的授权原文。' -ForegroundColor DarkGray

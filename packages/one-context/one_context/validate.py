@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from one_context.agents import load_agents
+from one_context.context_sources import resolve_context_source
 from one_context.context import build_workspace_context
 from one_context.profiles import load_mixins, load_profiles
 from one_context.repos import load_repos
@@ -170,11 +171,15 @@ def doctor(root: Path) -> DoctorResult:
         for kp in knowledge_paths:
             if not isinstance(kp, str) or not kp.strip():
                 continue
-            target = (root / kp.strip()).resolve()
-            if not target.exists():
-                warnings.append(
-                    f"agent {aid!r}: knowledge path not found: {kp}"
-                )
+            try:
+                _, target = resolve_context_source(root, kp)
+            except ValueError as exc:
+                errors.append(f"agent {aid!r}: blocked knowledge path {kp!r}: {exc}")
+            else:
+                if not target.exists():
+                    warnings.append(
+                        f"agent {aid!r}: knowledge path not found: {kp}"
+                    )
 
         # Validate worktree config (dev agent)
         wt = agent.get("worktree")
@@ -206,30 +211,6 @@ def doctor(root: Path) -> DoctorResult:
                 errors.append(
                     f"agent {aid!r}: 'worktree' must be a mapping"
                 )
-
-    # --- deploy.yaml validation (per-repo) ---
-    sre_agent = next(
-        (a for a in agents if a.get("role") == "sre"), None
-    )
-    deploy_filename = (
-        sre_agent.get("deploy_manifest", "deploy.yaml") if sre_agent else None
-    )
-    if deploy_filename:
-        for entry in repo_entries:
-            repo_path = (root / entry["path"]).resolve()
-            deploy_path = repo_path / deploy_filename
-            if deploy_path.is_file():
-                from one_context.deploy import validate_deploy_yaml
-
-                d_errors, d_warnings = validate_deploy_yaml(deploy_path)
-                for e in d_errors:
-                    errors.append(
-                        f"repo {entry['id']!r} {deploy_filename}: {e}"
-                    )
-                for w in d_warnings:
-                    warnings.append(
-                        f"repo {entry['id']!r} {deploy_filename}: {w}"
-                    )
 
     for entry in repo_entries:
         target = (root / entry["path"]).resolve()
@@ -299,7 +280,10 @@ def _expand_directory_refs(root: Path, refs: set[str]) -> set[str]:
     """
     expanded: set[str] = set()
     for ref in refs:
-        target = root / ref
+        try:
+            _, target = resolve_context_source(root, ref)
+        except ValueError:
+            continue
         if target.is_dir():
             for md_file in sorted(target.rglob("*.md")):
                 rel = md_file.relative_to(root).as_posix()
@@ -317,9 +301,7 @@ def _check_knowledge_integrity(
     warnings: list[str],
 ) -> None:
     """Run all knowledge-layer integrity checks and append to *errors*/*warnings*."""
-    raw_refs = _collect_all_knowledge_references(workspaces, agents)
-
-    # -- Check 1: workspace knowledge paths exist --
+    # Manifest context must stay inside the repository and outside the API-only vault.
     for ws in workspaces:
         wid = ws.get("id", "?")
         context = ws.get("context")
@@ -328,36 +310,23 @@ def _check_knowledge_integrity(
         for kp in context.get("knowledge") or []:
             if not isinstance(kp, str) or not kp.strip():
                 continue
-            target = (root / kp.strip()).resolve()
-            if not target.exists():
-                warnings.append(
-                    f"workspace {wid!r}: knowledge path not found: {kp.strip()}"
-                )
+            try:
+                _, target = resolve_context_source(root, kp)
+            except ValueError as exc:
+                errors.append(f"workspace {wid!r}: blocked knowledge path {kp!r}: {exc}")
+            else:
+                if not target.exists():
+                    warnings.append(
+                        f"workspace {wid!r}: knowledge path not found: {kp.strip()}"
+                    )
 
-    # -- Check 2: orphan knowledge files --
-    knowledge_dir = root / "knowledge"
-    if knowledge_dir.is_dir():
-        expanded_refs = _expand_directory_refs(root, raw_refs)
-        # Collect all .md files under knowledge/
-        all_knowledge_files: set[str] = set()
-        for md_file in knowledge_dir.rglob("*.md"):
-            rel = md_file.relative_to(root).as_posix()
-            all_knowledge_files.add(rel)
-        orphans = sorted(all_knowledge_files - expanded_refs)
-        for orphan in orphans:
-            warnings.append(
-                f"knowledge: orphan file not referenced by any agent/workspace: "
-                f"{orphan}"
-            )
-
-    # -- Check 3: dangling @-references inside .md files --
-    # Scan knowledge/, docs/, and features/ for @path/to/file.md patterns.
+    # Scan only ordinary repository docs; vault notes are inspected through Obsidian.
     _check_at_references(root, warnings)
 
 
 def _check_at_references(root: Path, warnings: list[str]) -> None:
     """Scan .md files for @path.md references and warn if targets don't exist."""
-    scan_dirs = ["knowledge", "docs", "features"]
+    scan_dirs = ["docs", "features"]
     seen: dict[str, list[str]] = {}  # ref -> [source_file, ...]
 
     for dir_name in scan_dirs:
@@ -375,8 +344,11 @@ def _check_at_references(root: Path, warnings: list[str]) -> None:
                 # Skip if the target is inside node_modules or similar
                 if "node_modules" in ref_path:
                     continue
-                abs_target = root / ref_path
-                if not abs_target.exists():
+                try:
+                    _, abs_target = resolve_context_source(root, ref_path)
+                except ValueError:
+                    abs_target = None
+                if abs_target is None or not abs_target.exists():
                     if ref_path not in seen:
                         seen[ref_path] = []
                     seen[ref_path].append(rel_source)
@@ -400,21 +372,18 @@ def _safe_mermaid_node_id(path: str) -> str:
 
 
 def _classify_knowledge_path(path: str) -> str:
-    """Return the subcategory of a knowledge/ path (standards, playbooks, etc.)."""
+    """Return the top-level context category for a repository-relative path."""
     parts = path.split("/")
-    if len(parts) >= 2 and parts[0] == "knowledge":
-        return parts[1]  # e.g. "standards", "playbooks", "references", "prompts"
-    return "other"
+    return parts[0] if parts else "other"
 
 
 def generate_knowledge_graph(root: Path) -> str:
-    """Generate a Mermaid knowledge graph from meta/ and knowledge/ references.
+    """Generate a Mermaid context graph without reading the API-only vault.
 
     Produces a graph showing:
     - Agents as nodes grouped by role
-    - Knowledge subcategories as subgraph clusters
-    - Agent → knowledge edges from meta/agents.yaml
-    - Workspace → knowledge edges from meta/workspaces.yaml
+    - Repository documentation as subgraph clusters
+    - Agent and workspace context edges
     - Internal @-reference edges between .md files
 
     Returns a Markdown code block containing the Mermaid source.
@@ -432,16 +401,8 @@ def generate_knowledge_graph(root: Path) -> str:
     rendered_node_ids: set[str] = set()
     category_ids: set[str] = set()
 
-    # --- Subgraphs for knowledge categories ---
-    knowledge_dir = root / "knowledge"
+    # --- Subgraphs for ordinary repository context ---
     categories: dict[str, list[str]] = {}  # category -> [rel_paths]
-    if knowledge_dir.is_dir():
-        for md_file in sorted(knowledge_dir.rglob("*.md")):
-            rel = md_file.relative_to(root).as_posix()
-            cat = _classify_knowledge_path(rel)
-            categories.setdefault(cat, []).append(rel)
-
-    # Also include docs/ and features/ as categories
     for extra_dir in ["docs", "features"]:
         extra_path = root / extra_dir
         if extra_path.is_dir():
@@ -497,7 +458,10 @@ def generate_knowledge_graph(root: Path) -> str:
             if not isinstance(kp, str) or not kp.strip():
                 continue
             kp_stripped = kp.strip()
-            target = (root / kp_stripped).resolve()
+            try:
+                _, target = resolve_context_source(root, kp_stripped)
+            except ValueError:
+                continue
             if target.is_dir():
                 cat = _classify_knowledge_path(kp_stripped)
                 if cat in category_ids:
@@ -518,7 +482,10 @@ def generate_knowledge_graph(root: Path) -> str:
             if not isinstance(kp, str) or not kp.strip():
                 continue
             kp_stripped = kp.strip()
-            target = (root / kp_stripped).resolve()
+            try:
+                _, target = resolve_context_source(root, kp_stripped)
+            except ValueError:
+                continue
             if target.is_dir():
                 cat = _classify_knowledge_path(kp_stripped)
                 if cat in category_ids:
@@ -529,7 +496,7 @@ def generate_knowledge_graph(root: Path) -> str:
                     lines.append(f"    {ws_node} -->|loads| {node_id}")
 
     # --- Edges: internal @-references (limit to valid ones) ---
-    scan_dirs = ["knowledge", "docs", "features"]
+    scan_dirs = ["docs", "features"]
     for dir_name in scan_dirs:
         scan_root = root / dir_name
         if not scan_root.is_dir():
@@ -547,7 +514,10 @@ def generate_knowledge_graph(root: Path) -> str:
                 ref_path = match.group(1)
                 if "node_modules" in ref_path:
                     continue
-                abs_target = root / ref_path
+                try:
+                    _, abs_target = resolve_context_source(root, ref_path)
+                except ValueError:
+                    continue
                 if abs_target.exists():
                     target_id = _safe_mermaid_node_id(ref_path)
                     if target_id in rendered_node_ids and source_id != target_id:

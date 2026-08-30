@@ -1,96 +1,59 @@
-﻿# Features — 伞仓级需求与交付文档
+# Features
 
-本目录存放 **跨仓库或产品级** 的需求说明与过程产物。实现代码通常在 `repos/` 下的独立 Git 仓库中；此处文档必须与 **`meta/repos.yaml` 中的仓库 `id`** 对齐，避免「有文档找不到代码」。
+`features/` 保存跨仓科研或工程事项的规格、设计和评审记录。实现仍位于 `meta/repos.yaml` 登记的独立仓库中。
 
-工具无关：Cursor、OpenClaw、其他代理或人类协作时，**以本文件与 `features/INDEX.md` 为约定来源**。
-
-## 目录结构
-
-### 软件开发型 feature
+## 结构
 
 ```text
 features/
-  README.md          # 本约定（权威）
-  INDEX.md           # 需求索引表（人类维护）
-  _template/         # 新建需求时复制其中的 Markdown 模板
-  <category>/        # 类别（小写 kebab-case，例如 one-context-cli、content-pipeline）
-    <feature-id>/    # 单个需求目录（kebab-case，全局唯一优先）
-      spec.md
-      tech_design.md
-      test_report.md
-      mr_report.md
-      deliver.md
+├── README.md
+├── INDEX.md
+├── _template/
+└── <category>/
+    └── <feature-id>/
+        ├── spec.md
+        ├── tech_design.md
+        ├── review_record.md
+        ├── test_report.md
+        └── deliver.md
 ```
 
-### 内容生产型 feature（短视频 / 演示文稿）
+只创建任务实际需要的文件，不为完整目录形状预建空文档。
 
-```text
-<feature-id>/
-├── spec.md                         # Feature 规格
-├── review_record.md                # 评审记录（不在 production/ 内）
-├── issue_checklist.md              # 问题清单（不在 production/ 内）
-│
-└── production/
-    ├── content/                    # 内容创作资产 ✅ 跟踪
-    │   ├── 00-structure.md         #   话题大纲
-    │   ├── 01-script.md            #   口播讲稿
-    │   └── 05-publish-kit.md       #   发布素材
-    ├── slides/                     # 幻灯片资产 ✅ 跟踪
-    │   └── presentation.html       #   主幻灯
-    ├── subtitles/                  # 字幕资产 ✅ 跟踪
-    │   └── sub.srt                 #   校对后字幕
-    ├── timing/                     # 时间轴与配置 ✅ 跟踪
-    │   ├── wav-durations.json      #   精确翻页时长
-    │   └── video-input.json        #   配置 + srtReplacements
-    ├── media/                      # 媒体文件 ❌ 不跟踪
-    │   └── *.wav, *.mp4, *.png
-    └── tmp/                        # 构建中间物 ❌ 不跟踪
-```
+## 索引不变量
 
-新建内容型 feature 时：
+- `INDEX.md` 只列磁盘上真实存在的 feature 目录。
+- `id` 与 `<feature-id>` 保持一致并使用 kebab-case。
+- `path` 使用相对本仓根目录的路径。
+- `primary_repo_id` 必须来自 `meta/repos.yaml`；没有明确实现仓时填 `—`。
+- 创建、移动、归档或删除 feature 时，同步修改索引。
 
-1. 以 **`features/_template/spec-content-pipeline.md`** 写 `spec.md`（**默认** `tts.action: 0`）
-2. 复制 **`features/_template/content-production/`** 目录结构（含 `00-podcast-source.md`、`video-input.example.json`）
-3. 阅读 **`knowledge/standards/content-pipeline-tts-routing.md`**
+建议状态：`draft` → `in_progress` → `review` → `done` → `archived`。
 
-详见 `features/_template/content-production/README.md`。
+## 最小规格
 
-- **`<category>`**：按主题或产品线划分；跨类需求选一个 **主类别** 落目录，在 `spec.md` 里链接其他相关需求目录即可。
-- **`<feature-id>`**：建议稳定、简短；可与 `INDEX.md` 中的 `id` 列一致。
+`spec.md` 至少说明：
 
-## 各文件职责
+- 背景与问题
+- 目标和非目标
+- 相关 workspace
+- 相关 repo id
+- 可验证的完成条件
+- 风险、隐私与可复现要求
 
-| 文件 | 职责 |
-|------|------|
-| `spec.md` | 背景、目标、非目标、用户故事、验收标准、与 `meta/workspaces.yaml` 的关联（如有）。**必须**包含实现落点：相关 `repos.yaml` 的 `id`、分支或 PR 链接、关键路径。 |
-| `tech_design.md` | 方案、接口、数据流、依赖、风险；按需创建，可与 spec 分阶段合并或拆分。 |
-| `test_report.md` | 测试范围、用例、结果、已知问题；**勿写入密钥、token、未脱敏客户信息**。 |
-| `mr_report.md` | 合并请求 / Code Review 过程：讨论摘要、决议、待办；侧重 **协作与评审**。 |
-| `deliver.md` | 对外或业务视角的交付说明：范围、版本、上线与回滚要点；侧重 **交付与运营**。 |
+数学科研事项还应区分：
 
-`mr_report` 与 `deliver` 不要混写：前者偏工程协作，后者偏交付叙事。
+- 已证明结论、猜想与待核实断言
+- 文献来源和版本
+- 符号、假设与证明依赖
+- 计算实验、代码和数据的复现命令
 
-## 新建一条需求的步骤
+不要把模型生成文本当作证明或文献事实；评审记录应保留核验结果。
 
-1. 在 `INDEX.md` 增加一行（`id`、标题、类别、`status`、`path`、可选 `primary_repo_id`）。
-2. 创建 `features/<category>/<feature-id>/`。
-3. 将 `features/_template/` 下各 `.md` 复制到该目录，按 frontmatter 与正文补全。
-4. 在 `spec.md` 中填写 `repos.yaml` 中的仓库 `id` 与 PR/分支链接。
+## 模板
 
-状态建议：`draft` → `in_progress` → `review` → `done` → `archived`（可按需增减）。
+`_template/spec.md` 是通用起点。其他模板只在对应流程真实存在且仍受维护时使用。模板中的 repo、命令和路径必须在当前仓库可解析。
 
-## 与 canonical 来源的关系
+## 知识库边界
 
-| 来源 | 作用 |
-|------|------|
-| `meta/repos.yaml` | 实现所在仓库的登记与本地路径；**链接代码时只引用这里的 id**。 |
-| `meta/workspaces.yaml` | 任务视角；若需求对应某 workspace，在 `spec.md` 注明 workspace id。 |
-| `knowledge/` | 工程标准与操作手册；与流程相关的步骤见 `knowledge/playbooks/add-umbrella-feature.md`。 |
-
-## 代理速查
-
-- 用户提到「伞仓需求、features、规格、跨仓功能」→ 先读本文件，再打开对应 `features/<category>/<feature-id>/spec.md`。
-- 修改或新增需求文档后 → 同步更新 `features/INDEX.md` 的 `status` 与路径。
-- 不要在 `test_report.md` / `mr_report.md` 中粘贴密钥；内部 URL 若仓库可能对外公开，需脱敏。
-
-更完整的 one-context 约定见根目录 `README.md`、`knowledge/standards/one-context-conventions.md`。
+个人 Obsidian vault 不属于 feature 指令层。需要引用或更新笔记时，先读 `skills/obsidian-knowledge/SKILL.md`，并仅经 Local REST API 操作；不得把 vault 全文复制进 feature 或生成配置。

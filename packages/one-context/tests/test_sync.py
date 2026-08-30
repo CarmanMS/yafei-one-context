@@ -35,7 +35,10 @@ class TestSyncOne:
         (target / ".git").mkdir()
 
         with patch("one_context.sync.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0)
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout=""),
+                MagicMock(returncode=0),
+            ]
             result = sync_one(entry, tmp_root)
 
         assert result.success is True
@@ -76,10 +79,26 @@ class TestSyncOne:
         (target / ".git").mkdir()
 
         with patch("one_context.sync.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=1)
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout=""),
+                MagicMock(returncode=1),
+            ]
             result = sync_one(entry, tmp_root)
 
         assert result.success is False
+
+    def test_dirty_repo_is_not_pulled(self, tmp_root: Path):
+        from one_context.repos import load_repos
+
+        entry = load_repos(tmp_root)[0][0]
+        target = (tmp_root / entry["path"]).resolve()
+        target.mkdir(parents=True)
+        (target / ".git").write_text("gitdir: elsewhere", encoding="utf-8")
+        with patch("one_context.sync.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout=" M paper.tex\n")
+            result = sync_one(entry, tmp_root)
+        assert result.success is False
+        assert mock_run.call_count == 1
 
 
 class TestSyncRepositories:
@@ -122,3 +141,7 @@ class TestSyncRepositories:
             results = sync_repositories(tmp_root, select=None, workers=4)
 
         assert len(results) == 2
+
+    def test_rejects_non_positive_workers(self, tmp_root: Path):
+        with pytest.raises(ValueError, match="greater than zero"):
+            sync_repositories(tmp_root, select=None, workers=0)

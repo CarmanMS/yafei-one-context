@@ -63,9 +63,9 @@ class TestBuildWorkspaceContext:
         assert "ghost-profile" in ctx["unresolved"]["profiles"]
 
     def test_knowledge_paths(self, tmp_root_with_workspaces: Path):
-        knowledge_dir = tmp_root_with_workspaces / "knowledge"
-        knowledge_dir.mkdir(parents=True, exist_ok=True)
-        (knowledge_dir / "test.md").write_text("# Test", encoding="utf-8")
+        docs_dir = tmp_root_with_workspaces / "docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        (docs_dir / "test.md").write_text("# Test", encoding="utf-8")
 
         (tmp_root_with_workspaces / "meta" / "workspaces.yaml").write_text(
             textwrap.dedent("""\
@@ -75,8 +75,8 @@ class TestBuildWorkspaceContext:
                       - alpha
                     context:
                       knowledge:
-                        - knowledge/test.md
-                        - knowledge/missing.md
+                        - docs/test.md
+                        - docs/missing.md
             """),
             encoding="utf-8",
         )
@@ -84,6 +84,16 @@ class TestBuildWorkspaceContext:
         assert len(ctx["knowledge"]) == 2
         assert ctx["knowledge"][0]["exists"] is True
         assert ctx["knowledge"][1]["exists"] is False
+
+    def test_vault_path_is_blocked(self, tmp_root_with_workspaces: Path):
+        workspace = tmp_root_with_workspaces / "meta" / "workspaces.yaml"
+        workspace.write_text(
+            "workspaces:\n  - id: dev\n    context:\n      knowledge:\n"
+            "        - knowledge/private.md\n",
+            encoding="utf-8",
+        )
+        ctx = build_workspace_context(tmp_root_with_workspaces, "dev")
+        assert ctx["knowledge"][0]["type"] == "blocked"
 
     def test_summary_counts(self, tmp_root_with_workspaces: Path):
         ctx = build_workspace_context(tmp_root_with_workspaces, "dev")

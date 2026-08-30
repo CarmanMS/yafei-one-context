@@ -177,13 +177,6 @@ class CursorAdapter(AdapterBase):
                 parts.append(f"- Base branch: `{worktree.get('base_branch', 'main')}`")
                 parts.append("")
 
-            deploy_manifest = agent.get("deploy_manifest")
-            if deploy_manifest:
-                parts.append("## Deploy Manifest")
-                parts.append("")
-                parts.append(f"Look for `{deploy_manifest}` in each repo root before deploying.")
-                parts.append("")
-
             if profile_id:
                 profile = profiles_by_id.get(profile_id.casefold())
                 if profile:

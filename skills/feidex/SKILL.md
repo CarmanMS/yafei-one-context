@@ -1,132 +1,68 @@
 ---
 name: feidex
-description: 启动飞书 ↔ Claude Code 桥接服务。feidex serve 前台运行，飞书群 @机器人 即转发到 Claude Code 处理；也支持 daemon 模式安装为 Windows 服务。
-triggers:
-  - feidex
-  - 飞书
-  - feishu
-  - 启动飞书
-  - 飞书机器人
-  - 飞书服务
+description: 配置、启动和诊断飞书/Lark 与 Codex 或 Claude Code 的 feidex 桥接服务。
 ---
 
-# Feidex — 飞书 ↔ Claude Code 桥接
+# Feidex
 
-## 安装位置
+## 安全边界
 
-```
-C:\Users\wucha\AppData\Local\Programs\feidex\feidex.exe
-```
+- 先用 `Get-Command feidex` 定位程序；不要假设用户名、安装目录或仓库盘符。
+- `config.toml` 可能含 `app_secret`。不要打印、提交或把凭证放进命令行、日志和回复。
+- 不默认启用 `dangerously_skip_permissions` 或同类跳过审批选项；仅在用户明确理解风险并要求时修改。
+- `feishu setup/new/bind`、启动服务和 `daemon install/start/stop/restart/uninstall` 都会改变本机或外部状态，执行前须有用户对该动作的明确授权。
+- 不用 `taskkill /F` 清理旧实例。若端口或实例冲突，先查看状态，再让用户选择停止哪个实例。
 
-配置文件（已在 PATH 可用时直接调用 `feidex`）：
+## 定位与只读检查
 
-```
-D:\赵亚菲\yafei-one-context\config.toml
-```
+在仓库根执行：
 
-> ⚠️ **本机现状（2026-07-25 同步时校验）**：上述 `feidex.exe` 与 `config.toml` **均未找到**，`feidex` 也不在 PATH。
-> 首次使用前需：① 安装 feidex 到上面的路径（或加入 PATH）；② 在仓库根 `D:\赵亚菲\yafei-one-context` 创建 `config.toml`（可用 `feidex feishu setup` 生成）。
-
-## 启动方式
-
-### 前置：选择模型
-
-启动前**必须**询问用户要使用哪个模型。从 ZenMux API 获取可用模型列表：
-
-```bash
-curl -s "https://zenmux.ai/api/v1/models" | python -c "
-import json, sys
-from datetime import datetime, timedelta
-data = json.load(sys.stdin)
-models = data.get('data', [])
-# 过滤条件：context_length >= 1M、发布日期在 3 个月内、价格 <= $0.5/MT
-cutoff = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
-def get_price(m):
-    try: return m['pricings']['prompt'][0]['value']
-    except: return 999
-models = [m for m in models if m.get('context_length', 0) >= 1000000 and m.get('publish_time', '2000-01-01') >= cutoff and get_price(m) <= 0.5]
-def get_time(m):
-    try: return m.get('publish_time', '2000-01-01')
-    except: return '2000-01-01'
-# 主排序：价格低→高；同价格：新→旧（时间降序）
-models_sorted = sorted(models, key=lambda m: (get_price(m), get_time(m)))
-# 二次排序：同价格组内按 publish_time 降序
-from itertools import groupby
-result = []
-for price, group in groupby(models_sorted, key=get_price):
-    grp = list(group)
-    grp.sort(key=lambda m: get_time(m), reverse=True)  # 新→旧
-    result.extend(grp)
-for i, m in enumerate(result, 1):
-    price = get_price(m)
-    ctx = m.get('context_length', 0) // 1000000
-    pub = m.get('publish_time', '?')
-    print(f\"{i:3d}. {m['id']:50s} \${price}/MT  [{ctx}M ctx]  {pub}\")
-"
+```powershell
+$Feidex = (Get-Command feidex -ErrorAction Stop).Source
+$RepoRoot = (git rev-parse --show-toplevel).Trim()
+$ConfigPath = Join-Path $RepoRoot 'config.toml'
+& $Feidex version
+if (Test-Path -LiteralPath $ConfigPath) {
+  & $Feidex daemon status --config $ConfigPath
+}
 ```
 
-向用户展示模型列表（至少展示前 20 个最便宜的），询问用户选择。获取用户选择后：
+若 `Get-Command` 失败，报告未安装或未加入 `PATH`，不要猜安装路径。若配置不存在，先说明将创建的位置和所选后端，再经用户同意运行交互式配置：
 
-1. 修改 `config.toml` 的 `[claude]` 段，**模型 ID 后加 `[1m]` 后缀**：
-   ```toml
-   [claude]
-     model = "用户选择的模型 ID[1m]"
-   ```
-   例如用户选 `deepseek/deepseek-v4-flash`，则写入 `model = "deepseek/deepseek-v4-flash[1m]"`
-2. 然后再执行启动命令。
-
-**如果用户说"用默认的"或"不用问"，则跳过询问，直接使用 config.toml 中现有的 model 值。**
-
-### 前台运行（推荐调试用）
-
-启动前自动清理旧进程，一条命令搞定：
-
-```bash
-taskkill /F /IM feidex.exe 2>/dev/null; feidex serve --config config.toml
+```powershell
+& $Feidex feishu setup --config $ConfigPath --backend codex
+# 或由用户明确选择：--backend claude
 ```
 
-在 `config.toml` 所在目录（`D:\赵亚菲\yafei-one-context`）执行。启动后飞书群里 @机器人 消息会转发到 Claude Code 处理。
+让 feidex 生成配置；不要臆造飞书凭证或模型 ID。
 
-### Windows 服务（后台常驻）
+## 前台运行
 
-```bash
-# 安装为 Windows 服务
-feidex daemon install
+适合首次联调；用户明确要求启动后执行：
 
-# 启动 / 停止 / 重启 / 查看状态
-feidex daemon start
-feidex daemon stop
-feidex daemon restart
-feidex daemon status
-
-# 卸载服务
-feidex daemon uninstall
+```powershell
+& $Feidex serve --config $ConfigPath
 ```
 
-## 配置概要（config.toml）
+前台运行用 `Ctrl+C` 停止。若需排障，先读取命令报错和 `feidex daemon status`，不要强杀所有 `feidex.exe` 进程。
 
-| 段 | 关键字段 | 说明 |
-|---|---------|------|
-| `[feishu]` | `app_id`, `app_secret` | 飞书应用凭证 |
-| `[feishu]` | `group_at_only = true` | 群聊仅响应 @机器人 |
-| `[feishu]` | `reply_in_thread = true` | 在消息线程内回复 |
-| `[claude]` | `command = "claude"` | Claude Code CLI 命令 |
-| `[claude]` | `model` | 使用的模型 |
-| `[claude]` | `dangerously_skip_permissions = true` | 跳过权限确认（自动模式） |
-| `[[workspace]]` | `cwd` | 工作目录 |
+## 后台服务
 
-## 其他命令
+只读命令（日志可能含聊天内容，引用到回复前先脱敏）：
 
-```bash
-feidex feishu setup     # 交互式飞书应用配置
-feidex feishu new       # 创建新飞书应用
-feidex feishu bind      # 绑定飞书应用
-feidex version          # 查看版本
+```powershell
+& $Feidex daemon status --config $ConfigPath
+& $Feidex daemon logs -n 100 --config $ConfigPath
 ```
 
-## 注意事项
+以下命令会改变服务状态，逐项获得授权后再执行：
 
-- 前台运行时 Ctrl+C 停止服务
-- `dangerously_skip_permissions = true` 意味着 Claude Code 不会弹权限确认，所有工具调用自动批准
-- 飞书消息中的 @mention 会被转发为 Claude Code 输入
-- `reply_in_thread = true` 时回复在飞书消息线程内，不会刷屏主群
+```powershell
+& $Feidex daemon install --config $ConfigPath
+& $Feidex daemon start --config $ConfigPath
+& $Feidex daemon stop --config $ConfigPath
+& $Feidex daemon restart --config $ConfigPath
+& $Feidex daemon uninstall --config $ConfigPath
+```
+
+交付时报告：feidex 版本、实际配置路径、前台或 daemon 模式、最终状态；不得回显密钥。

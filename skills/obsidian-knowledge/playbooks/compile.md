@@ -29,7 +29,7 @@ Step 6: 人工审核确认（不自动写入）
 
 支持：
 - URL → WebFetch
-- 本地文件 → Read
+- vault 外本地文件 → Read；vault 内路径 → Local REST API GET
 - 剪贴板 → 用户粘贴
 
 ---
@@ -144,9 +144,8 @@ source_sha256: <hash>
 
 ```bash
 # 对每个提取的实体/关键词，简单搜索
-curl -X POST "https://127.0.0.1:27124/search/simple/" \
-  -H "$AUTH" -H "Content-Type: application/json" \
-  -d '{"query": "<entity>"}'
+curl -s -k -X POST -G "https://127.0.0.1:27124/search/simple/" \
+  -H "$AUTH" --data-urlencode "query=<entity>"
 ```
 
 输出交叉检测结果：
@@ -180,7 +179,7 @@ curl -X POST "https://127.0.0.1:27124/search/simple/" \
 - **交叉检测摘要**（与现有知识的关系）
 - **适用性评估**（对本知识库的价值）
 - **Wikilink 相关笔记**（至少 1 个 `[[xxx]]`）
-- **标签两级且以领域开头**（`#科研/...` 等）
+- **标签两级且以领域开头**（frontmatter YAML 值如 `科研/...`，不带 `#`；正文内联标签才带 `#`）
 - **文件名中文自然命名**（禁止 kebab-case）
 
 ---

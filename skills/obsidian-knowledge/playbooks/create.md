@@ -75,7 +75,7 @@ EOF
 - [ ] frontmatter 三字段齐备（type/status/created）
 - [ ] 文件名中文自然命名（非 kebab-case）
 - [ ] 已 wikilink 至少 1 篇相关笔记或本域 `_MOC.md` / `_meta/HOME.md`
-- [ ] tags 两级且以领域开头（`#科研/...` 等）
+- [ ] frontmatter `tags` 两级且以领域开头（如 `科研/...`，不带 `#`；正文内联标签才带 `#`）
 - [ ] 与现有笔记无重复（跑 `/dedup`）
 - [ ] 更新目标领域 `_MOC.md`（手动追加 `- [[新笔记]]`）
 
@@ -85,7 +85,7 @@ EOF
 
 ### 流程
 
-1. **获取内容**：URL → WebFetch；本地 → Read；剪贴板 → 用户粘贴
+1. **获取内容**：URL → WebFetch；vault 外本地文件 → Read；vault 内路径 → Local REST API GET；剪贴板 → 用户粘贴
 2. **结构分析**（强制输出，不可跳过）
 3. **拆分决策**：多章节 → 询问 [A] 全部拆分 / [S] 选择部分 / [M] 单文档
 4. **逐章创建**：每章独立走 `/write` 流程，各自 wikilink 相关笔记
@@ -162,18 +162,18 @@ curl -X PATCH "https://127.0.0.1:27124/vault/10-%E7%A7%91%E7%A0%94/_MOC.md" \
 新建/重命名笔记后，扫所有 `[[旧名]]` 并更新：
 
 ```bash
-curl -X POST "https://127.0.0.1:27124/search/simple/" \
-  -H "$AUTH" -H "Content-Type: application/json" \
-  -d '{"query": "[[旧名]]"}'
-# 对每个匹配文件 PATCH 替换
+curl -s -k -X POST -G "https://127.0.0.1:27124/search/simple/" \
+  -H "$AUTH" --data-urlencode "query=[[旧名]]"
 ```
+
+对每个匹配路径：经 API `GET` 最新全文，在进程内存中确认并精确替换 `[[旧名]]`，以全文 `PUT` 回原路径，再次 `GET` 比较确认。不要把私人笔记写入临时文件，也不要用结构化 PATCH 做任意字符串替换。
 
 ---
 
 ## 约束
 
 - 文件名中文自然命名，**禁止** kebab-case / 纯英文
-- 标签两级且以领域开头（`#科研/...`）
+- frontmatter `tags` 两级且以领域开头（如 `科研/...`，不带 `#`；正文内联标签才带 `#`）
 - 新建笔记前先复制 `_meta/templates/` 对应模板
 - 笔记至少 wikilink 1 篇相关笔记或 `_MOC.md` / `HOME.md`
 - 路径含中文/空格须 URL 编码

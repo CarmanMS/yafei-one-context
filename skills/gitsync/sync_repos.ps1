@@ -1,4 +1,9 @@
-# d:\harnessworld\one-context\skills\gitsync\sync_repos.ps1
+# skills/gitsync/sync_repos.ps1
+
+$env:GIT_SSH_COMMAND = "ssh -o ProxyCommand=none"
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$baseDir = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+$reposRoot = Join-Path $baseDir "repos"
 
 function Run-WithTimeout {
     param(
@@ -35,30 +40,18 @@ function Run-WithTimeout {
 }
 
 $gitDirs = @(
-    "repos\develop\FunctionCanvas",
-    "repos\develop\hangprofile",
-    "repos\develop\VideoFactory",
-    "repos\integrations\trend-radar",
-    "repos\reference\anime",
-    "repos\reference\architecture-diagram-generator",
-    "repos\reference\awesome-design-md",
-    "repos\reference\claude-code-best-practice",
-    "repos\reference\GSAP",
-    "repos\reference\html-anything",
-    "repos\reference\html-ppt-skill",
-    "repos\reference\hyperframes",
-    "repos\reference\open-design",
-    "repos\reference\openhuman",
-    "repos\reference\remotion-video-skill",
-    "repos\research\awesome-design-md",
-    "repos\research\paperwork"
+    Get-ChildItem -LiteralPath $reposRoot -Filter ".git" -Directory -Recurse -Depth 3 -Force -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty Parent
 )
 
-$baseDir = "D:\harnessworld\one-context"
+if ($gitDirs.Count -eq 0) {
+    Write-Host "No initialized git repositories found under $reposRoot"
+    return
+}
 
-foreach ($relDir in $gitDirs) {
-    $dir = Join-Path $baseDir $relDir
-    if (Test-Path $dir) {
+foreach ($repoDir in $gitDirs) {
+    $dir = $repoDir.FullName
+    $relDir = Resolve-Path -LiteralPath $dir -Relative
         Write-Host "========================================"
         Write-Host "Syncing: $relDir"
         Write-Host "========================================"
@@ -143,7 +136,4 @@ foreach ($relDir in $gitDirs) {
             Pop-Location
         }
         Write-Host ""
-    } else {
-        Write-Host "Directory not found: $relDir"
-    }
 }

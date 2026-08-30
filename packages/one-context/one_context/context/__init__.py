@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from one_context.context_sources import resolve_context_source
 from one_context.profiles import load_profiles
 from one_context.repos import load_repos
 from one_context.workspaces import load_workspaces
@@ -26,8 +27,18 @@ def _collect_knowledge_entries(root: Path, workspace: dict[str, Any]) -> list[di
     for item in raw_paths:
         if not isinstance(item, str) or not item.strip():
             continue
-        rel = Path(item.strip())
-        target = (root / rel).resolve()
+        try:
+            rel, target = resolve_context_source(root, item)
+        except ValueError:
+            out.append(
+                {
+                    "path": Path(item.strip()).as_posix(),
+                    "absolute_path": "",
+                    "exists": False,
+                    "type": "blocked",
+                }
+            )
+            continue
         if target.is_dir():
             target_type = "directory"
         elif target.is_file():

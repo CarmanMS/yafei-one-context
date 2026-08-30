@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -15,6 +16,23 @@ from one_context.errors import ManifestError
 from one_context.repos import load_repos
 
 logger = logging.getLogger("one_context.worktree")
+_SAFE_FEATURE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+
+
+def _resolve_worktree_path(root: Path, raw: str) -> Path:
+    if not isinstance(raw, str) or not raw.strip():
+        raise ManifestError("worktree path must be a non-empty relative path")
+    rel = Path(raw)
+    if rel == Path(".") or rel.is_absolute() or ".." in rel.parts:
+        raise ManifestError(f"worktree path must stay under the workspace root: {raw!r}")
+    target = (root.resolve() / rel).resolve()
+    try:
+        target.relative_to(root.resolve())
+    except ValueError as exc:
+        raise ManifestError(
+            f"worktree path must stay under the workspace root: {raw!r}"
+        ) from exc
+    return target
 
 
 # ---------------------------------------------------------------------------
@@ -38,6 +56,8 @@ def resolve_worktree_config(root: Path) -> dict[str, Any]:
 
 def find_feature_dir(root: Path, feature_id: str) -> Path | None:
     """Search ``features/*/`` for a matching *feature_id* subdirectory."""
+    if not _SAFE_FEATURE_ID.fullmatch(feature_id):
+        raise ValueError(f"Invalid feature id: {feature_id!r}")
     features_dir = root / "features"
     if not features_dir.is_dir():
         return None
@@ -123,6 +143,13 @@ def setup_worktrees(
             existing_repo_ids.add(e.get("repo_id", "").casefold())
         worktree_entries = list(existing.get("worktrees", []))
 
+    manifest: dict[str, Any] = {
+        "feature_id": feature_id,
+        "branch": branch,
+        "created_at": existing.get("created_at", str(date.today())) if existing else str(date.today()),
+        "worktrees": worktree_entries,
+    }
+
     for entry in repo_entries:
         rid = entry["id"]
         if rid.casefold() in existing_repo_ids:
@@ -137,7 +164,7 @@ def setup_worktrees(
             )
 
         wt_rel = path_pattern.format(repo_id=rid, feature_id=feature_id)
-        wt_abs = (root / wt_rel).resolve()
+        wt_abs = _resolve_worktree_path(root, wt_rel)
 
         # Try creating the worktree
         cmd = [
@@ -165,14 +192,10 @@ def setup_worktrees(
             "base": base_branch,
             "status": "active",
         })
+        save_worktrees_yaml(yaml_path, manifest)
 
-    manifest: dict[str, Any] = {
-        "feature_id": feature_id,
-        "branch": branch,
-        "created_at": existing.get("created_at", str(date.today())) if existing else str(date.today()),
-        "worktrees": worktree_entries,
-    }
-    save_worktrees_yaml(yaml_path, manifest)
+    if not yaml_path.is_file():
+        save_worktrees_yaml(yaml_path, manifest)
     return manifest
 
 
@@ -191,7 +214,7 @@ def status_worktrees(root: Path, feature_id: str) -> dict[str, Any]:
         raise ValueError(f"No worktrees.yaml found for feature {feature_id!r}")
 
     for entry in manifest.get("worktrees", []):
-        wt_path = root / entry.get("path", "")
+        wt_path = _resolve_worktree_path(root, entry.get("path", ""))
         if entry.get("status") == "active" and not wt_path.is_dir():
             entry["status"] = "missing"
 
@@ -230,7 +253,7 @@ def teardown_worktrees(
             continue
 
         repo_path = (root / repo_entry["path"]).resolve()
-        wt_abs = (root / entry.get("path", "")).resolve()
+        wt_abs = _resolve_worktree_path(root, entry.get("path", ""))
 
         if wt_abs.is_dir():
             cmd = [
@@ -239,16 +262,12 @@ def teardown_worktrees(
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
-                # Try with --force for unclean worktrees
-                cmd_force = cmd + ["--force"]
-                result = subprocess.run(cmd_force, capture_output=True, text=True)
-                if result.returncode != 0:
-                    logger.warning(
-                        "Failed to remove worktree for %s: %s",
-                        rid, result.stderr.strip(),
-                    )
-                    entry["status"] = "teardown_failed"
-                    continue
+                logger.warning(
+                    "Failed to remove worktree for %s: %s",
+                    rid, result.stderr.strip(),
+                )
+                entry["status"] = "teardown_failed"
+                continue
 
         entry["status"] = status
 

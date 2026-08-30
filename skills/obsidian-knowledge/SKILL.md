@@ -1,44 +1,6 @@
 ---
 name: obsidian-knowledge
 description: Obsidian 个人知识库（科研/教学/家庭 三领域）统一管理入口。创建/导入/整理/归类/去重/编译/审查/规范性检查，通过 Local REST API 维护 one-context knowledge vault 的 wikilinks、MOC、标签。取代原 kb / kb-compile / kb-review。
-triggers:
-  # 原始 obsidian-knowledge 触发词
-  - 知识库
-  - knowledge
-  - knowledge/
-  - 记笔记
-  - 存到知识库
-  - 检索知识库
-  - 整理知识库
-  - 笔记归类
-  - Inbox 整理
-  - knowledge sync
-  - 同步知识库
-  - obsidian
-  - 创建笔记
-  - 笔记去重
-  - vault
-  # 吸收自 kb
-  - 编写知识
-  - 编辑知识
-  - 导入知识
-  - kb write
-  - kb edit
-  - kb import
-  - kb check
-  # 吸收自 kb-compile
-  - 编译知识
-  - kb compile
-  - 导入参考
-  - 编译文档
-  - compile knowledge
-  - 编译参考
-  # 吸收自 kb-review
-  - kb-review
-  - kb review
-  - 知识库审查
-  - 知识库巡检
-  - 审查知识
 ---
 
 # Execution policy: API-first and API-only
@@ -76,10 +38,10 @@ This API-only policy overrides any older fallback wording elsewhere in this file
 **Vault 路径**：`<repo-root>/knowledge/`（git submodule，**不要**硬编码绝对路径）
 **API 基址**：`https://127.0.0.1:27124`（HTTPS，**主用**）
 
-> ⚠️ **运行环境两个硬约束**（实操踩坑确认）：
-> 1. **本机回环可能被沙箱隔离（环境相关）**：部分运行环境的 Bash 沙箱会隔离回环地址（如 WorkBuddy 默认沙箱连不到 `127.0.0.1`）。若遇到 `HTTP 000`，改用非沙箱模式（`dangerouslyDisableSandbox: true`）再试；在 OpenClaw/PowerShell 环境下 `curl.exe` 直连 `27124` 通常无需此操作。
-> 2. **HTTPS 自签证书**：插件开的 27124 用自签证书，`curl` 必须跳过校验。已在 `~/.curlrc` 写入 `insecure` 一劳永逸；若你删了该文件，每个 `curl` 要加 `-k`。
-> 3. HTTP `27123` 在「启用 HTTPS」时默认不监听；若 `27124` 也不通，先去插件设置确认 HTTPS 已开、Obsidian 窗口开着。
+> ⚠️ **运行环境约束**：
+> 1. 某些沙箱不能访问本机回环地址。遇到 `HTTP 000` 时，改用产品提供的、已授权的本地执行通道；不要为此关闭其他安全保护。仍不可达就停止并报告。
+> 2. `27124` 使用本机自签证书，因此仅对这些明确的 loopback 请求加 `curl -k`。不要在全局 `~/.curlrc` 中配置 `insecure`。
+> 3. HTTP `27123` 在启用 HTTPS 时通常不监听；若 `27124` 不通，先确认 Obsidian 已启动且 Local REST API 插件已启用。
 
 ## ⛔ 硬性约束：vault 笔记只能走 API，禁止直接文件操作
 
@@ -104,7 +66,7 @@ This API-only policy overrides any older fallback wording elsewhere in this file
 | `/obsidian-knowledge organize` | [playbooks/organize.md](playbooks/organize.md) | 批量整理 Inbox |
 | `/obsidian-knowledge move <file> <domain>` | [playbooks/organize.md](playbooks/organize.md) | 手动归类单篇到领域 |
 | `/obsidian-knowledge dedup` | [playbooks/organize.md](playbooks/organize.md) | 全库去重检测 |
-| `/obsidian-knowledge check [--fix]` | [playbooks/audit.md](playbooks/audit.md) | 静态规范性检查（快速、本地、同步） |
+| `/obsidian-knowledge check [--fix]` | [playbooks/audit.md](playbooks/audit.md) | 通过 API 执行静态规范性检查 |
 | `/obsidian-knowledge review [--days N]` | [playbooks/review.md](playbooks/review.md) | 周期性深度审查（逐文档 subagent、含 URL 可达性） |
 | `/obsidian-knowledge compile <URL\|path>` | [playbooks/compile.md](playbooks/compile.md) | 外部文档 → 结构化笔记（实体提取 + 交叉检测 + SHA256 增量） |
 | `/obsidian-knowledge sync` | — | 转交 `gitsync` 处理 submodule 同步 |
@@ -112,7 +74,7 @@ This API-only policy overrides any older fallback wording elsewhere in this file
 > 本 vault 是**个人三领域库**，没有原 agent 知识层的 `01_Compiled/` `02_Schema/` `MOC.md` `tag-registry.md` 等结构。所有路径以下方「架构」为准。
 
 **`check` vs `review`**：
-- `/check` = 静态规则扫描（C1-C8），本地 grep，秒级
+- `/check` = 通过 API 递归读取并执行静态规则扫描（C1-C8）
 - `/review` = 深度审查，每文档独立 subagent，含 HTTP 检查 URL 可达性，分钟级
 - 日常用 `/check`；定期（每周/每月）用 `/review`
 
@@ -126,22 +88,22 @@ This API-only policy overrides any older fallback wording elsewhere in this file
 
 读取顺序：
 
-1. `<skill-root>/api-key.txt`
-2. `<vault>/.obsidian/plugins/obsidian-local-rest-api/data.json` 的 `apiKey` 字段
-3. 都没有 → 提示用户：Obsidian → Settings → Local REST API → 复制 Key → 写入 `<skill-root>/api-key.txt`
+1. 环境变量 `OBSIDIAN_API_KEY`
+2. `<skill-root>/api-key.txt`
+3. 都没有 → 提示用户：Obsidian → Settings → Local REST API → 复制 Key；不要读取 vault 内的插件配置文件
 
 ### 服务器状态检查
 
 ```bash
-curl -sf -o /dev/null https://127.0.0.1:27124/ && echo OK || echo DOWN
+curl -skf -o /dev/null https://127.0.0.1:27124/ && echo OK || echo DOWN
 ```
 
-DOWN → 提示用户启动 Obsidian 并启用插件；或按「API 降级流程」走本地文件操作。
+DOWN → 提示用户启动 Obsidian 并启用插件；停止 vault 操作。
 
 ### 认证
 
 ```bash
-KEY=$(cat <skill-root>/api-key.txt 2>/dev/null || ...)
+KEY="${OBSIDIAN_API_KEY:-$(cat <skill-root>/api-key.txt 2>/dev/null)}"
 AUTH="Authorization: Bearer $KEY"
 ```
 
@@ -205,34 +167,34 @@ curl -H "$AUTH" https://127.0.0.1:27124/vault/_meta/HOME.md
 | `type` | 是 | `note` / `course` / `project` / `person` / `log` | 文档类型 |
 | `status` | 是 | `active` / `archived` | 生命周期状态 |
 | `created` | 是 | ISO 日期 `2026-07-25` | 创建日期 |
-| `tags` | 选填但建议 | 两级 `#科研/算子空间` 等 | 以领域开头，用于跨文件夹检索 |
+| `tags` | 选填但建议 | YAML 中写 `科研/算子空间` 等（不带 `#`） | 以领域开头，用于跨文件夹检索；正文内联标签才写 `#科研/算子空间` |
 | 其余字段 | 选填 | `semester` / `deadline` / `source` 等 | 按需自加 |
 
 外部来源笔记建议在正文开头或 frontmatter 标注 `source`（URL/出处）。
 
 ## 检索（API 速查，各 playbook 共用）
 
-> ⚠️ 版本实测（Local REST API v5.0.2 / Obsidian 1.12.7）：
-> - **简单搜索必须用 `?query=` URL 参数（POST）**；用 body 传 `{"query":...}` 会报 `40015`/`40090`。
-> - **JsonLogic 结构化搜索（`/search/`）在本实例未返回结果**，疑似未启用；若返回空数组，请改用「标签统计」+「简单搜索」。**
+> API 细节以当前服务的 `GET /openapi.yaml` 为准，不钉死插件或 Obsidian 版本。
+> **简单搜索必须用 POST 的 `query` URL 参数**；不要把查询放进 JSON body。
 
 **① 标签概览（推荐首选：看主题分布 / 最近在做什么）**：
 ```bash
 curl -s -k "$BASE/tags/" -H "$AUTH"
 ```
 
-**② 简单搜索（POST + `?query=` URL 参数）**：
+**② 简单搜索（POST + URL 编码的 `query` 参数）**：
 ```bash
-curl -s -k -X POST "$BASE/search/simple/?query=关键词" -H "$AUTH"
+curl -s -k -X POST -G "$BASE/search/simple/" \
+  -H "$AUTH" --data-urlencode "query=关键词"
 ```
 
-**③ JsonLogic 结构化搜索（部分版本可用，本实例实测为空，作回退说明）**：
+**③ JsonLogic 结构化搜索（部分版本可用）**：
 ```bash
 curl -s -k -X POST "$BASE/search/" -H "$AUTH" \
   -H "Content-Type: application/json" \
   --data-binary '{"query":{"in":["科研/算子空间",{"var":"tags"}]}}'
 ```
-> 若 ③ 返回空数组，说明当前 Obsidian 实例未启用 JsonLogic 搜索，回退到 ①+②。
+> 若 ③ 返回空数组，回退到 ①+②。
 
 结果按 score 降序，展示 filename / path / score / 匹配上下文。
 
@@ -242,21 +204,14 @@ Git 同步**不在本 skill 实现**，转交：
 - `gitsync`：submodule 远端拉取
 - `smart-commit`：submodule pointer bump 提交
 
-## API 降级流程
+## API 不可用
 
-当 `27123/27124` 均不可达：
-
-1. 提示用户启动 Obsidian + 启用 Local REST API 插件
-2. **允许的最小操作**：`Read` / `Edit` / `Write`（仅新文件）/ `Grep`（本地搜索）
-3. **禁用操作**（本地改也无效，因 Obsidian 无法刷新）：
-   - update-graph / 反向链接级联
-   - MOC PATCH
-4. 降级模式下完成操作后，列出所有修改文件，提醒用户启动 Obsidian 后跑一次 `/check` 确认一致
+当 `27124` 不可达或没有 API key 时，停止 vault 操作并报告阻塞原因。不得降级为文件系统读写。
 
 ## 约束
 
 - **中文自然命名**：文件名见名知义的中文/数字，**禁止** kebab-case 与纯英文（日志类 `YYYY-MM-DD.md` 例外）
-- **标签两级且以领域开头**：`#科研/...` `#教学/...` `#家庭/...`；标签用于跨文件夹检索，不替代文件夹
+- **标签两级且以领域开头**：frontmatter 的 `tags` 值写 `科研/...` `教学/...` `家庭/...`（不带 `#`）；正文内联标签写 `#科研/...`；标签不替代文件夹
 - **顶层只放领域且只增不改**：顶层只能是 `00-inbox` / `NN-领域` / `_meta`；新领域用 `40-xxx` 等编号，不改动已有目录
 - **归档不出领域**：完结内容进本领域 `_archive/` 或 `status: archived`，**禁止**全局归档目录
 - **附件不出领域**：附件随笔记存同级 `_attachments/`，**禁止**全局附件目录
@@ -264,7 +219,7 @@ Git 同步**不在本 skill 实现**，转交：
   - 新增领域/规则 → 改 `命名与归档规则.md`
   - 用户明确要求
 - **`_MOC.md` / `HOME.md` 只追加链接，不删除条目**（除非用户要求清理）
-- **Rename/move 必扫反向链接**：search API 找所有 `[[old]]`，逐一 PATCH 更新
+- **Rename/move 必扫反向链接**：search API 找所有 `[[old]]`；逐篇 GET 最新全文、在内存中精确替换、PUT、再 GET 校验。通用 wikilink 替换不使用结构化 PATCH
 - **原子 move**：PUT → GET 校验 → DELETE，避免半失败产生重复
 - **路径含中文/空格须 URL 编码**：Local REST API 的 vault 路径中的中文与空格需 percent-encode（如 `20-教学` → `20-%E6%95%99%E5%AD%A6`）
 
